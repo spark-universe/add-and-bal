@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>어드민 · 가입자 관리</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-area="admin" data-active="registrants">
+<div class="layout">
+  <div id="sidebar"></div>
+  <main class="content">
+    <div class="page-head">
+      <h2>가입자 관리</h2>
+      <p>승인 및 수강생 관리 — 가입 승인 요청을 확인하고 처리합니다.</p>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat is-highlight">
+        <div class="label">승인 대기</div>
+        <div class="value"><span id="pendingCount">0</span> <span style="font-size:0.9rem;font-weight:600;">명</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head"><span>승인 요청 목록</span></div>
+      <table>
+        <thead>
+          <tr><th>성명</th><th>전화번호</th><th>구글 이메일</th><th>신청일</th><th>처리</th></tr>
+        </thead>
+        <tbody id="pendingBody">
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+(function () {
+  var body = document.getElementById('pendingBody');
+  var countEl = document.getElementById('pendingCount');
+
+  function esc(s) {
+    return String(s || '').replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function fmtDate(iso) { return iso ? iso.slice(0, 10) : '-'; }
+
+  async function loadPending() {
+    var res = await sb.from('profiles')
+      .select('id, name, phone, email, created_at')
+      .eq('status', 'pending')
+      .order('created_at');
+    if (res.error) {
+      body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--danger);padding:40px;">조회 실패: ' + esc(res.error.message) + '</td></tr>';
+      return;
+    }
+    var rows = res.data || [];
+    countEl.textContent = rows.length;
+
+    if (!rows.length) {
+      body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:40px;">승인 대기 중인 가입자가 없습니다.</td></tr>';
+      return;
+    }
+    body.innerHTML = rows.map(function (r) {
+      return '<tr>' +
+        '<td>' + esc(r.name) + '</td>' +
+        '<td>' + esc(r.phone) + '</td>' +
+        '<td>' + esc(r.email) + '</td>' +
+        '<td>' + fmtDate(r.created_at) + '</td>' +
+        '<td>' +
+          '<button class="btn-sm is-primary" data-approve="' + r.id + '">승인</button> ' +
+          '<button class="btn-sm" data-reject="' + r.id + '" style="color:var(--danger);">거절</button>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  body.addEventListener('click', async function (e) {
+    var btn = e.target.closest('button');
+    if (!btn) return;
+    var approve = btn.getAttribute('data-approve');
+    var reject  = btn.getAttribute('data-reject');
+
+    if (approve) {
+      var r1 = await sb.from('profiles').update({ status: 'approved' }).eq('id', approve).select();
+      if (r1.error) { alert('승인 실패: ' + r1.error.message); return; }
+      if (!r1.data || !r1.data.length) { alert('승인 권한이 없어 반영되지 않았습니다.\n어드민 update 정책 SQL을 실행했는지 확인하세요.'); return; }
+      await loadPending();
+    } else if (reject) {
+      if (!confirm('이 가입 요청을 거절하시겠습니까?')) return;
+      var r2 = await sb.from('profiles').update({ status: 'rejected' }).eq('id', reject).select();
+      if (r2.error) { alert('거절 실패: ' + r2.error.message); return; }
+      if (!r2.data || !r2.data.length) { alert('권한이 없어 반영되지 않았습니다.\n어드민 update 정책 SQL을 실행했는지 확인하세요.'); return; }
+      await loadPending();
+    }
+  });
+
+  (async function init() {
+    var admin = await Auth.requireAdmin();
+    if (!admin) return;
+    await loadPending();
+  })();
+})();
+</script>
+</body>
+</html>

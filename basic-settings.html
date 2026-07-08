@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>기본 설정 연습하기</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-area="user" data-active="basic">
+<div class="layout">
+  <div id="sidebar"></div>
+  <main class="content">
+    <div class="page-head">
+      <h2>기본 설정 연습하기</h2>
+      <p>가이드를 확인한 뒤, 각 항목별로 완료 자료를 제출하세요.</p>
+    </div>
+
+    <div class="pass-summary">
+      통과 현황 <b><span id="passCount">0</span> / 4</b>
+      <span id="passHint" style="color:var(--muted);"></span>
+    </div>
+
+    <div class="guide">
+      <h3>가이드 매뉴얼</h3>
+      <ol>
+        <li>Shop 설치 및 디자인: <a href="#">링크</a></li>
+        <li>금지 &amp; 카테고리 미설정 확인: <a href="#">링크</a></li>
+        <li>기본 필수 주문 설정: <a href="#">링크</a></li>
+        <li>아마존 가입 &amp; 프라임 설정: <a href="#">링크</a></li>
+      </ol>
+    </div>
+
+    <div class="submit-grid">
+      <div class="submit-card" data-key="shop">
+        <div class="submit-card__title">Shop 설정</div>
+        <div class="submit-card__body">
+          <input type="file" class="submit-input" hidden>
+          <button class="submit-btn">자료 제출하기</button>
+          <div class="submit-file">
+            <span class="name"></span>
+            <span class="meta"></span>
+            <div class="submit-actions">
+              <button class="act-view">제출한 자료 보기</button>
+              <button class="act-confirm">제출 확정</button>
+              <button class="act-edit">파일 수정</button>
+              <button class="act-cancel">제출 취소</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="submit-card" data-key="category">
+        <div class="submit-card__title">금지 &amp; 카테고리 설정</div>
+        <div class="submit-card__body">
+          <input type="file" class="submit-input" hidden>
+          <button class="submit-btn">자료 제출하기</button>
+          <div class="submit-file">
+            <span class="name"></span>
+            <span class="meta"></span>
+            <div class="submit-actions">
+              <button class="act-view">제출한 자료 보기</button>
+              <button class="act-confirm">제출 확정</button>
+              <button class="act-edit">파일 수정</button>
+              <button class="act-cancel">제출 취소</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="submit-card" data-key="order">
+        <div class="submit-card__title">기본 필수 주문 설정</div>
+        <div class="submit-card__body">
+          <input type="file" class="submit-input" hidden>
+          <button class="submit-btn">자료 제출하기</button>
+          <div class="submit-file">
+            <span class="name"></span>
+            <span class="meta"></span>
+            <div class="submit-actions">
+              <button class="act-view">제출한 자료 보기</button>
+              <button class="act-confirm">제출 확정</button>
+              <button class="act-edit">파일 수정</button>
+              <button class="act-cancel">제출 취소</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="submit-card" data-key="amazon">
+        <div class="submit-card__title">아마존 가입 &amp; 프라임 설정</div>
+        <div class="submit-card__body">
+          <input type="file" class="submit-input" hidden>
+          <button class="submit-btn">자료 제출하기</button>
+          <div class="submit-file">
+            <span class="name"></span>
+            <span class="meta"></span>
+            <div class="submit-actions">
+              <button class="act-view">제출한 자료 보기</button>
+              <button class="act-confirm">제출 확정</button>
+              <button class="act-edit">파일 수정</button>
+              <button class="act-cancel">제출 취소</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/basic-settings.js"></script>
+</body>
+</html>

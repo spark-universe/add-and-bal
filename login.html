@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>로그인 · 발주 &amp; 광고 설정 훈련</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="auth">
+  <form class="auth-card" id="loginForm">
+    <div class="auth-brand">
+      <h1>발주 &amp; 광고 설정 훈련</h1>
+      <p>로그인 후 훈련을 시작하세요</p>
+    </div>
+
+    <div class="auth-msg" id="msg"></div>
+
+    <div class="field">
+      <label for="email">이메일</label>
+      <input type="email" id="email" autocomplete="username" placeholder="가입한 구글 이메일">
+    </div>
+
+    <div class="field">
+      <label for="password">비밀번호</label>
+      <input type="password" id="password" autocomplete="current-password" placeholder="비밀번호를 입력하세요">
+    </div>
+
+    <button class="auth-btn" type="submit" id="submitBtn">로그인</button>
+
+    <div class="auth-alt">
+      아직 회원이 아니신가요? <a href="signup.html">회원가입</a>
+    </div>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script>
+(function () {
+  var form = document.getElementById('loginForm');
+  var msg = document.getElementById('msg');
+  var btn = document.getElementById('submitBtn');
+
+  function show(text) { msg.textContent = text; msg.className = 'auth-msg'; }
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var email = document.getElementById('email').value.trim();
+    var pw = document.getElementById('password').value;
+
+    if (!email || !pw) { return show('이메일과 비밀번호를 모두 입력하세요.'); }
+
+    btn.disabled = true;
+    show('로그인 중...');
+
+    var res = await sb.auth.signInWithPassword({ email: email, password: pw });
+    if (res.error) {
+      btn.disabled = false;
+      return show('로그인 실패: ' + res.error.message);
+    }
+
+    // 프로필로 역할/승인 상태 확인 후 라우팅
+    var prof = await sb.from('profiles').select('role, status').eq('id', res.data.user.id).single();
+    btn.disabled = false;
+
+    if (prof.error) { return show('프로필 조회 실패: ' + prof.error.message); }
+
+    if (prof.data.role === 'admin') {
+      window.location.href = 'admin/index.html';
+    } else if (prof.data.status === 'approved') {
+      window.location.href = 'index.html';
+    } else {
+      await sb.auth.signOut();
+      show('아직 관리자 승인 대기 중입니다. 승인 후 이용할 수 있습니다.');
+    }
+  });
+})();
+</script>
+</body>
+</html>

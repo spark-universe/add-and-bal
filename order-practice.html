@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>발주 연습하기</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-area="user" data-active="practice">
+<div class="layout">
+  <div id="sidebar"></div>
+  <main class="content">
+    <div class="page-head">
+      <h2>발주 연습하기</h2>
+      <p>세팅한 조건에 따라 들어온 주문을 발주 처리하고 차지백을 실습합니다.</p>
+    </div>
+
+    <div class="guide">
+      <h3>가이드 매뉴얼</h3>
+      <ol>
+        <li>발주 매뉴얼: <a href="#">링크</a></li>
+        <li>차지백 매뉴얼: <a href="#">링크</a></li>
+      </ol>
+    </div>
+
+    <div class="work-area">
+      발주 영역 (추후 구현)
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/auth.js"></script>
+<script>Auth.require();</script>
+</body>
+</html>

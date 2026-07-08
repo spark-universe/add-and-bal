@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>어드민 · 자료 검수</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-area="admin" data-active="review">
+<div class="layout">
+  <div id="sidebar"></div>
+  <main class="content">
+    <div class="page-head">
+      <h2>자료 검수</h2>
+      <p>수강생이 제출한 자료를 검토하고 승인/반려합니다. (Google Classroom 과제 제출 현황 참조)</p>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat is-highlight">
+        <div class="label">검수 대기</div>
+        <div class="value"><span id="reviewCount">0</span> <span style="font-size:0.9rem;font-weight:600;">건</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head"><span>자료 검수 리스트 · 제출 확정된 자료를 항목별로 판정합니다</span></div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>수강생</th>
+              <th>Shop 설정</th>
+              <th>금지 &amp; 카테고리 설정</th>
+              <th>기본 필수 주문 설정</th>
+              <th>아마존 가입 &amp; 프라임 설정</th>
+            </tr>
+          </thead>
+          <tbody id="reviewBody">
+            <tr>
+              <td colspan="5" style="text-align:center;color:var(--muted);padding:40px;">
+                불러오는 중...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/admin-review.js"></script>
+</body>
+</html>

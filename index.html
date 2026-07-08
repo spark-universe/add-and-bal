@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>발주 &amp; 광고 설정 훈련</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-area="user" data-active="home">
+<div class="layout">
+  <div id="sidebar"></div>
+  <main class="content">
+    <div class="page-head">
+      <h2>안녕하세요, <span id="userName">수강생</span>님 👋</h2>
+      <p>아래 단계를 순서대로 진행하며 발주와 광고 설정을 연습해 보세요.</p>
+    </div>
+
+    <div class="card-grid">
+      <a class="entry-card" href="basic-settings.html">
+        <div class="ico">⚙️</div>
+        <h3>기본 설정 연습하기</h3>
+        <p>Shop 설정 · 카테고리 · 필수 주문 · 아마존 가입/프라임</p>
+      </a>
+      <a class="entry-card" href="ad-settings.html">
+        <div class="ico">📢</div>
+        <h3>광고 설정하기</h3>
+        <p>광고 세팅 가이드를 따라 직접 설정을 연습합니다.</p>
+      </a>
+      <a class="entry-card" href="order-setup.html">
+        <div class="ico">🧩</div>
+        <h3>발주 연습 세팅</h3>
+        <p>주제 · 마진 · 판매 수량 · 난이도를 설정합니다.</p>
+      </a>
+      <a class="entry-card" href="order-practice.html">
+        <div class="ico">📦</div>
+        <h3>발주 연습하기</h3>
+        <p>임시 주문을 받아 발주와 차지백을 실습합니다.</p>
+      </a>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/auth.js"></script>
+<script>
+(async function () {
+  var user = await Auth.require();
+  if (!user) return;
+  var prof = await sb.from('profiles').select('name').eq('id', user.id).single();
+  if (prof.data && prof.data.name) document.getElementById('userName').textContent = prof.data.name;
+})();
+</script>
+</body>
+</html>

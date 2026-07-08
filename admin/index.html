@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>어드민 · 메인</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-area="admin" data-active="home">
+<div class="layout">
+  <div id="sidebar"></div>
+  <main class="content">
+    <div class="page-head">
+      <h2>안녕하세요, <span id="adminName">GSK Admin</span>님 👋</h2>
+      <p>발주 &amp; 광고 설정 훈련 관리 대시보드</p>
+    </div>
+
+    <div class="stat-row">
+      <a class="stat" href="users.html" style="text-decoration:none;color:inherit;">
+        <div class="label">총 가입자</div>
+        <div class="value"><span id="cTotal">-</span> <span style="font-size:0.9rem;font-weight:600;">명</span></div>
+      </a>
+      <a class="stat" href="registrants.html" style="text-decoration:none;color:inherit;">
+        <div class="label">가입 대기자</div>
+        <div class="value"><span id="cPending">-</span> <span style="font-size:0.9rem;font-weight:600;">명</span></div>
+      </a>
+      <a class="stat" href="review.html" style="text-decoration:none;color:inherit;">
+        <div class="label">자료 검수 대기</div>
+        <div class="value"><span id="cReview">-</span> <span style="font-size:0.9rem;font-weight:600;">건</span></div>
+      </a>
+      <div class="stat is-highlight">
+        <div class="label">승급 요청</div>
+        <div class="value"><span id="cUpgrade">0</span> <span style="font-size:0.9rem;font-weight:600;">건</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head">
+        <span>최근 제출 자료</span>
+        <a href="review.html" style="font-size:0.85rem;color:var(--primary);">검수하기</a>
+      </div>
+      <table>
+        <thead>
+          <tr><th>수강생</th><th>제출 항목</th><th>제출일</th><th>상태</th></tr>
+        </thead>
+        <tbody id="recentBody">
+          <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+(function () {
+  var ITEM_LABELS = { shop: 'Shop 설정', category: '금지 & 카테고리 설정', order: '기본 필수 주문 설정', amazon: '아마존 가입 & 프라임 설정' };
+  var recentBody = document.getElementById('recentBody');
+
+  function esc(s) {
+    return String(s || '').replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function fmtDate(iso) { return iso ? iso.slice(0, 10) : '-'; }
+
+  async function load() {
+    // 프로필 (수강생) 통계
+    var pr = await sb.from('profiles').select('id, name, status').neq('role', 'admin');
+    var profs = (pr.data || []);
+    document.getElementById('cTotal').textContent = profs.length;
+    document.getElementById('cPending').textContent = profs.filter(function (p) { return p.status === 'pending'; }).length;
+
+    var nameById = {};
+    profs.forEach(function (p) { nameById[p.id] = p.name; });
+
+    // 제출 통계 + 최근 목록
+    var su = await sb.from('submissions').select('*').order('created_at', { ascending: false });
+    var subs = (su.data || []);
+    document.getElementById('cReview').textContent = subs.filter(function (r) { return r.status === 'confirmed'; }).length;
+
+    var recent = subs.slice(0, 5);
+    if (!recent.length) {
+      recentBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:40px;">제출된 자료가 없습니다.</td></tr>';
+      return;
+    }
+    recentBody.innerHTML = recent.map(function (r) {
+      var tag = r.status === 'confirmed'
+        ? '<span class="tag tag--ok">확정</span>'
+        : '<span class="tag tag--wait">대기</span>';
+      return '<tr>' +
+        '<td>' + esc(nameById[r.user_id] || '-') + '</td>' +
+        '<td>' + esc(ITEM_LABELS[r.item] || r.item) + '</td>' +
+        '<td>' + fmtDate(r.created_at) + '</td>' +
+        '<td>' + tag + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  (async function init() {
+    var admin = await Auth.requireAdmin();
+    if (!admin) return;
+    if (admin.profile && admin.profile.name) {
+      document.getElementById('adminName').textContent = admin.profile.name;
+    }
+    await load();
+  })();
+})();
+</script>
+</body>
+</html>

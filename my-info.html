@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>내 스토어 정보</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-area="user" data-active="myinfo">
+<div class="layout">
+  <div id="sidebar"></div>
+  <main class="content">
+    <div class="page-head">
+      <h2>내 스토어 정보</h2>
+      <p>운영 중인 스토어를 여러 개 등록·관리할 수 있습니다.</p>
+    </div>
+
+    <div class="list-head">
+      <strong id="storeCount">총 0개 스토어</strong>
+      <button class="btn-primary" id="addBtn">+ 스토어 추가하기</button>
+    </div>
+
+    <div class="panel" id="tableWrap">
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:68px;">순번</th>
+              <th>스토어 이름</th>
+              <th>주제</th>
+              <th>URL</th>
+              <th style="width:80px;">협력자</th>
+              <th style="width:100px;">메모</th>
+              <th style="width:120px;">관리</th>
+            </tr>
+          </thead>
+          <tbody id="storesBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="empty-box" id="emptyBox">
+      아직 등록된 스토어가 없습니다.<br>우측 상단 <b>[+ 스토어 추가하기]</b> 를 눌러 등록하세요.
+    </div>
+  </main>
+</div>
+
+<!-- 메모 보기/입력 모달 -->
+<div class="modal-overlay" id="memoModal">
+  <form class="modal-card" id="memoForm" style="max-width:420px;">
+    <div class="modal-card__head">
+      <h3 id="memoTitle">메모</h3>
+      <button type="button" class="modal-close" id="memoCloseBtn">&times;</button>
+    </div>
+    <div class="modal-card__body">
+      <input type="hidden" id="memoStoreId">
+      <textarea id="memoText" placeholder="메모를 입력하세요."
+        style="width:100%;min-height:120px;padding:11px 14px;border:1px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.95rem;resize:vertical;"></textarea>
+    </div>
+    <div class="modal-card__foot">
+      <button type="button" class="btn-sm" id="memoCancelBtn">취소</button>
+      <button type="submit" class="btn-primary">저장</button>
+    </div>
+  </form>
+</div>
+
+<!-- 추가/수정 모달 -->
+<div class="modal-overlay" id="modal">
+  <form class="modal-card" id="storeForm">
+    <div class="modal-card__head">
+      <h3 id="modalTitle">스토어 추가</h3>
+      <button type="button" class="modal-close" id="closeBtn">&times;</button>
+    </div>
+    <div class="modal-card__body">
+      <input type="hidden" id="storeId">
+      <div class="field">
+        <label for="storeName">스토어명</label>
+        <input id="storeName" type="text" placeholder="예: Gil-dong Shop">
+      </div>
+      <div class="field">
+        <label for="topic">스토어 주제</label>
+        <input id="topic" type="text" placeholder="예: 주방용품">
+      </div>
+      <div class="field">
+        <label for="url">스토어 URL</label>
+        <input id="url" type="url" placeholder="https://mystore.myshopify.com">
+      </div>
+      <div class="field">
+        <label for="partnerCode">협력자 코드 (숫자 4자리)</label>
+        <input id="partnerCode" type="text" inputmode="numeric" maxlength="4" placeholder="예: 1234">
+      </div>
+    </div>
+    <div class="modal-card__foot">
+      <button type="button" class="btn-sm" id="cancelBtn">취소</button>
+      <button type="submit" class="btn-primary">저장</button>
+    </div>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/auth.js"></script>
+<script>
+(function () {
+  // DB 컬럼 ↔ 폼 입력 id 매핑
+  var FIELDS = ['storeName', 'topic', 'url', 'partnerCode'];
+  var COL = { storeName: 'name', topic: 'topic', url: 'url', partnerCode: 'partner_code' };
+
+  var bodyEl   = document.getElementById('storesBody');
+  var tableEl  = document.getElementById('tableWrap');
+  var emptyEl  = document.getElementById('emptyBox');
+  var countEl  = document.getElementById('storeCount');
+  var modal    = document.getElementById('modal');
+  var form     = document.getElementById('storeForm');
+  var titleEl  = document.getElementById('modalTitle');
+
+  function esc(s) {
+    return String(s || '').replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  var stores = [];
+  var user = null;
+
+  // DB 에서 내 스토어 목록 불러오기 (RLS 로 본인 것만 조회됨)
+  async function loadStores() {
+    var res = await sb.from('stores').select('*').order('id');
+    if (res.error) { alert('스토어 조회 실패: ' + res.error.message); return; }
+    stores = res.data || [];
+    render();
+  }
+
+  function render() {
+    countEl.textContent = '총 ' + stores.length + '개 스토어';
+    emptyEl.style.display = stores.length ? 'none' : 'block';
+    tableEl.style.display = stores.length ? 'block' : 'none';
+
+    bodyEl.innerHTML = stores.map(function (s, i) {
+      var urlHtml = s.url
+        ? '<a href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(s.url) + '</a>'
+        : '<span style="color:#aab;">미입력</span>';
+
+      var hasMemo = !!(s.memo && s.memo.trim());
+      var memoBtn = hasMemo
+        ? '<button class="btn-sm memo-btn" data-memo="' + s.id + '" title="' + esc(s.memo) + '">📝 메모</button>'
+        : '<button class="btn-sm memo-btn" data-memo="' + s.id + '" style="color:var(--muted);">+ 메모</button>';
+
+      return '' +
+        '<tr>' +
+          '<td>' + (i + 1) + '</td>' +
+          '<td><b>' + (esc(s.name) || '(이름 없음)') + '</b></td>' +
+          '<td>' + (esc(s.topic) || '-') + '</td>' +
+          '<td>' + urlHtml + '</td>' +
+          '<td>' + (esc(s.partner_code) || '-') + '</td>' +
+          '<td>' + memoBtn + '</td>' +
+          '<td>' +
+            '<button class="btn-link" data-edit="' + s.id + '">수정</button>' +
+            '<button class="btn-link danger" data-del="' + s.id + '">삭제</button>' +
+          '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  function openModal(store) {
+    titleEl.textContent = store ? '스토어 수정' : '스토어 추가';
+    document.getElementById('storeId').value = store ? store.id : '';
+    FIELDS.forEach(function (f) {
+      document.getElementById(f).value = store ? (store[COL[f]] || '') : '';
+    });
+    modal.classList.add('is-open');
+  }
+  function closeModal() { modal.classList.remove('is-open'); }
+
+  // 협력자 코드: 숫자만 입력 허용
+  document.getElementById('partnerCode').addEventListener('input', function () {
+    this.value = this.value.replace(/\D/g, '').slice(0, 4);
+  });
+
+  // 추가 버튼
+  document.getElementById('addBtn').addEventListener('click', function () { openModal(null); });
+  document.getElementById('closeBtn').addEventListener('click', closeModal);
+  document.getElementById('cancelBtn').addEventListener('click', closeModal);
+  modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+
+  // 목록의 수정/삭제/메모 (이벤트 위임)
+  bodyEl.addEventListener('click', async function (e) {
+    var btn = e.target.closest('button');
+    if (!btn) return;
+    var edit = btn.getAttribute('data-edit');
+    var del  = btn.getAttribute('data-del');
+    var memo = btn.getAttribute('data-memo');
+    if (edit) {
+      var s = stores.filter(function (x) { return String(x.id) === edit; })[0];
+      if (s) openModal(s);
+    } else if (del) {
+      var target = stores.filter(function (x) { return String(x.id) === del; })[0];
+      var label = target && target.name ? '‘' + target.name + '’ 스토어를' : '이 스토어를';
+      if (!confirm(label + ' 정말로 삭제하시겠습니까?')) return;
+      var res = await sb.from('stores').delete().eq('id', del);
+      if (res.error) { alert('삭제 실패: ' + res.error.message); return; }
+      await loadStores();
+    } else if (memo) {
+      var m = stores.filter(function (x) { return String(x.id) === memo; })[0];
+      if (m) openMemo(m);
+    }
+  });
+
+  // ----- 메모 모달 -----
+  var memoModal = document.getElementById('memoModal');
+  function openMemo(store) {
+    document.getElementById('memoStoreId').value = store.id;
+    document.getElementById('memoText').value = store.memo || '';
+    document.getElementById('memoTitle').textContent = (store.name || '스토어') + ' · 메모';
+    memoModal.classList.add('is-open');
+  }
+  function closeMemo() { memoModal.classList.remove('is-open'); }
+  document.getElementById('memoCloseBtn').addEventListener('click', closeMemo);
+  document.getElementById('memoCancelBtn').addEventListener('click', closeMemo);
+  memoModal.addEventListener('click', function (e) { if (e.target === memoModal) closeMemo(); });
+  document.getElementById('memoForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var id = document.getElementById('memoStoreId').value;
+    var text = document.getElementById('memoText').value.trim();
+    var res = await sb.from('stores').update({ memo: text }).eq('id', id);
+    if (res.error) { alert('메모 저장 실패: ' + res.error.message); return; }
+    closeMemo();
+    await loadStores();
+  });
+
+  // 저장 (추가 또는 수정)
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var name = document.getElementById('storeName').value.trim();
+    if (!name) { alert('스토어명을 입력하세요.'); return; }
+
+    var code = document.getElementById('partnerCode').value.trim();
+    if (code && !/^\d{4}$/.test(code)) {
+      alert('협력자 코드는 숫자 4자리로 입력하세요.');
+      return;
+    }
+
+    // 폼 입력 → DB 컬럼으로 변환
+    var data = {};
+    FIELDS.forEach(function (f) { data[COL[f]] = document.getElementById(f).value.trim(); });
+
+    var id = document.getElementById('storeId').value;
+    var res;
+    if (id) {
+      res = await sb.from('stores').update(data).eq('id', id);
+    } else {
+      data.user_id = user.id;   // RLS: 본인 소유로 저장
+      res = await sb.from('stores').insert(data);
+    }
+    if (res.error) { alert('저장 실패: ' + res.error.message); return; }
+    closeModal();
+    await loadStores();
+  });
+
+  // ----- 시작: 로그인 확인 후 목록 로드 -----
+  (async function init() {
+    user = await Auth.require();
+    if (!user) return;            // 로그인 안됐으면 login 으로 이동됨
+    await loadStores();
+  })();
+})();
+</script>
+</body>
+</html>

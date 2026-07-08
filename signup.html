@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>회원가입 · 발주 &amp; 광고 설정 훈련</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="auth">
+  <form class="auth-card" id="signupForm">
+    <div class="auth-brand">
+      <h1>회원가입</h1>
+      <p>가입 정보를 입력하세요</p>
+    </div>
+
+    <div class="auth-msg" id="msg"></div>
+
+    <div class="field">
+      <label for="name">성명</label>
+      <input type="text" id="name" placeholder="예: 홍길동">
+      <div class="field-hint">수강생 <strong>본인의 실명</strong>을 <strong>한글</strong>로 입력해 주세요.</div>
+    </div>
+    <div class="field">
+      <label for="phone">전화번호</label>
+      <input type="tel" id="phone" placeholder="010-1234-5678">
+    </div>
+    <div class="field">
+      <label for="email">구글 이메일 (로그인 아이디)</label>
+      <input type="email" id="email" placeholder="example@gmail.com">
+    </div>
+    <div class="field">
+      <label for="password">비밀번호</label>
+      <input type="password" id="password" autocomplete="new-password" placeholder="비밀번호 (6자 이상)">
+    </div>
+    <div class="field">
+      <label for="password2">비밀번호 확인</label>
+      <input type="password" id="password2" autocomplete="new-password" placeholder="비밀번호 재입력">
+    </div>
+
+    <button class="auth-btn" type="submit" id="submitBtn">가입하기</button>
+
+    <div class="auth-alt">
+      이미 계정이 있으신가요? <a href="login.html">로그인</a>
+    </div>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script>
+(function () {
+  var form = document.getElementById('signupForm');
+  var msg = document.getElementById('msg');
+  var btn = document.getElementById('submitBtn');
+
+  function show(text, ok) {
+    msg.textContent = text;
+    msg.className = 'auth-msg' + (ok ? ' ok' : '');
+  }
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var name  = document.getElementById('name').value.trim();
+    var phone = document.getElementById('phone').value.trim();
+    var email = document.getElementById('email').value.trim();
+    var pw    = document.getElementById('password').value;
+    var pw2   = document.getElementById('password2').value;
+
+    if (!name || !phone || !email || !pw) {
+      return show('모든 항목을 입력하세요.', false);
+    }
+    if (!/^[가-힣]{2,}$/.test(name)) {
+      return show('성명은 한글로, 본인의 실명을 입력해 주세요.', false);
+    }
+    if (!/^[^@\s]+@gmail\.com$/i.test(email)) {
+      return show('구글 이메일(@gmail.com)을 입력하세요.', false);
+    }
+    if (pw.length < 6) {
+      return show('비밀번호는 6자 이상이어야 합니다.', false);
+    }
+    if (pw !== pw2) {
+      return show('비밀번호가 일치하지 않습니다.', false);
+    }
+
+    btn.disabled = true;
+    show('가입 처리 중...', true);
+
+    var res = await sb.auth.signUp({
+      email: email,
+      password: pw,
+      options: { data: { name: name, phone: phone } }
+    });
+
+    btn.disabled = false;
+
+    if (res.error) {
+      return show('가입 실패: ' + res.error.message, false);
+    }
+
+    show('가입이 완료되었습니다. 관리자 승인 후 로그인할 수 있습니다.', true);
+    setTimeout(function () { window.location.href = 'login.html'; }, 1600);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>어드민 · 결과 관리</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-area="admin" data-active="results">
+<div class="layout">
+  <div id="sidebar"></div>
+  <main class="content">
+    <div class="page-head">
+      <h2>결과 관리</h2>
+      <p>수강생별 발주 연습 결과와 성적을 확인합니다. (Google Classroom 성적 현황 참조)</p>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head">
+        <span>결과 리스트</span>
+        <a href="#" style="font-size:0.85rem;color:var(--primary);">CSV 내보내기</a>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>수강생</th><th>주제</th><th>난이도</th>
+            <th>처리 주문</th><th>총 수익</th><th>결과</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">
+              집계된 결과가 없습니다.
+            </td>
+          </tr>
+          <!-- 예시 행
+          <tr>
+            <td>홍길동</td>
+            <td>주방용품</td>
+            <td>중</td>
+            <td>28 / 30</td>
+            <td>$1,240.50</td>
+            <td><span class="tag tag--ok">통과</span></td>
+          </tr>
+          -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+<script src="../js/layout.js"></script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>어드민 · 사용자 관리</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-area="admin" data-active="users">
+<div class="layout">
+  <div id="sidebar"></div>
+  <main class="content">
+    <div class="page-head">
+      <h2>사용자 관리</h2>
+      <p>승급 및 자료 제출 관리 — 수강생을 클릭하면 스토어·제출 현황을 볼 수 있습니다.</p>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat">
+        <div class="label">총 수강생 (승인)</div>
+        <div class="value"><span id="userCount">0</span> <span style="font-size:0.9rem;font-weight:600;">명</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head"><span>수강생 리스트</span></div>
+      <table>
+        <thead>
+          <tr>
+            <th>성명</th><th>이메일</th><th>전화번호</th>
+            <th>상태</th><th>스토어</th><th>제출(확정)</th><th>관리</th>
+          </tr>
+        </thead>
+        <tbody id="userBody">
+          <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<!-- 수강생 상세 모달 -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal-card" style="max-width:640px;">
+    <div class="modal-card__head">
+      <h3 id="detailTitle">수강생 상세</h3>
+      <button type="button" class="modal-close" id="detailClose">&times;</button>
+    </div>
+    <div class="modal-card__body" id="detailBody"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+(function () {
+  var BUCKET = 'submissions';
+  var ITEM_LABELS = { shop: 'Shop 설정', category: '금지 & 카테고리 설정', order: '기본 필수 주문 설정', amazon: '아마존 가입 & 프라임 설정' };
+  var ITEM_ORDER = ['shop', 'category', 'order', 'amazon'];
+
+  var body = document.getElementById('userBody');
+  var countEl = document.getElementById('userCount');
+  var modal = document.getElementById('detailModal');
+  var detailBody = document.getElementById('detailBody');
+  var detailTitle = document.getElementById('detailTitle');
+
+  var students = [], storesByUser = {}, subsByUser = {};
+
+  function esc(s) {
+    return String(s || '').replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function statusTag(st) {
+    if (st === 'approved') return '<span class="tag tag--ok">승인</span>';
+    if (st === 'rejected') return '<span class="tag tag--no">거절</span>';
+    return '<span class="tag tag--wait">대기</span>';
+  }
+
+  async function load() {
+    // 수강생(비어드민) 프로필
+    var pr = await sb.from('profiles').select('*').neq('role', 'admin').order('created_at');
+    if (pr.error) {
+      body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--danger);padding:40px;">조회 실패: ' + esc(pr.error.message) + '</td></tr>';
+      return;
+    }
+    students = (pr.data || []);
+
+    // 전체 스토어 / 제출 (어드민은 RLS 로 전체 조회 가능) → 유저별로 그룹
+    storesByUser = {}; subsByUser = {};
+    var st = await sb.from('stores').select('*');
+    (st.data || []).forEach(function (s) { (storesByUser[s.user_id] = storesByUser[s.user_id] || []).push(s); });
+    var su = await sb.from('submissions').select('*');
+    (su.data || []).forEach(function (r) { (subsByUser[r.user_id] = subsByUser[r.user_id] || []).push(r); });
+
+    var approved = students.filter(function (s) { return s.status === 'approved'; });
+    countEl.textContent = approved.length;
+
+    if (!students.length) {
+      body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">등록된 수강생이 없습니다.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = students.map(function (u) {
+      var storeN = (storesByUser[u.id] || []).length;
+      var subs = subsByUser[u.id] || [];
+      var confirmed = subs.filter(function (r) { return r.status === 'confirmed'; }).length;
+      return '<tr>' +
+        '<td><b>' + esc(u.name) + '</b></td>' +
+        '<td>' + esc(u.email) + '</td>' +
+        '<td>' + esc(u.phone) + '</td>' +
+        '<td>' + statusTag(u.status) + '</td>' +
+        '<td>' + storeN + '개</td>' +
+        '<td>' + confirmed + ' / 4</td>' +
+        '<td>' +
+          '<button class="btn-sm" data-detail="' + u.id + '">상세</button> ' +
+          '<button class="btn-sm" data-reset="' + esc(u.email) + '">비번 재설정</button>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function openDetail(u) {
+    detailTitle.textContent = (u.name || '수강생') + ' 상세';
+    var stores = storesByUser[u.id] || [];
+    var subs = subsByUser[u.id] || [];
+
+    var html = '';
+    html += '<h4 style="margin:0 0 8px;">스토어 (' + stores.length + ')</h4>';
+    if (!stores.length) {
+      html += '<p style="color:var(--muted);font-size:0.85rem;">등록된 스토어가 없습니다.</p>';
+    } else {
+      html += '<ul style="margin:0 0 18px;padding-left:18px;font-size:0.86rem;line-height:1.8;">';
+      stores.forEach(function (s) {
+        var url = s.url ? ' · <a href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(s.url) + '</a>' : '';
+        var code = s.partner_code ? ' · 코드 ' + esc(s.partner_code) : '';
+        html += '<li><b>' + esc(s.name) + '</b> (' + (esc(s.topic) || '주제없음') + ')' + url + code + '</li>';
+      });
+      html += '</ul>';
+    }
+
+    html += '<h4 style="margin:0 0 8px;">자료 제출</h4>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:0.84rem;table-layout:fixed;">';
+    ITEM_ORDER.forEach(function (item) {
+      var row = subs.filter(function (r) { return r.item === item; })[0];
+      var status = row ? (row.status === 'confirmed' ? '<span class="tag tag--ok">확정</span>' : '<span class="tag tag--wait">대기</span>') : '<span style="color:#aab;">미제출</span>';
+      var viewBtn = row ? '<button class="btn-sm" data-path="' + esc(row.file_path) + '">열기</button>' : '';
+      html += '<tr style="border-bottom:1px solid #f0f2f6;">' +
+        '<td style="padding:8px;width:160px;white-space:nowrap;">' + ITEM_LABELS[item] + '</td>' +
+        '<td style="padding:8px;word-break:break-all;">' + (row ? '📎 ' + esc(row.file_name) : '<span style="color:#aab;">-</span>') + '</td>' +
+        '<td style="padding:8px;width:70px;text-align:center;">' + status + '</td>' +
+        '<td style="padding:8px;width:64px;text-align:right;">' + viewBtn + '</td>' +
+      '</tr>';
+    });
+    html += '</table>';
+    detailBody.innerHTML = html;
+    modal.classList.add('is-open');
+  }
+  function closeDetail() { modal.classList.remove('is-open'); }
+  document.getElementById('detailClose').addEventListener('click', closeDetail);
+  modal.addEventListener('click', function (e) { if (e.target === modal) closeDetail(); });
+
+  // 목록 버튼 (상세 / 비번 재설정)
+  body.addEventListener('click', async function (e) {
+    var btn = e.target.closest('button');
+    if (!btn) return;
+    var detail = btn.getAttribute('data-detail');
+    var reset = btn.getAttribute('data-reset');
+    if (detail) {
+      var u = students.filter(function (x) { return x.id === detail; })[0];
+      if (u) openDetail(u);
+    } else if (reset) {
+      if (!confirm(reset + ' 로 비밀번호 재설정 메일을 보낼까요?')) return;
+      var res = await sb.auth.resetPasswordForEmail(reset);
+      if (res.error) { alert('발송 실패: ' + res.error.message); return; }
+      alert('재설정 메일을 보냈습니다.');
+    }
+  });
+
+  // 상세 모달 안의 '열기' 버튼
+  detailBody.addEventListener('click', async function (e) {
+    var btn = e.target.closest('button');
+    if (!btn) return;
+    var path = btn.getAttribute('data-path');
+    if (!path) return;
+    var res = await sb.storage.from(BUCKET).createSignedUrl(path, 60);
+    if (res.error) { alert('파일 열기 실패: ' + res.error.message); return; }
+    window.open(res.data.signedUrl, '_blank');
+  });
+
+  (async function init() {
+    var admin = await Auth.requireAdmin();
+    if (!admin) return;
+    await load();
+  })();
+})();
+</script>
+</body>
+</html>
