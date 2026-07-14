@@ -72,6 +72,11 @@
 
   function money(n) { return '$' + Number(n || 0).toFixed(2); }
   function num(id) { return parseFloat(document.getElementById(id).value) || 0; }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
   function round2(n) { return Math.round(n * 100) / 100; }
   function randF(a, b) { return Math.random() * (b - a) + a; }
   function randInt(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
@@ -104,6 +109,53 @@
       .call(document.querySelectorAll('[data-ch].is-on'))
       .map(function (b) { return b.dataset.ch; });
   }
+
+  /* ---------- 광고 미리보기 ----------
+     어드민이 등록한 실제 상품 중에서 무작위로 골라 광고 소재로 보여준다.
+     상품이 수천 개일 수 있으므로 전부 받지 않고, 임의의 구간만 잘라와 그 안에서 섞는다. */
+  var pool = [];
+
+  async function loadProducts() {
+    var c = await sb.from('products')
+      .select('id', { count: 'exact', head: true })
+      .eq('active', true);
+    var total = c.count || 0;
+    if (!total) { pool = []; return; }
+
+    var span = 60;
+    var offset = Math.max(0, Math.floor(Math.random() * Math.max(1, total - span)));
+    var res = await sb.from('products')
+      .select('name, image_url, cost')
+      .eq('active', true)
+      .range(offset, offset + span - 1);
+
+    pool = (res.data || []).filter(function (p) { return p.image_url; });
+  }
+
+  function renderPreview() {
+    var box = document.getElementById('advImgs');
+    if (!pool.length) {
+      box.innerHTML = '<span class="adv-preview__ph">등록된 상품이 없습니다</span>';
+      return;
+    }
+    // 매번 다른 상품 2개
+    var a = pool.slice();
+    var pick = [];
+    for (var i = 0; i < 2 && a.length; i++) {
+      pick.push(a.splice(Math.floor(Math.random() * a.length), 1)[0]);
+    }
+    box.innerHTML = pick.map(function (p) {
+      // 광고에 보이는 가격은 판매가 → 원가에 마진을 붙인 값
+      var price = Number(p.cost || 0) * 1.3;
+      return '<span class="adv-preview__item">' +
+        '<img src="' + esc(p.image_url) + '" alt="">' +
+        '<span class="adv-preview__name">' + esc(String(p.name).slice(0, 42)) + '</span>' +
+        '<span class="adv-preview__price">' + money(price) + '</span>' +
+      '</span>';
+    }).join('');
+  }
+
+  document.getElementById('advShuffle').addEventListener('click', renderPreview);
 
   /* ---------- 일정 (달력) ---------- */
   var today = new Date().toISOString().slice(0, 10);
@@ -350,5 +402,8 @@
     renderSegs();
     renderSched();
     refresh();
+
+    await loadProducts();
+    renderPreview();
   })();
 })();
