@@ -888,9 +888,15 @@ tbody tr:hover { background: #fafbff; }
 .dist__name {
   width: 100%; max-width: 260px; padding: 8px 11px;
   border: 1px solid var(--border); border-radius: 8px;
-  font-size: 0.85rem; color: #a86b00; font-weight: 600;
+  font-size: 0.85rem; color: var(--text); font-weight: 600; background: #fff;
 }
 .dist__name:focus { outline: none; border-color: var(--primary); }
+.dist__select {
+  width: 100%; max-width: 260px; padding: 8px 11px;
+  border: 1px solid var(--border); border-radius: 8px;
+  font-size: 0.85rem; color: var(--text); font-weight: 600; background: #fff;
+}
+.dist__select:focus { outline: none; border-color: var(--primary); }
 .adv-chip--toggle { cursor: pointer; background: #fff; color: var(--muted); }
 .adv-chip--toggle:hover { border-color: var(--primary); }
 .adv-chip--toggle.is-on {

@@ -146,10 +146,14 @@
       .order('cost', { ascending: false }).limit(1);
 
     maxTov = res.data && res.data.length ? Number(res.data[0].cost) : 0;
-    document.getElementById('tov').max = maxTov;
+
+    var tovEl = document.getElementById('tov');
+    tovEl.max = maxTov;
+    tovEl.value = maxTov;          // 카테고리를 고르면 최고가가 목표 객단가로 자동 입력됨
+
     hint.textContent = maxTov ? '최대 ' + money(maxTov) : '상품 없음';
     tovHint.textContent = maxTov
-      ? '이 카테고리에서 가장 비싼 상품이 ' + money(maxTov) + ' 이므로, 목표 객단가는 그 이상 설정할 수 없습니다.'
+      ? '이 카테고리에서 가장 비싼 상품이 ' + money(maxTov) + ' 입니다. 그 이상은 설정할 수 없습니다.'
       : '이 카테고리에는 상품이 없습니다.';
 
     clampAll();
