@@ -101,15 +101,95 @@
       budget: num('budget'),
       cacs: cacs,
       avgCac: round2(avg),
-      channels: channels(),
+      category: document.getElementById('category').value,
     };
   }
 
-  // 켜져 있는 노출 채널
-  function channels() {
-    return Array.prototype.slice
-      .call(document.querySelectorAll('[data-ch].is-on'))
-      .map(function (b) { return b.dataset.ch; });
+  /* ---------- 카테고리 & 상한 ----------
+     목표 객단가는 그 카테고리에서 가장 비싼 상품 값을 넘을 수 없다.
+     (스토어에 $450 짜리가 제일 비싸면 객단가를 $500 으로 잡는 건 말이 안 됨)
+     일 예산은 최대 $1,000.
+     그리고 고객 획득 비용(CAC)은 목표 객단가를 넘을 수 없다 → 넘으면 팔수록 손해. */
+  var MAX_BUDGET = 1000;
+  var maxTov = 0;         // 선택한 카테고리의 최고가
+
+  async function loadCategories() {
+    var res = await sb.from('topics').select('name').eq('active', true).order('name');
+    var list = (res.data || []);
+    var sel = document.getElementById('category');
+
+    if (!list.length) {
+      sel.innerHTML = '<option value="">등록된 카테고리가 없습니다</option>';
+      return;
+    }
+    sel.innerHTML = '<option value="">카테고리를 고르세요</option>' +
+      list.map(function (t) { return '<option>' + esc(t.name) + '</option>'; }).join('');
+  }
+
+  // 그 카테고리에서 가장 비싼 상품 = 목표 객단가의 상한
+  async function refreshMaxTov() {
+    var cat = document.getElementById('category').value;
+    var hint = document.getElementById('catHint');
+    var tovHint = document.getElementById('tovHint');
+
+    if (!cat) {
+      maxTov = 0;
+      hint.textContent = '';
+      tovHint.textContent = '카테고리를 먼저 고르면 최대 금액이 정해집니다.';
+      document.getElementById('tov').removeAttribute('max');
+      renderPreview();
+      return;
+    }
+
+    var res = await sb.from('products')
+      .select('cost').eq('topic', cat).eq('active', true)
+      .order('cost', { ascending: false }).limit(1);
+
+    maxTov = res.data && res.data.length ? Number(res.data[0].cost) : 0;
+    document.getElementById('tov').max = maxTov;
+    hint.textContent = maxTov ? '최대 ' + money(maxTov) : '상품 없음';
+    tovHint.textContent = maxTov
+      ? '이 카테고리에서 가장 비싼 상품이 ' + money(maxTov) + ' 이므로, 목표 객단가는 그 이상 설정할 수 없습니다.'
+      : '이 카테고리에는 상품이 없습니다.';
+
+    clampAll();
+    await loadProducts(cat);
+    renderPreview();
+  }
+
+  /* 상한을 넘긴 값들을 되돌려 놓는다 */
+  function clampAll() {
+    var msgs = [];
+
+    var tovEl = document.getElementById('tov');
+    var tov = parseFloat(tovEl.value) || 0;
+    if (maxTov && tov > maxTov) {
+      tovEl.value = maxTov;
+      tov = maxTov;
+      msgs.push('목표 객단가는 최대 ' + money(maxTov) + ' 입니다. 그 값으로 맞췄습니다.');
+    }
+
+    var bEl = document.getElementById('budget');
+    if ((parseFloat(bEl.value) || 0) > MAX_BUDGET) {
+      bEl.value = MAX_BUDGET;
+      msgs.push('일 예산은 최대 ' + money(MAX_BUDGET) + ' 입니다.');
+    }
+
+    // 획득 비용은 목표 객단가를 넘을 수 없다
+    var over = false;
+    var allEl = document.getElementById('cacAll');
+    if (tov && (parseFloat(allEl.value) || 0) > tov) { allEl.value = tov; over = true; }
+    segs.forEach(function (s) {
+      if (tov && s.cac > tov) { s.cac = tov; over = true; }
+    });
+    if (over) {
+      msgs.push('고객 획득 비용은 목표 객단가(' + money(tov) + ')를 넘을 수 없습니다. 팔수록 손해가 되기 때문입니다.');
+      renderSegs();
+    }
+
+    var box = document.getElementById('limitMsg');
+    box.innerHTML = msgs.length
+      ? '<div class="adv-warn">⚠ ' + msgs.join('<br>⚠ ') + '</div>' : '';
   }
 
   /* ---------- 광고 미리보기 ----------
@@ -117,19 +197,18 @@
      상품이 수천 개일 수 있으므로 전부 받지 않고, 임의의 구간만 잘라와 그 안에서 섞는다. */
   var pool = [];
 
-  async function loadProducts() {
-    var c = await sb.from('products')
-      .select('id', { count: 'exact', head: true })
-      .eq('active', true);
+  async function loadProducts(cat) {
+    var q = sb.from('products').select('id', { count: 'exact', head: true }).eq('active', true);
+    if (cat) q = q.eq('topic', cat);
+    var c = await q;
     var total = c.count || 0;
     if (!total) { pool = []; return; }
 
     var span = 60;
     var offset = Math.max(0, Math.floor(Math.random() * Math.max(1, total - span)));
-    var res = await sb.from('products')
-      .select('name, image_url, cost')
-      .eq('active', true)
-      .range(offset, offset + span - 1);
+    var q2 = sb.from('products').select('name, image_url, cost').eq('active', true);
+    if (cat) q2 = q2.eq('topic', cat);
+    var res = await q2.range(offset, offset + span - 1);
 
     pool = (res.data || []).filter(function (p) { return p.image_url; });
   }
@@ -250,7 +329,7 @@
       return '<div class="adv-seg"><span>' + c.name + '</span><b>' + money(c.value) + '</b></div>';
     }).join('');
     document.getElementById('sRoas').textContent = r[0].toFixed(1) + 'x - ' + r[1].toFixed(1) + 'x';
-    document.getElementById('sChannels').textContent = s.channels.join(' · ');
+    document.getElementById('sChannels').textContent = s.category || '-';
 
     // 획득 비용이 객단가에 가깝거나 넘으면 광고를 돌릴수록 손해
     var warn = document.getElementById('sWarn');
@@ -266,19 +345,6 @@
   }
 
   /* ---------- 세그먼트 추가 / 삭제 / 수정 ---------- */
-  // 채널 칩 켜고 끄기 (최소 하나는 켜져 있어야 함)
-  document.addEventListener('click', function (e) {
-    var ch = e.target.closest('[data-ch]');
-    if (ch) {
-      if (ch.classList.contains('is-on') && channels().length === 1) {
-        alert('채널은 최소 하나를 선택해야 합니다.');
-        return;
-      }
-      ch.classList.toggle('is-on');
-      refresh();
-    }
-  });
-
   document.addEventListener('click', function (e) {
     var del = e.target.closest('[data-del]');
     if (del) {
@@ -302,6 +368,14 @@
   });
 
   // 세그먼트 줄의 금액/기간 변경
+  document.getElementById('segRows').addEventListener('change', function (e) {
+    var cac = e.target.closest('[data-cac]');
+    if (cac) {
+      segs[Number(cac.dataset.cac)].cac = parseFloat(cac.value) || 0;
+      clampAll();          // 객단가를 넘겼으면 되돌린다
+      refresh();
+    }
+  });
   document.getElementById('segRows').addEventListener('input', function (e) {
     var cac = e.target.closest('[data-cac]');
     if (cac) {
@@ -321,7 +395,12 @@
   ['cacAll', 'tov', 'budget', 'country', 'cname'].forEach(function (id) {
     var el = document.getElementById(id);
     el.addEventListener('input', refresh);
-    el.addEventListener('change', refresh);
+    el.addEventListener('change', function () { clampAll(); refresh(); });   // 입력을 마치면 상한 검사
+  });
+
+  document.getElementById('category').addEventListener('change', async function () {
+    await refreshMaxTov();
+    refresh();
   });
 
   document.getElementById('resetBtn').addEventListener('click', function () {
@@ -345,16 +424,15 @@
   /* ---------- 캠페인 시작 ----------
      설정값대로 성과가 나온다: 예상 ROAS 범위 안에서 실제 ROAS 가 결정됨 */
   document.getElementById('startBtn').addEventListener('click', function () {
+    clampAll();
     var s = read();
+    if (!s.category) { alert('카테고리를 고르세요.'); return; }
     if (!s.name) { alert('캠페인 이름을 입력하세요.'); return; }
     if (!s.budget) { alert('일 예산을 입력하세요.'); return; }
     if (!s.tov) { alert('목표 객단가를 입력하세요.'); return; }
+    if (!s.avgCac) { alert('고객 획득 비용을 입력하세요.'); return; }
 
     var r = roasRange(s);
-    if (s.avgCac >= s.tov &&
-        !confirm('획득 비용이 객단가보다 큽니다. 이대로 시작하면 광고를 돌릴수록 손해입니다.\n\n그래도 시작할까요?')) {
-      return;
-    }
 
     // 집행 일수: 종료일이 있으면 그 기간, 없으면 지금까지 며칠 돌았다고 가정
     var days = sched.end
@@ -376,7 +454,7 @@
       segment: 'All',
       tov: s.tov,
       cacs: s.cacs,
-      channels: s.channels,
+      category: s.category,
       start: sched.start,
       end: sched.end,
       status: (sched.end && sched.end <= today) ? 'completed' : 'active',
@@ -411,7 +489,8 @@
     renderSched();
     refresh();
 
-    await loadProducts();
+    await loadCategories();
+    await loadProducts(null);
     renderPreview();
   })();
 })();
