@@ -143,15 +143,50 @@
       '→ <b>환불하기(주문 취소)</b> 를 하세요.)</span>';
   }
 
+  /* 위험 주문 경고 배너 — Low 면 뜨지 않는다.
+     단서를 대신 짚어주되 결론은 내려주지 않는다 (판단은 수강생 몫) */
+  function riskBanner(o) {
+    if (o.risk !== 'high' && o.risk !== 'medium') return '';
+    var high = o.risk === 'high';
+
+    var clues = [];
+    if (o.billTo && o.billTo !== o.cust) clues.push('청구지 명의(' + esc(o.billTo) + ')가 배송지 이름과 다릅니다');
+    if (o.method === 'Express') clues.push('급행(Express) 배송을 선택했습니다');
+    if (o.grandTotal >= 150) clues.push('결제 금액이 큽니다 (' + money(o.grandTotal) + ')');
+    if ((o.custOrderNo || 1) === 1) clues.push('이 스토어에서 처음 주문한 고객입니다');
+
+    return '<div class="risk-banner ' + (high ? 'high' : 'med') + '">' +
+      '<div class="risk-banner__head">' +
+        (high ? '⚠ 차지백 위험이 높은 주문입니다' : '⚠ 차지백 위험이 보통인 주문입니다') +
+      '</div>' +
+      (clues.length
+        ? '<ul class="risk-banner__list">' +
+            clues.map(function (c) { return '<li>' + c + '</li>'; }).join('') +
+          '</ul>'
+        : '') +
+      '<div class="risk-banner__foot">' +
+        '발주하기 전에 확인하세요. 사기 주문을 발주하면 상품과 돈을 모두 잃습니다. ' +
+        '다만 <b>위험도가 높다고 반드시 사기인 것은 아닙니다.</b>' +
+      '</div>' +
+    '</div>';
+  }
+
+  // 헤더 옆 리스크 뱃지 — Low 는 표시하지 않는다
+  function riskBadge(o) {
+    if (o.risk === 'high') return '<span class="risk-badge high">⚠ High risk</span>';
+    if (o.risk === 'medium') return '<span class="risk-badge med">⚠ Medium risk</span>';
+    return '';
+  }
+
   function riskBar(o) {
     var lvl = o.risk || 'low';
     var pct = lvl === 'high' ? 100 : (lvl === 'medium' ? 60 : 28);
     var color = lvl === 'high' ? '#e03131' : (lvl === 'medium' ? '#f59e0b' : '#1aab5b');
     var text = lvl === 'high'
-      ? 'Chargeback risk is high. Review this order before fulfilling it.'
+      ? '차지백 위험이 높습니다. 발주하기 전에 주문을 검토하세요.'
       : lvl === 'medium'
-        ? 'Chargeback risk is medium. Review this order before fulfilling it.'
-        : 'Chargeback risk is low. You can fulfill this order.';
+        ? '차지백 위험이 보통입니다. 발주하기 전에 주문을 검토하세요.'
+        : '차지백 위험이 낮습니다. 발주해도 됩니다.';
     return '<div class="od-card">' +
       '<div class="od-card__head">Order risk</div>' +
       '<div class="od-card__body">' +
@@ -213,7 +248,7 @@
       '<div class="od-top">' +
         '<a class="od-back" href="order-practice.html">←</a>' +
         '<h2 class="od-no">' + esc(o.no) + '</h2>' +
-        badges(o) +
+        badges(o) + riskBadge(o) +
         '<div class="od-top__actions">' +
           (o.payment === 'refunded'
             ? '<button class="btn-sm" disabled>환불 완료</button>'
@@ -222,6 +257,7 @@
         '</div>' +
       '</div>' +
       '<div class="od-sub">' + fmtFull(o.ts) + ' from ' + esc(o.channel) + '</div>' +
+      riskBanner(o) +
 
       '<div class="od-grid">' +
         // ===== 왼쪽 =====

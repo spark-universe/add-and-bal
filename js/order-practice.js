@@ -353,6 +353,14 @@
     if (f === 'not_required') return '<span class="ord-badge"><span class="dot"></span>Not required</span>';
     return '<span class="ord-badge"><span class="dot"></span>Fulfilled</span>';
   }
+  /* 리스크 뱃지 — Low 는 아무것도 안 띄운다 (눈에 걸릴 주문만 눈에 걸리게)
+     Medium/High 라고 무조건 사기인 건 아니고, 반대로 사기인데 Low 로 깔리기도 한다 */
+  function riskHtml(o) {
+    if (o.risk === 'high') return '<span class="risk-badge high">⚠ High</span>';
+    if (o.risk === 'medium') return '<span class="risk-badge med">⚠ Medium</span>';
+    return '';
+  }
+
   // 상품 사진 + 개수 (마우스를 올리면 상품명)
   function itemsHtml(o) {
     var thumbs = (o.lines || []).map(function (l) {
@@ -377,12 +385,13 @@
   function render() {
     var body = document.getElementById('ordBody');
     if (!orders.length) {
-      body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:48px;">' +
+      body.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:48px;">' +
         '아직 주문이 없습니다. 우측 상단 <b>[＋ 주문 받기]</b> 를 눌러 주문을 받아보세요.</td></tr>';
     } else {
       body.innerHTML = orders.map(function (o) {
         return '<tr class="' + rowClass(o) + '" data-no="' + esc(o.no) + '">' +
           '<td class="ord-no">' + esc(o.no) + '</td>' +
+          '<td>' + riskHtml(o) + '</td>' +
           '<td>' + esc(o.date) + '</td>' +
           '<td>' + custHtml(o) + '</td>' +
           '<td>' + money(o.grandTotal != null ? o.grandTotal : o.total) + '</td>' +
@@ -462,7 +471,7 @@
 
   function needSetup(msg) {
     document.getElementById('ordBody').innerHTML =
-      '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:48px;">' + msg +
+      '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:48px;">' + msg +
       '<br><br><a class="btn-primary" href="order-setup.html" style="text-decoration:none;padding:9px 16px;">발주 연습 세팅하러 가기</a>' +
       '</td></tr>';
     document.getElementById('receiveBtn').disabled = true;
