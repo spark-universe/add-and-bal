@@ -235,15 +235,6 @@
           '</div>' +
 
           riskBar(o) +
-
-          '<div class="od-card">' +
-            '<div class="od-card__head">Tags</div>' +
-            '<div class="od-card__body">' +
-              ((o.tags || []).length
-                ? o.tags.map(function (t) { return '<span class="ord-chip">' + esc(t) + '</span>'; }).join('')
-                : '<span class="od-muted">태그 없음</span>') +
-            '</div>' +
-          '</div>' +
         '</div>' +
       '</div>';
 

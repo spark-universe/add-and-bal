@@ -216,8 +216,7 @@
         method: rand(['Economy', 'Economy', 'Standard', 'Express']),
         issue: fraudSlots[i] ? issueTypes[issueAt++] : null,   // 사기(문제) 주문 4종 중 하나
         lowMargin: lowMargin,                                   // 역마진 — 사기와 별개
-        missing: [],
-        tags: Math.random() < 0.6 ? ['All customers', 'Grow sales - 01'] : []
+        missing: []
       };
 
       applyIssue(o);
@@ -323,11 +322,6 @@
     if (f === 'not_required') return '<span class="ord-badge"><span class="dot"></span>Not required</span>';
     return '<span class="ord-badge"><span class="dot"></span>Fulfilled</span>';
   }
-  function tagsHtml(tags) {
-    if (!tags || !tags.length) return '';
-    var shown = tags.slice(0, 2).map(function (t) { return '<span class="ord-chip">' + esc(t) + '</span>'; }).join('');
-    return shown + (tags.length > 2 ? '<span class="ord-chip">+' + (tags.length - 2) + '</span>' : '');
-  }
   // 상품 사진 + 개수 (마우스를 올리면 상품명)
   function itemsHtml(o) {
     var thumbs = (o.lines || []).map(function (l) {
@@ -352,7 +346,7 @@
   function render() {
     var body = document.getElementById('ordBody');
     if (!orders.length) {
-      body.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:48px;">' +
+      body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:48px;">' +
         '아직 주문이 없습니다. 우측 상단 <b>[＋ 주문 받기]</b> 를 눌러 주문을 받아보세요.</td></tr>';
     } else {
       body.innerHTML = orders.map(function (o) {
@@ -365,7 +359,6 @@
           '<td>' + fulfillBadge(o.fulfillment) + '</td>' +
           '<td>' + itemsHtml(o) + '</td>' +
           '<td>' + esc(o.method) + '</td>' +
-          '<td>' + tagsHtml(o.tags) + '</td>' +
         '</tr>';
       }).join('');
     }
@@ -438,7 +431,7 @@
 
   function needSetup(msg) {
     document.getElementById('ordBody').innerHTML =
-      '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:48px;">' + msg +
+      '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:48px;">' + msg +
       '<br><br><a class="btn-primary" href="order-setup.html" style="text-decoration:none;padding:9px 16px;">발주 연습 세팅하러 가기</a>' +
       '</td></tr>';
     document.getElementById('receiveBtn').disabled = true;
