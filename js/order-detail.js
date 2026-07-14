@@ -64,8 +64,10 @@
 
   function lineRows(o) {
     return (o.lines || []).map(function (l) {
+      // 사진을 누르면 크게 볼 수 있다 (어떤 물건인지 확인하고 발주해야 하므로)
       var img = l.image
-        ? '<img class="od-img" src="' + esc(l.image) + '" alt="">'
+        ? '<img class="od-img is-zoom" src="' + esc(l.image) + '" alt="" ' +
+          'data-full="' + esc(l.image) + '" data-name="' + esc(l.name) + '" title="클릭하면 크게 보기">'
         : '<span class="od-img od-img--empty">?</span>';
       return '<div class="od-line">' +
         img +
@@ -246,6 +248,38 @@
     var f = document.getElementById('btnFulfill');
     if (f) f.addEventListener('click', function () {
       alert('발주 처리 동작은 다음 단계에서 붙입니다.');
+    });
+
+    bindZoom();
+  }
+
+  /* ---------- 사진 크게 보기 ---------- */
+  function bindZoom() {
+    var box = document.createElement('div');
+    box.className = 'img-zoom';
+    box.innerHTML =
+      '<button class="img-zoom__close" aria-label="닫기">×</button>' +
+      '<img class="img-zoom__img" src="" alt="">' +
+      '<div class="img-zoom__cap"></div>';
+    document.body.appendChild(box);
+
+    function open(src, name) {
+      box.querySelector('.img-zoom__img').src = src;
+      box.querySelector('.img-zoom__cap').textContent = name || '';
+      box.classList.add('is-open');
+    }
+    function close() {
+      box.classList.remove('is-open');
+      box.querySelector('.img-zoom__img').src = '';
+    }
+
+    document.addEventListener('click', function (e) {
+      var img = e.target.closest('.is-zoom');
+      if (img) { open(img.dataset.full, img.dataset.name); return; }
+      if (e.target.closest('.img-zoom')) close();   // 배경이나 × 를 누르면 닫힘
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') close();
     });
   }
 

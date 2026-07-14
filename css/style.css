@@ -800,6 +800,30 @@ tbody tr:hover { background: #fafbff; }
 .od-muted { color: var(--muted); }
 .od-missing { color: var(--danger); font-weight: 700; }
 
+/* 사진 크게 보기 */
+.od-img.is-zoom { cursor: zoom-in; transition: transform 0.12s; }
+.od-img.is-zoom:hover { transform: scale(1.06); border-color: var(--primary); }
+.img-zoom {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(15, 18, 24, 0.82);
+  align-items: center; justify-content: center; flex-direction: column;
+  padding: 40px; cursor: zoom-out;
+}
+.img-zoom.is-open { display: flex; }
+.img-zoom__img {
+  max-width: min(760px, 90vw); max-height: 78vh;
+  object-fit: contain; border-radius: 12px; background: #fff;
+}
+.img-zoom__cap {
+  color: #fff; font-size: 0.88rem; max-width: min(760px, 90vw);
+  margin-top: 16px; text-align: center; line-height: 1.5;
+}
+.img-zoom__close {
+  position: absolute; top: 20px; right: 26px;
+  background: none; border: none; color: #fff; font-size: 2rem;
+  line-height: 1; cursor: pointer;
+}
+
 .od-risk { height: 8px; border-radius: 5px; background: #eef1f5; overflow: hidden; }
 .od-risk > i { display: block; height: 100%; }
 .od-risk__labels { display: flex; justify-content: space-between; margin-top: 7px; font-size: 0.78rem; color: var(--muted); }
