@@ -12,8 +12,63 @@
    ========================================================= */
 (function () {
   var STORE = 'ad_campaigns';
+  var TERMS = ['3 months', '6 months', '12 months'];   // 이탈 고객은 기간별로 따로 걸 수 있다
 
-  var segments = { new: true, lapsed: true };   // 켜져 있는 세그먼트 (전체 고객은 항상 켜짐)
+  /* 세그먼트 우선순위 목록 (전체 고객은 항상 있으므로 여기 없음)
+     - new    : 신규 고객 (하나만)
+     - lapsed : 이탈 고객 (기간별로 여러 개 가능 — 3개월 이탈과 6개월 이탈에 다른 비용) */
+  var segs = [
+    { type: 'new', cac: 38.31 },
+    { type: 'lapsed', term: '3 months', cac: 38.31 },
+  ];
+
+  function usedTerms() {
+    return segs.filter(function (s) { return s.type === 'lapsed'; })
+      .map(function (s) { return s.term; });
+  }
+  function freeTerms() {
+    var used = usedTerms();
+    return TERMS.filter(function (t) { return used.indexOf(t) === -1; });
+  }
+
+  /* ---------- 세그먼트 줄 그리기 ---------- */
+  function renderSegs() {
+    document.getElementById('segBox').hidden = !segs.length;
+
+    document.getElementById('segRows').innerHTML = segs.map(function (s, i) {
+      var name = s.type === 'new' ? '신규 고객 (New customers)' : '이탈 고객 (Lapsed customers)';
+      var term = s.type === 'lapsed'
+        ? '<select class="cac-row__term" data-term="' + i + '">' +
+            TERMS.map(function (t) {
+              // 다른 줄이 이미 쓰는 기간은 고를 수 없다
+              var taken = usedTerms().indexOf(t) !== -1 && t !== s.term;
+              return '<option' + (t === s.term ? ' selected' : '') +
+                (taken ? ' disabled' : '') + '>' + t + '</option>';
+            }).join('') +
+          '</select>'
+        : '';
+      return '<div class="cac-row">' +
+        '<span class="cac-row__ico">👤</span>' +
+        '<span class="cac-row__name">' + name + '</span>' +
+        term +
+        '<span class="cac-row__input">' +
+          '<span class="cac-row__unit">$</span>' +
+          '<input type="number" step="0.01" min="0" value="' + s.cac + '" data-cac="' + i + '">' +
+        '</span>' +
+        '<button class="cac-row__del" data-del="' + i + '" title="빼기">×</button>' +
+      '</div>';
+    }).join('');
+
+    // 추가 칩 — 신규 고객은 하나만, 이탈 고객은 남은 기간이 있으면 계속 추가 가능
+    var chips = [];
+    if (!segs.some(function (s) { return s.type === 'new'; })) {
+      chips.push('<button class="adv-chip adv-chip--add" data-add="new">+ 신규 고객</button>');
+    }
+    if (freeTerms().length) {
+      chips.push('<button class="adv-chip adv-chip--add" data-add="lapsed">+ 이탈 고객</button>');
+    }
+    document.getElementById('segAdd').innerHTML = chips.join('');
+  }
 
   function money(n) { return '$' + Number(n || 0).toFixed(2); }
   function num(id) { return parseFloat(document.getElementById(id).value) || 0; }
@@ -24,13 +79,12 @@
   /* ---------- 현재 입력값 ---------- */
   function read() {
     var cacs = [{ name: '전체 고객', value: num('cacAll') }];
-    if (segments.new) cacs.push({ name: '신규 고객', value: num('cacNew') });
-    if (segments.lapsed) {
+    segs.forEach(function (s) {
       cacs.push({
-        name: '이탈 고객 · ' + document.getElementById('lapsedTerm').value,
-        value: num('cacLapsed')
+        name: s.type === 'new' ? '신규 고객' : '이탈 고객 · ' + s.term,
+        value: s.cac,
       });
-    }
+    });
     var avg = cacs.reduce(function (a, c) { return a + c.value; }, 0) / cacs.length;
 
     return {
@@ -40,7 +94,6 @@
       budget: num('budget'),
       cacs: cacs,
       avgCac: round2(avg),
-      term: document.getElementById('lapsedTerm').value,
     };
   }
 
@@ -75,45 +128,63 @@
     } else {
       warn.innerHTML = '';
     }
-
-    // 빠진 세그먼트를 다시 추가하는 칩
-    var add = document.getElementById('segAdd');
-    var chips = [];
-    if (!segments.new) chips.push('<button class="adv-chip adv-chip--add" data-add="new">+ 신규 고객</button>');
-    if (!segments.lapsed) chips.push('<button class="adv-chip adv-chip--add" data-add="lapsed">+ 이탈 고객</button>');
-    add.innerHTML = chips.join('');
   }
 
-  /* ---------- 세그먼트 켜고 끄기 ---------- */
+  /* ---------- 세그먼트 추가 / 삭제 / 수정 ---------- */
   document.addEventListener('click', function (e) {
-    var del = e.target.closest('.cac-row__del');
+    var del = e.target.closest('[data-del]');
     if (del) {
-      segments[del.dataset.seg] = false;
-      document.querySelector('.cac-row[data-seg="' + del.dataset.seg + '"]').hidden = true;
+      segs.splice(Number(del.dataset.del), 1);
+      renderSegs();
       refresh();
       return;
     }
     var add = e.target.closest('[data-add]');
     if (add) {
-      segments[add.dataset.add] = true;
-      document.querySelector('.cac-row[data-seg="' + add.dataset.add + '"]').hidden = false;
+      if (add.dataset.add === 'new') {
+        segs.unshift({ type: 'new', cac: 38.31 });
+      } else {
+        var t = freeTerms()[0];                        // 아직 안 쓴 기간을 자동으로 잡아줌
+        if (!t) return;
+        segs.push({ type: 'lapsed', term: t, cac: 38.31 });
+      }
+      renderSegs();
       refresh();
     }
   });
 
-  document.querySelectorAll('input, select').forEach(function (el) {
+  // 세그먼트 줄의 금액/기간 변경
+  document.getElementById('segRows').addEventListener('input', function (e) {
+    var cac = e.target.closest('[data-cac]');
+    if (cac) {
+      segs[Number(cac.dataset.cac)].cac = parseFloat(cac.value) || 0;
+      refresh();
+    }
+  });
+  document.getElementById('segRows').addEventListener('change', function (e) {
+    var term = e.target.closest('[data-term]');
+    if (term) {
+      segs[Number(term.dataset.term)].term = term.value;
+      renderSegs();   // 다른 줄의 선택 가능 기간이 달라지므로 다시 그림
+      refresh();
+    }
+  });
+
+  ['cacAll', 'tov', 'budget', 'country', 'cname'].forEach(function (id) {
+    var el = document.getElementById(id);
     el.addEventListener('input', refresh);
     el.addEventListener('change', refresh);
   });
 
   document.getElementById('resetBtn').addEventListener('click', function () {
     document.getElementById('cacAll').value = 30.65;
-    document.getElementById('cacNew').value = 38.31;
-    document.getElementById('cacLapsed').value = 38.31;
     document.getElementById('tov').value = 76.62;
     document.getElementById('budget').value = 765;
-    segments.new = segments.lapsed = true;
-    document.querySelectorAll('.cac-row[data-seg]').forEach(function (r) { r.hidden = false; });
+    segs = [
+      { type: 'new', cac: 38.31 },
+      { type: 'lapsed', term: '3 months', cac: 38.31 },
+    ];
+    renderSegs();
     refresh();
   });
 
@@ -176,6 +247,7 @@
     document.getElementById('cname').value =
       '새 캠페인 ' + String(list.length + 1).padStart(2, '0');
 
+    renderSegs();
     refresh();
   })();
 })();

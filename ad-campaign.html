@@ -38,37 +38,13 @@
             </span>
           </div>
 
-          <div class="cac-over">
+          <div class="cac-over" id="segBox" hidden>
             <div class="cac-over__head">세그먼트 우선순위 (Segment overrides)</div>
             <div class="cac-over__sub">더 높은 획득 비용을 걸면 그 세그먼트에 광고가 우선 노출됩니다</div>
-
-            <div class="cac-row" data-seg="new">
-              <span class="cac-row__ico">👤</span>
-              <span class="cac-row__name">신규 고객 (New customers)</span>
-              <span class="cac-row__input">
-                <span class="cac-row__unit">$</span>
-                <input type="number" id="cacNew" step="0.01" min="0" value="38.31">
-              </span>
-              <button class="cac-row__del" data-seg="new" title="빼기">×</button>
-            </div>
-
-            <div class="cac-row" data-seg="lapsed" id="rowLapsed">
-              <span class="cac-row__ico">👤</span>
-              <span class="cac-row__name">이탈 고객 (Lapsed customers)</span>
-              <select id="lapsedTerm" class="cac-row__term">
-                <option>3 months</option>
-                <option>6 months</option>
-                <option>12 months</option>
-              </select>
-              <span class="cac-row__input">
-                <span class="cac-row__unit">$</span>
-                <input type="number" id="cacLapsed" step="0.01" min="0" value="38.31">
-              </span>
-              <button class="cac-row__del" data-seg="lapsed" title="빼기">×</button>
-            </div>
+            <div id="segRows"></div>
           </div>
 
-          <div id="segAdd" style="margin-top:12px;display:flex;gap:6px;"></div>
+          <div id="segAdd" style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap;"></div>
         </div>
 
         <div class="od-box">
