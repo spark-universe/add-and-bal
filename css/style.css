@@ -862,6 +862,33 @@ tbody tr:hover { background: #fafbff; }
 .adv-chip--add { cursor: pointer; }
 .adv-chip--add:hover { border-color: var(--primary); color: var(--primary); }
 
+/* 노출 설정 (Distribution) */
+.dist { border-top: 1px solid var(--border); margin: 4px -16px 0; padding: 0 16px; }
+.dist__head {
+  cursor: pointer; list-style: none; padding: 14px 0;
+  font-weight: 800; font-size: 0.85rem; color: #a86b00;
+}
+.dist__head::-webkit-details-marker { display: none; }
+.dist__head::after { content: '⌄'; float: right; color: var(--muted); }
+.dist[open] .dist__head::after { content: '⌃'; }
+.dist__row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 0; border-top: 1px solid #f0f2f5;
+}
+.dist__label { width: 90px; font-size: 0.84rem; color: var(--muted); flex-shrink: 0; }
+.dist__val { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; flex: 1; }
+.dist__name {
+  width: 100%; max-width: 260px; padding: 8px 11px;
+  border: 1px solid var(--border); border-radius: 8px;
+  font-size: 0.85rem; color: #a86b00; font-weight: 600;
+}
+.dist__name:focus { outline: none; border-color: var(--primary); }
+.adv-chip--toggle { cursor: pointer; background: #fff; color: var(--muted); }
+.adv-chip--toggle:hover { border-color: var(--primary); }
+.adv-chip--toggle.is-on {
+  background: var(--primary-soft); border-color: var(--primary); color: var(--primary);
+}
+
 .adv-seglist { border-top: 1px solid var(--border); margin-top: 4px; padding-top: 10px; }
 .adv-seg {
   display: flex; justify-content: space-between; gap: 10px;

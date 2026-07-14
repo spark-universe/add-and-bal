@@ -94,7 +94,15 @@
       budget: num('budget'),
       cacs: cacs,
       avgCac: round2(avg),
+      channels: channels(),
     };
+  }
+
+  // 켜져 있는 노출 채널
+  function channels() {
+    return Array.prototype.slice
+      .call(document.querySelectorAll('[data-ch].is-on'))
+      .map(function (b) { return b.dataset.ch; });
   }
 
   /* ---------- 예상 ROAS ----------
@@ -116,6 +124,7 @@
       return '<div class="adv-seg"><span>' + c.name + '</span><b>' + money(c.value) + '</b></div>';
     }).join('');
     document.getElementById('sRoas').textContent = r[0].toFixed(1) + 'x - ' + r[1].toFixed(1) + 'x';
+    document.getElementById('sChannels').textContent = s.channels.join(' · ');
 
     // 획득 비용이 객단가에 가깝거나 넘으면 광고를 돌릴수록 손해
     var warn = document.getElementById('sWarn');
@@ -131,6 +140,19 @@
   }
 
   /* ---------- 세그먼트 추가 / 삭제 / 수정 ---------- */
+  // 채널 칩 켜고 끄기 (최소 하나는 켜져 있어야 함)
+  document.addEventListener('click', function (e) {
+    var ch = e.target.closest('[data-ch]');
+    if (ch) {
+      if (ch.classList.contains('is-on') && channels().length === 1) {
+        alert('채널은 최소 하나를 선택해야 합니다.');
+        return;
+      }
+      ch.classList.toggle('is-on');
+      refresh();
+    }
+  });
+
   document.addEventListener('click', function (e) {
     var del = e.target.closest('[data-del]');
     if (del) {
@@ -217,6 +239,7 @@
       segment: 'All',
       tov: s.tov,
       cacs: s.cacs,
+      channels: s.channels,
       start: new Date().toISOString().slice(0, 10),
       end: null,
       status: 'active',

@@ -62,7 +62,7 @@
           <div class="oe-note">각 국가에서 지원되는 채널에 광고가 노출됩니다.</div>
         </div>
 
-        <div class="od-box">
+        <div class="od-box" style="padding-bottom:0;">
           <div class="od-box__title">예산과 목표</div>
           <div class="prod-form">
             <div class="field">
@@ -82,13 +82,38 @@
               <div class="field-hint">하루에 쓸 광고비입니다.</div>
             </div>
           </div>
+
+          <!-- 노출 설정 -->
+          <details class="dist" open>
+            <summary class="dist__head">노출 설정 (Distribution)</summary>
+
+            <div class="dist__row">
+              <span class="dist__label">📺 채널</span>
+              <span class="dist__val">
+                <button class="adv-chip adv-chip--toggle is-on" data-ch="Shop">Shop</button>
+                <button class="adv-chip adv-chip--toggle is-on" data-ch="Product Network">Product Network</button>
+                <button class="adv-chip adv-chip--toggle" data-ch="Other platforms">Other platforms</button>
+              </span>
+            </div>
+
+            <div class="dist__row">
+              <span class="dist__label">🗓 일정</span>
+              <span class="dist__val">
+                <button class="adv-chip adv-chip--toggle is-on" id="schedChip">📅 지금 시작</button>
+              </span>
+            </div>
+
+            <div class="dist__row">
+              <span class="dist__label">📝 이름</span>
+              <span class="dist__val">
+                <input type="text" id="cname" class="dist__name" value="새 캠페인 01">
+              </span>
+            </div>
+          </details>
         </div>
 
-        <div class="od-box" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <span class="adv-chip">📺 모든 채널</span>
-          <span class="adv-chip">📅 지금 시작</span>
-          <input type="text" id="cname" class="adv-chip adv-chip--input" value="새 캠페인 01">
-          <button class="btn-primary" id="startBtn" style="margin-left:auto;padding:10px 20px;">캠페인 시작</button>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:20px;">
+          <button class="btn-primary" id="startBtn" style="padding:11px 22px;">캠페인 시작</button>
         </div>
       </div>
 
@@ -102,6 +127,9 @@
               <tr><td>평균 획득 비용</td><td></td><td class="r" id="sCac">$35.76</td></tr>
             </table>
             <div id="sSegs" class="adv-seglist"></div>
+            <div class="adv-seg" style="margin-top:10px;">
+              <span>노출 채널</span><b id="sChannels">Shop</b>
+            </div>
             <div class="adv-roas">
               <span>예상 광고 수익률 (ROAS)</span>
               <b id="sRoas">2.0x - 2.5x</b>
