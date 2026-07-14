@@ -47,6 +47,12 @@ a { color: inherit; text-decoration: none; }
   padding: 22px 0;
   display: flex;
   flex-direction: column;
+  /* 본문을 아무리 내려도 사이드바는 화면에 붙어 있는다 (로그아웃 버튼까지 항상 보임) */
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  overflow-y: auto;
 }
 .sidebar__brand {
   padding: 0 22px 20px;
@@ -706,7 +712,14 @@ tbody tr:hover { background: #fafbff; }
   .ord-metrics { flex-wrap: wrap; }
   .ord-metrics__today, .ord-metric { flex: 1 1 45%; border-bottom: 1px solid var(--border); }
   .layout { grid-template-columns: 1fr; }
-  .sidebar { flex-direction: row; overflow-x: auto; align-items: center; }
+  /* 좁은 화면에서는 가로 막대로 바뀌므로 고정을 풀고 상단에만 붙인다 */
+  .sidebar {
+    flex-direction: row;
+    overflow-x: auto;
+    align-items: center;
+    position: static;
+    height: auto;
+  }
   .card-grid, .submit-grid { grid-template-columns: 1fr; }
   .prod-form { grid-template-columns: 1fr; }
   .content { padding: 24px 20px; }
