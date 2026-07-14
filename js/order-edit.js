@@ -151,11 +151,17 @@
     var img = l.image
       ? '<img class="od-img" src="' + esc(l.image) + '" alt="">'
       : '<span class="od-img od-img--empty">?</span>';
+    // 재고가 주문 수량보다 적으면 그 사실을 이 줄에도 보여준다
+    var short = l.stock != null && l.stock < l.qty;
     return '<div class="od-line">' +
       img +
       '<div class="od-line__info">' +
         '<span class="od-line__name" style="color:var(--primary);">' + esc(l.name) + '</span>' +
-        '<div class="od-line__sku">' + esc(l.sku || '') + '</div>' +
+        '<div class="od-line__sku">' + esc(l.sku || '') +
+          (short
+            ? '<span class="od-stock">' + (l.stock > 0 ? '재고 ' + l.stock + '개뿐' : '품절') + '</span>'
+            : '') +
+        '</div>' +
       '</div>' +
       '<div class="od-line__qty">' + money(l.price) + '</div>' +
       '<input class="oe-qty" type="number" min="0" value="' + l.qty + '" data-i="' + i + '">' +

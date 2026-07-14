@@ -88,12 +88,59 @@
         '<div class="od-line__info">' +
           '<a class="od-line__name" href="' + (l.source ? esc(l.source) : '#') + '"' +
             (l.source ? ' target="_blank"' : '') + '>' + esc(l.name) + '</a>' +
-          '<div class="od-line__sku">' + esc(l.sku || '') + '</div>' +
+          '<div class="od-line__sku">' + esc(l.sku || '') +
+            (l.stock != null && l.stock < l.qty
+              ? '<span class="od-stock">' + (l.stock > 0 ? '재고 ' + l.stock + '개' : '품절') + '</span>'
+              : '') +
+          '</div>' +
         '</div>' +
         '<div class="od-line__qty">' + money(l.price) + ' × <span class="od-qty">' + l.qty + '</span></div>' +
         '<div class="od-line__sum">' + money(l.price * l.qty) + '</div>' +
       '</div>';
     }).join('');
+  }
+
+  /* ---------- 재고 부족 안내 + 고객 문의 ----------
+     아마존 재고가 주문 수량보다 적을 때 뜬다.
+     [고객에게 문의하기] 를 눌러야 고객의 답장이 오고, 그 답장대로 처리해야 정답이다. */
+  function stockBox(o) {
+    var short = (o.lines || []).filter(function (l) {
+      return l.stock != null && l.stock < l.qty;
+    });
+    if (!short.length) return '';
+
+    var l = short[0];
+    var head = l.stock > 0
+      ? '⚠️ 이 상품은 현재 재고가 <b>' + l.stock + '개</b>만 남았습니다. (주문 수량 ' + l.qty + '개)'
+      : '⚠️ 이 상품은 현재 <b>품절 · 단종</b> 되어 발주할 수 없습니다. (주문 수량 ' + l.qty + '개)';
+
+    var body;
+    if (!o.replied) {
+      body = '<p class="oos-p">주문한 수량을 모두 보낼 수 없습니다. 고객에게 어떻게 할지 물어보세요.</p>' +
+        '<button class="btn-sm is-primary" id="btnAsk">📧 고객에게 문의하기</button>';
+    } else {
+      body = '<div class="oos-mail">' +
+        '<div class="oos-mail__from">✉️ ' + esc(o.cust) +
+          (o.email ? ' &lt;' + esc(o.email) + '&gt;' : '') + '</div>' +
+        '<div class="oos-mail__body">' + replyText(o, l) + '</div>' +
+      '</div>';
+    }
+
+    return '<div class="oos-box"><div class="oos-head">' + head + '</div>' + body + '</div>';
+  }
+
+  function replyText(o, l) {
+    if (o.reply === 'partial') {
+      return 'Hi, thanks for letting me know.<br>' +
+        'Please just send me the <b>' + l.stock + '</b> you have in stock and refund the rest. ' +
+        'I still want them!<br><br>' +
+        '<span class="od-muted">(재고 있는 ' + l.stock + '개만 보내주시고 나머지는 환불해 주세요. ' +
+        '→ <b>주문 편집</b>으로 수량을 ' + l.stock + '개로 줄이세요.)</span>';
+    }
+    return 'Hi, if you cannot send the full order, I do not want a partial shipment.<br>' +
+      'Please <b>cancel the order and refund me in full</b>.<br><br>' +
+      '<span class="od-muted">(전부 못 받으면 필요 없습니다. 전액 환불해 주세요. ' +
+      '→ <b>환불하기(주문 취소)</b> 를 하세요.)</span>';
   }
 
   function riskBar(o) {
@@ -183,6 +230,7 @@
             '<div class="od-tag attn">📦 ' +
               (o.fulfillment === 'fulfilled' ? 'Fulfilled' : 'Unfulfilled') + '</div>' +
             '<div class="od-method">🚚 ' + esc(o.method) + '</div>' +
+            stockBox(o) +
             '<div class="od-lines">' + lineRows(o) + '</div>' +
             '<div class="od-actions">' +
               '<button class="btn-sm" id="btnFulfill">Mark as fulfilled</button>' +
@@ -263,6 +311,15 @@
 
     var r = document.getElementById('btnRefund');
     if (r) r.addEventListener('click', function () { openRefund(o); });
+
+    // 고객에게 문의 → 답장이 도착 (이미 정해져 있던 답장이 드러남)
+    var a = document.getElementById('btnAsk');
+    if (a) a.addEventListener('click', function () {
+      o.replied = true;
+      o.repliedAt = Date.now();
+      saveOrder(o);
+      render(o);
+    });
 
     bindZoom(o);
   }

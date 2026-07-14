@@ -268,8 +268,18 @@
       return;
     }
     if (o.issue === 'oos') {
-      // 아마존에서 품절/단종된 상품이 섞임 → 발주 처리 화면에서 "재고 없음"으로 드러남
-      o.lines[randInt(0, o.lines.length - 1)].oos = true;
+      /* 아마존 재고 부족. 두 갈래로 갈린다.
+         - 부분 재고: 주문 3개인데 1개만 남음 → 고객에게 물어봐야 함
+         - 완전 품절: 아예 못 삼 → 전액 환불
+         고객의 답장은 미리 정해두고, 수강생이 [고객에게 문의하기] 를 눌러야 드러난다. */
+      var l = o.lines[randInt(0, o.lines.length - 1)];
+      l.oos = true;
+      l.stock = (l.qty >= 2 && Math.random() < 0.65) ? randInt(1, l.qty - 1) : 0;
+
+      o.reply = l.stock > 0
+        ? (Math.random() < 0.7 ? 'partial' : 'refund_all')   // 일부만 받겠다 / 다 안 되면 필요 없다
+        : 'refund_all';
+      o.replied = false;   // 아직 고객에게 문의하지 않음
       return;
     }
     if (o.issue === 'missing_info') {
