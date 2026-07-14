@@ -59,30 +59,47 @@
     };
   }
 
-  /* ---------- 컬럼 자동 추측 ---------- */
+  /* ---------- 컬럼 자동 추측 ----------
+     쇼피파이 export(Handle/Title/Image Src/Variant Price)를 우선 인식한다.
+     쇼피파이는 한 상품이 여러 줄이고, 아래 줄들은 Handle만 같고 추가 이미지만 들어있음. */
   var GUESS = {
-    name: ['name', 'title', 'product', 'product name', 'item', '상품명', '제품명', '이름'],
-    cost: ['cost', 'price', 'unit price', 'buy price', '원가', '단가', '가격', '구매가'],
-    image: ['image_url', 'image', 'img', 'image url', 'thumbnail', 'photo', '이미지', '사진'],
-    source: ['source_url', 'url', 'link', 'product url', '링크', '주소'],
+    group: ['handle', 'group', 'sku', 'asin', '핸들'],
+    name: ['title', 'name', 'product name', 'product', 'item', '상품명', '제품명', '이름'],
+    cost: ['cost per item', 'variant price', 'cost', 'price', 'unit price', '원가', '단가', '가격', '구매가'],
+    image: ['image src', 'image_url', 'image url', 'image', 'img', 'thumbnail', 'photo', '이미지', '사진'],
+    source: ['source_url', 'product url', 'url', 'link', '링크', '주소'],
   };
   function guessColumn(header, kind) {
-    var low = header.map(function (h) { return h.toLowerCase(); });
+    var low = header.map(function (h) { return h.toLowerCase().trim(); });
     var cands = GUESS[kind];
     for (var i = 0; i < cands.length; i++) {
       var hit = low.indexOf(cands[i]);
       if (hit !== -1) return hit;
     }
-    // 정확히 일치하는 게 없으면 부분 일치
-    for (var j = 0; j < low.length; j++) {
+    for (var j = 0; j < low.length; j++) {          // 정확히 일치하는 게 없으면 부분 일치
       for (var k = 0; k < cands.length; k++) {
         if (low[j].indexOf(cands[k]) !== -1) return j;
       }
     }
     return -1;
   }
+  // 원가 자동 추측: 쇼피파이는 'Cost per item' 이 비어있는 경우가 많아 값이 실제로 있는 컬럼을 고른다
+  function guessCostColumn(t) {
+    var cands = ['cost per item', 'variant price', 'cost', 'price', '원가', '단가'];
+    var low = t.header.map(function (h) { return h.toLowerCase().trim(); });
+    var best = -1;
+    for (var c = 0; c < cands.length; c++) {
+      var i = low.indexOf(cands[c]);
+      if (i === -1) continue;
+      if (best === -1) best = i;
+      var filled = t.rows.some(function (r) { return isFinite(num(r[i])) && num(r[i]) > 0; });
+      if (filled) return i;                          // 값이 실제로 채워진 첫 후보
+    }
+    return best !== -1 ? best : guessColumn(t.header, 'cost');
+  }
 
   var mapEls = {
+    group: document.getElementById('mapGroup'),
     name: document.getElementById('mapName'),
     cost: document.getElementById('mapCost'),
     image: document.getElementById('mapImage'),
@@ -97,9 +114,17 @@
           return '<option value="' + i + '">' + esc(h || '(빈 컬럼 ' + (i + 1) + ')') + '</option>';
         }).join('');
       mapEls[kind].innerHTML = opts;
-      var g = guessColumn(table.header, kind);
+      var g = kind === 'cost' ? guessCostColumn(table) : guessColumn(table.header, kind);
       mapEls[kind].value = String(g !== -1 ? g : (required ? 0 : -1));
     });
+    // 한 상품이 여러 줄인지 판단: 그룹 컬럼은 있는데 상품명이 비어있는 줄이 많으면 그렇다
+    var gi = parseInt(mapEls.group.value, 10);
+    var ni = parseInt(mapEls.name.value, 10);
+    var multiRow = gi >= 0 && table.rows.some(function (r) {
+      return String(r[gi] || '').trim() && !String(r[ni] || '').trim();
+    });
+    document.getElementById('groupNote').hidden = !multiRow;
+    if (!multiRow) mapEls.group.value = '-1';        // 한 줄 = 한 상품이면 그룹 사용 안 함
     document.getElementById('mapBox').hidden = false;
   }
 
@@ -120,11 +145,36 @@
       return;
     }
 
+    var iGroup = parseInt(mapEls.group.value, 10);
     var iName = parseInt(mapEls.name.value, 10);
     var iCost = parseInt(mapEls.cost.value, 10);
     var iImage = parseInt(mapEls.image.value, 10);
     var iSource = parseInt(mapEls.source.value, 10);
 
+    var cell = function (r, i) { return i >= 0 ? String(r[i] == null ? '' : r[i]).trim() : ''; };
+
+    // 1) 줄들을 상품 단위로 모은다.
+    //    그룹 컬럼이 있으면(쇼피파이 Handle) 같은 값의 줄들을 하나로 합침 —
+    //    상품명·원가는 첫 줄에만, 추가 이미지는 아래 줄들에 있으므로 각각 '처음 채워진 값'을 취함
+    var items = [], byKey = {};
+    table.rows.forEach(function (r) {
+      var gk = iGroup >= 0 ? cell(r, iGroup) : null;
+      var item = gk ? byKey[gk] : null;
+      if (!item) {
+        item = { name: '', cost: NaN, image: '', source: '' };
+        items.push(item);
+        if (gk) byKey[gk] = item;
+      }
+      if (!item.name) item.name = cell(r, iName);
+      if (!isFinite(item.cost)) {
+        var c = num(cell(r, iCost));
+        if (isFinite(c) && c > 0) item.cost = c;
+      }
+      if (!item.image) item.image = cell(r, iImage);      // 첫 이미지 = 대표 이미지
+      if (!item.source) item.source = cell(r, iSource);
+    });
+
+    // 2) 유효성 검사 + 중복 제거
     var skipDupe = document.getElementById('skipDupe').checked;
     var existing = {};
     products.forEach(function (p) {
@@ -134,28 +184,25 @@
     var seen = {}, bad = 0, dupe = 0;
     pending = [];
 
-    table.rows.forEach(function (r) {
-      var name = String(r[iName] == null ? '' : r[iName]).trim();
-      var cost = num(r[iCost]);
-      if (!name || !isFinite(cost)) { bad++; return; }
-
-      var key = name.toLowerCase();
+    items.forEach(function (it) {
+      if (!it.name || !isFinite(it.cost)) { bad++; return; }
+      var key = it.name.toLowerCase();
       if (seen[key] || (skipDupe && existing[key])) { dupe++; return; }
       seen[key] = true;
-
       pending.push({
         topic: topic,
-        name: name,
-        cost: cost,
-        image_url: iImage >= 0 ? (String(r[iImage] || '').trim() || null) : null,
-        source_url: iSource >= 0 ? (String(r[iSource] || '').trim() || null) : null,
+        name: it.name,
+        cost: it.cost,
+        image_url: it.image || null,
+        source_url: it.source || null,
       });
     });
 
     renderPreview();
     var notes = [];
-    if (bad) notes.push(bad + '줄은 상품명 또는 원가를 읽을 수 없어 제외했습니다.');
-    if (dupe) notes.push(dupe + '줄은 이미 있는 상품명이라 건너뜁니다.');
+    if (iGroup >= 0) notes.push(table.rows.length + '줄 → 상품 ' + items.length + '개로 합쳤습니다.');
+    if (bad) notes.push(bad + '개는 상품명 또는 원가가 없어 제외했습니다.');
+    if (dupe) notes.push(dupe + '개는 이미 있는 상품이라 건너뜁니다.');
     warn.textContent = notes.join(' ');
   }
 

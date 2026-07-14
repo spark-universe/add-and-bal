@@ -50,7 +50,16 @@
           <div style="font-size:0.85rem;font-weight:700;margin-bottom:10px;">
             컬럼 연결 <span style="color:var(--muted);font-weight:600;">— 파일에서 읽은 컬럼 중 무엇을 쓸지 고르세요</span>
           </div>
+          <div id="groupNote" hidden style="font-size:0.82rem;background:#eef4ff;border:1px solid #cfe0ff;border-radius:8px;padding:10px 12px;margin-bottom:14px;">
+            쇼피파이 export 형식으로 보입니다 — <b>한 상품이 여러 줄</b>에 걸쳐 있고 아래 줄들은 추가 이미지입니다.
+            <b>그룹 컬럼</b>으로 묶어서 상품 하나로 합칩니다.
+          </div>
           <div class="prod-form">
+            <div class="field">
+              <label>그룹 컬럼 (한 상품이 여러 줄일 때)</label>
+              <select id="mapGroup"></select>
+              <div class="field-hint">같은 값을 가진 줄들을 상품 하나로 합칩니다 (쇼피파이는 Handle).</div>
+            </div>
             <div class="field">
               <label>상품명 <span style="color:var(--danger);">*</span></label>
               <select id="mapName"></select>
@@ -58,6 +67,7 @@
             <div class="field">
               <label>원가 ($) <span style="color:var(--danger);">*</span></label>
               <select id="mapCost"></select>
+              <div class="field-hint">아마존에서 사오는 가격. 쇼피파이 export면 <b>Variant Price</b>.</div>
             </div>
             <div class="field">
               <label>이미지 URL</label>
