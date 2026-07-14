@@ -800,6 +800,33 @@ tbody tr:hover { background: #fafbff; }
 .od-muted { color: var(--muted); }
 .od-missing { color: var(--danger); font-weight: 700; }
 
+/* 주문 편집 */
+.oe-qty {
+  width: 64px; padding: 7px 8px; text-align: center;
+  border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem;
+}
+.oe-qty:focus { outline: none; border-color: var(--primary); }
+.oe-del {
+  background: none; border: none; color: var(--muted);
+  font-size: 1.2rem; line-height: 1; cursor: pointer; padding: 4px 6px;
+}
+.oe-del:hover { color: var(--danger); }
+.oe-note {
+  background: #f6f7f9; border-radius: 8px; padding: 10px 12px;
+  color: var(--muted); font-size: 0.8rem; margin-top: 12px;
+}
+.oe-empty {
+  border: 1px dashed var(--border); border-radius: 10px; padding: 22px;
+  text-align: center; color: var(--muted); font-size: 0.86rem; line-height: 1.6;
+}
+.oe-diff {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 8px 0; border-bottom: 1px solid #f0f2f5; font-size: 0.83rem; line-height: 1.5;
+}
+.oe-diff:last-of-type { border-bottom: none; }
+.oe-diff b.minus { color: var(--danger); white-space: nowrap; }
+.oe-diff b.plus { color: var(--ok); white-space: nowrap; }
+
 /* 사진 크게 보기 (여러 장이면 넘겨보기) */
 .od-imgwrap { position: relative; display: inline-block; flex-shrink: 0; cursor: zoom-in; }
 .od-imgwrap:hover .od-img { transform: scale(1.06); border-color: var(--primary); }

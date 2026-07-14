@@ -13,6 +13,8 @@
   var MONTHS = ['January','February','March','April','May','June',
     'July','August','September','October','November','December'];
 
+  var current = null;   // 지금 보고 있는 주문
+
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
@@ -50,6 +52,15 @@
     var orders = [];
     try { orders = JSON.parse(localStorage.getItem(ORDERS)) || []; } catch (e) { orders = []; }
     return orders.find(function (o) { return o.no === no; });
+  }
+
+  // 바뀐 주문을 목록에 되돌려 저장
+  function saveOrder(o) {
+    var orders = [];
+    try { orders = JSON.parse(localStorage.getItem(ORDERS)) || []; } catch (e) { return; }
+    var i = orders.findIndex(function (x) { return x.no === o.no; });
+    if (i !== -1) orders[i] = o;
+    localStorage.setItem(ORDERS, JSON.stringify(orders));
   }
 
   /* ---------- 조각들 ---------- */
@@ -157,9 +168,10 @@
         '<h2 class="od-no">' + esc(o.no) + '</h2>' +
         badges(o) +
         '<div class="od-top__actions">' +
-          '<button class="btn-sm" disabled>Refund</button>' +
-          '<button class="btn-sm" disabled>Edit</button>' +
-          '<button class="btn-sm" disabled>More actions ▾</button>' +
+          (o.payment === 'refunded'
+            ? '<button class="btn-sm" disabled>환불 완료</button>'
+            : '<button class="btn-sm is-danger" id="btnRefund">환불하기 (주문 취소)</button>') +
+          '<button class="btn-sm" id="btnEdit">주문 편집하기</button>' +
         '</div>' +
       '</div>' +
       '<div class="od-sub">' + fmtFull(o.ts) + ' from ' + esc(o.channel) + '</div>' +
@@ -238,17 +250,84 @@
         '</div>' +
       '</div>';
 
-    // TODO: 실제 발주 처리(정산·성적) 연결 — 지금은 UI만
+    // TODO: 실제 발주 처리(정산·성적) 연결 — 지금은 상태만 바뀜
     var f = document.getElementById('btnFulfill');
     if (f) f.addEventListener('click', function () {
       alert('발주 처리 동작은 다음 단계에서 붙입니다.');
     });
 
+    var e = document.getElementById('btnEdit');
+    if (e) e.addEventListener('click', function () {
+      location.href = 'order-edit.html?no=' + encodeURIComponent(o.no);
+    });
+
+    var r = document.getElementById('btnRefund');
+    if (r) r.addEventListener('click', function () { openRefund(o); });
+
     bindZoom(o);
   }
 
+  /* ---------- 환불하기 (주문 취소) ----------
+     사기 주문을 걸러내거나, 품절이라 발주할 수 없을 때 쓰는 동작.
+     결제 상태가 Refunded 로 바뀌고 목록에서 취소선이 그어진다. */
+  function openRefund(o) {
+    var box = document.createElement('div');
+    box.className = 'modal-overlay is-open';
+    box.innerHTML =
+      '<div class="modal-card">' +
+        '<div class="modal-card__head">' +
+          '<h3>환불하기 (주문 취소)</h3>' +
+          '<button class="modal-close" data-close>×</button>' +
+        '</div>' +
+        '<div class="modal-card__body">' +
+          '<p style="margin:0 0 16px;font-size:0.9rem;line-height:1.6;">' +
+            '<b>' + esc(o.no) + '</b> 주문을 취소하고 고객에게 전액 환불합니다.<br>' +
+            '<span class="od-muted">이 주문은 발주하지 않습니다.</span></p>' +
+          '<table class="od-money" style="margin-bottom:16px;">' +
+            '<tr><td>환불 금액</td><td></td><td class="r">' + money(o.grandTotal) + '</td></tr>' +
+          '</table>' +
+          '<div class="field">' +
+            '<label>환불 사유</label>' +
+            '<select id="refundReason" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;">' +
+              '<option value="fraud">사기 의심 주문 (차지백 위험)</option>' +
+              '<option value="oos">상품 품절 · 단종으로 발주 불가</option>' +
+              '<option value="no_ship">배송 불가 지역</option>' +
+              '<option value="etc">기타 (고객 요청 등)</option>' +
+            '</select>' +
+          '</div>' +
+          '<p style="margin:14px 0 0;font-weight:700;font-size:0.9rem;">정말로 환불하시겠습니까?</p>' +
+        '</div>' +
+        '<div class="modal-card__foot">' +
+          '<button class="btn-sm" data-close>취소</button>' +
+          '<button class="btn-sm is-danger" id="refundGo">환불하기</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(box);
+
+    function close() { box.remove(); }
+    box.addEventListener('click', function (ev) {
+      if (ev.target === box || ev.target.closest('[data-close]')) close();
+    });
+
+    box.querySelector('#refundGo').addEventListener('click', function () {
+      o.payment = 'refunded';
+      o.fulfillment = 'not_required';    // 발주하지 않는 주문
+      o.refundReason = box.querySelector('#refundReason').value;
+      o.refundedAt = Date.now();
+      saveOrder(o);
+      close();
+      render(o);                         // 화면 갱신 (뱃지가 Refunded 로 바뀜)
+    });
+  }
+
   /* ---------- 사진 크게 보기 (여러 장이면 넘겨보기) ---------- */
+  var zoomReady = false;
+
   function bindZoom(o) {
+    current = o;                 // 갤러리가 참조할 현재 주문
+    if (zoomReady) return;       // 화면을 다시 그려도 이벤트는 한 번만 건다
+    zoomReady = true;
+
     var box = document.createElement('div');
     box.className = 'img-zoom';
     box.innerHTML =
@@ -306,7 +385,7 @@
     document.addEventListener('click', function (e) {
       var trigger = e.target.closest('.is-zoom');
       if (trigger) {
-        var line = (o.lines || [])[Number(trigger.dataset.line)];
+        var line = ((current && current.lines) || [])[Number(trigger.dataset.line)];
         if (line) open(line);
         return;
       }
