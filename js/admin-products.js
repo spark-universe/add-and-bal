@@ -63,10 +63,10 @@
         '<td>' + t.count + '개</td>' +
         '<td><button class="btn-sm" data-tact="toggle" data-id="' + t.id + '">' +
           (t.active ? '표시중' : '숨김') + '</button></td>' +
-        '<td>' +
-          '<button class="btn-link danger" data-tact="clear" data-id="' + t.id + '">상품 전체 삭제</button> ' +
-          '<button class="btn-link danger" data-tact="del" data-id="' + t.id + '">주제 삭제</button>' +
-        '</td>' +
+        '<td><span class="btn-group">' +
+          '<button class="btn-sm is-danger" data-tact="clear" data-id="' + t.id + '">상품 전체 삭제</button>' +
+          '<button class="btn-sm is-danger" data-tact="del" data-id="' + t.id + '">주제 삭제</button>' +
+        '</span></td>' +
       '</tr>';
     }).join('');
   }
@@ -122,23 +122,116 @@
 
     if (btn.dataset.tact === 'clear') {
       if (!t.count) { alert('이 주제에는 상품이 없습니다.'); return; }
-      if (!confirm('"' + t.name + '" 주제의 상품 ' + t.count + '개를 모두 삭제할까요?\n되돌릴 수 없습니다.')) return;
+      if (!confirm('정말로 삭제하시겠습니까?\n\n"' + t.name + '" 주제의 상품 ' + t.count + '개가 모두 삭제됩니다.\n되돌릴 수 없습니다.')) return;
       var d = await sb.from('products').delete().eq('topic', t.name);
       if (d.error) { alert('삭제 실패: ' + d.error.message); return; }
       await refresh();
       return;
     }
 
-    if (btn.dataset.tact === 'del') {
-      if (t.count && !confirm('"' + t.name + '" 주제와 그 안의 상품 ' + t.count + '개를 모두 삭제할까요?\n되돌릴 수 없습니다.')) return;
-      if (!t.count && !confirm('"' + t.name + '" 주제를 삭제할까요?')) return;
-      if (t.count) {
+    if (btn.dataset.tact === 'del') openDelModal(t);
+  });
+
+  /* ---------- 주제 삭제 모달 (상품을 다른 주제로 옮길 수 있음) ---------- */
+  var delModal = document.getElementById('delModal');
+  var moveTarget = document.getElementById('moveTarget');
+  var moveNewTopic = document.getElementById('moveNewTopic');
+  var delTarget = null;   // 삭제하려는 주제
+
+  var NEW_TOPIC = '__new__';
+
+  function delMode() {
+    var r = document.querySelector('input[name="delMode"]:checked');
+    return r ? r.value : 'move';
+  }
+
+  function openDelModal(t) {
+    delTarget = t;
+    document.getElementById('delTopicName').textContent = '"' + t.name + '"';
+    document.getElementById('delTopicCount').textContent = t.count
+      ? '이 주제에는 상품이 ' + t.count + '개 있습니다.'
+      : '이 주제에는 상품이 없습니다.';
+    document.getElementById('delError').textContent = '';
+
+    // 상품이 없으면 옮길 것도 없으므로 선택지를 감춘다
+    var hasProducts = t.count > 0;
+    document.getElementById('moveBox').hidden = !hasProducts;
+
+    var others = topics.filter(function (x) { return x.id !== t.id; });
+    moveTarget.innerHTML = others.map(function (x) {
+      return '<option value="' + esc(x.name) + '">' + esc(x.name) + ' (' + x.count + '개)</option>';
+    }).join('') + '<option value="' + NEW_TOPIC + '">+ 새 주제 만들기</option>';
+    moveTarget.value = others.length ? others[0].name : NEW_TOPIC;
+    moveNewTopic.value = '';
+    moveNewTopic.hidden = moveTarget.value !== NEW_TOPIC;
+
+    // 옮길 주제가 하나도 없으면 '새 주제 만들기'만 가능
+    document.querySelector('input[name="delMode"][value="move"]').checked = hasProducts;
+    document.querySelector('input[name="delMode"][value="delete"]').checked = !hasProducts;
+
+    delModal.classList.add('is-open');
+  }
+
+  function closeDelModal() {
+    delModal.classList.remove('is-open');
+    delTarget = null;
+  }
+
+  moveTarget.addEventListener('change', function () {
+    moveNewTopic.hidden = this.value !== NEW_TOPIC;
+    document.querySelector('input[name="delMode"][value="move"]').checked = true;
+    if (!moveNewTopic.hidden) moveNewTopic.focus();
+  });
+  moveNewTopic.addEventListener('input', function () {
+    document.querySelector('input[name="delMode"][value="move"]').checked = true;
+  });
+
+  delModal.addEventListener('click', function (e) {
+    if (e.target === delModal || e.target.closest('[data-close]')) closeDelModal();
+  });
+
+  document.getElementById('delConfirm').addEventListener('click', async function () {
+    if (!delTarget) return;
+    var t = delTarget;
+    var err = document.getElementById('delError');
+    var btn = this;
+    err.textContent = '';
+
+    var moving = t.count > 0 && delMode() === 'move';
+    var dest = null;
+
+    if (moving) {
+      dest = moveTarget.value === NEW_TOPIC ? moveNewTopic.value.trim() : moveTarget.value;
+      if (!dest) { err.textContent = '옮길 주제 이름을 입력하세요.'; return; }
+      if (dest === t.name) { err.textContent = '같은 주제로는 옮길 수 없습니다.'; return; }
+    } else if (t.count > 0) {
+      if (!confirm('정말로 삭제하시겠습니까?\n\n"' + t.name + '" 주제와 상품 ' + t.count + '개가 모두 삭제됩니다.\n되돌릴 수 없습니다.')) return;
+    }
+
+    btn.disabled = true;
+    try {
+      if (moving) {
+        // 새 주제면 먼저 만든다 (이미 있으면 그냥 통과)
+        if (moveTarget.value === NEW_TOPIC) {
+          var ct = await sb.from('topics').insert({ name: dest });
+          if (ct.error && ct.error.code !== '23505') throw new Error('새 주제 생성 실패: ' + ct.error.message);
+        }
+        var mv = await sb.from('products').update({ topic: dest }).eq('topic', t.name);
+        if (mv.error) throw new Error('상품 이동 실패: ' + mv.error.message);
+      } else if (t.count > 0) {
         var dp = await sb.from('products').delete().eq('topic', t.name);
-        if (dp.error) { alert('상품 삭제 실패: ' + dp.error.message); return; }
+        if (dp.error) throw new Error('상품 삭제 실패: ' + dp.error.message);
       }
+
       var dt = await sb.from('topics').delete().eq('id', t.id);
-      if (dt.error) { alert('주제 삭제 실패: ' + dt.error.message); return; }
+      if (dt.error) throw new Error('주제 삭제 실패: ' + dt.error.message);
+
+      closeDelModal();
       await refresh();
+    } catch (ex) {
+      err.textContent = ex.message;
+    } finally {
+      btn.disabled = false;
     }
   });
 
@@ -485,7 +578,7 @@
         '<td>' + money(p.cost) + '</td>' +
         '<td><button class="btn-sm" data-act="toggle" data-id="' + p.id + '">' +
           (p.active ? '사용중' : '중지') + '</button></td>' +
-        '<td><button class="btn-link danger" data-act="del" data-id="' + p.id + '">삭제</button></td>' +
+        '<td><button class="btn-sm is-danger" data-act="del" data-id="' + p.id + '">삭제</button></td>' +
       '</tr>';
     }).join('');
   }
@@ -513,7 +606,7 @@
   document.getElementById('delSelBtn').addEventListener('click', async function () {
     var ids = checkedIds();
     if (!ids.length) return;
-    if (!confirm('선택한 상품 ' + ids.length + '개를 삭제할까요?')) return;
+    if (!confirm('정말로 삭제하시겠습니까?\n\n선택한 상품 ' + ids.length + '개가 삭제됩니다.')) return;
     var d = await sb.from('products').delete().in('id', ids);
     if (d.error) { alert('삭제 실패: ' + d.error.message); return; }
     await refresh();
@@ -533,7 +626,7 @@
       return;
     }
     if (btn.dataset.act === 'del') {
-      if (!confirm('"' + p.name + '" 을 삭제할까요?')) return;
+      if (!confirm('정말로 삭제하시겠습니까?\n\n"' + p.name + '"')) return;
       var d = await sb.from('products').delete().eq('id', id);
       if (d.error) { alert('삭제 실패: ' + d.error.message); return; }
       await refresh();
