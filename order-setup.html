@@ -38,7 +38,11 @@
       <div class="form-row">
         <label for="count">판매된 제품 수</label>
         <input id="count" type="number" min="1" placeholder="예: 30">
-        <div class="hint">총 몇 개의 주문을 받을지 설정합니다.</div>
+        <div class="hint">
+          총 몇 건의 주문을 받을지 설정합니다.
+          <span id="countHint"></span>
+          <span id="countWarn" style="display:block;color:var(--danger);font-weight:700;margin-top:4px;"></span>
+        </div>
       </div>
 
       <div class="form-row">

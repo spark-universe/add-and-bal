@@ -1,18 +1,23 @@
 /* =========================================================
    어드민 · 상품 관리
-   - 주제(topic)별 상품 카탈로그. 수강생은 세팅에서 주제를 골라 그 상품들로 발주 연습함
-   - 가져오기: CSV/TSV 파일 또는 엑셀에서 그대로 복사-붙여넣기
-     · 컬럼이 몇 개든 상관없음 → 헤더를 읽어서 "어느 컬럼이 상품명/원가인지" 직접 연결
-     · 같은 주제에 여러 번 나눠 올릴 수 있음 (중복 상품명은 건너뛰기 옵션)
+   - 주제(topics 테이블)를 먼저 등록 → 수강생 세팅 드롭다운에 그대로 보임
+   - 상품(products)은 반드시 등록된 주제에 속함
+   - 가져오기: CSV/TSV 파일 또는 엑셀 복사-붙여넣기
+     · 컬럼이 몇 개든 상관없음 → 헤더를 읽어 "어느 컬럼이 상품명/원가인지" 직접 연결
+     · 쇼피파이 export처럼 한 상품이 여러 줄이면 그룹 컬럼(Handle)으로 합침
      · 많은 행은 500개씩 끊어서 저장
+   - 삭제: 개별 / 선택(체크박스) / 주제 통째로
    - 판매가는 저장하지 않는다 → 판매가 = 원가 × (1 + 설정마진/100), 주문 생성 시점 계산
    ========================================================= */
 (function () {
   var CHUNK = 500;
+  var LIST_LIMIT = 300;   // 목록은 최근 300개만 표시 (상품이 수천 개일 수 있음)
 
-  var products = [];   // 이미 등록된 상품
-  var table = null;    // 방금 읽어들인 파일: { header: [...], rows: [[...]] }
-  var pending = [];    // 매핑 적용 후 등록 대기 행
+  var topics = [];        // [{id, name, active, count}]
+  var products = [];      // 목록에 보이는 상품 (전체가 아님)
+  var dupeNames = {};     // 가져올 주제에 이미 있는 상품명
+  var table = null;       // 읽어들인 파일 { header, rows }
+  var pending = [];       // 등록 대기 행
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
@@ -20,8 +25,126 @@
     });
   }
   function money(n) { return '$' + Number(n || 0).toFixed(2); }
+  function num(v) {
+    var n = parseFloat(String(v == null ? '' : v).replace(/[^0-9.\-]/g, ''));
+    return isFinite(n) ? n : NaN;
+  }
 
-  /* ---------- 구분자 자동 판별 + 파싱 (따옴표 안의 구분자/줄바꿈까지 처리) ---------- */
+  /* =======================================================
+     주제
+     ======================================================= */
+  async function loadTopics() {
+    var res = await sb.from('topics').select('*').order('name');
+    if (res.error) { alert('주제를 불러오지 못했습니다: ' + res.error.message); return; }
+    topics = res.data || [];
+
+    // 주제별 상품 수 (행을 다 받지 않고 개수만 세어옴)
+    await Promise.all(topics.map(async function (t) {
+      var c = await sb.from('products')
+        .select('id', { count: 'exact', head: true })
+        .eq('topic', t.name);
+      t.count = c.count || 0;
+    }));
+
+    renderTopics();
+    fillTopicSelects();
+  }
+
+  function renderTopics() {
+    var body = document.getElementById('topicBody');
+    if (!topics.length) {
+      body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:30px;">' +
+        '주제가 없습니다. 위에서 주제를 먼저 추가하세요.</td></tr>';
+      return;
+    }
+    body.innerHTML = topics.map(function (t) {
+      return '<tr' + (t.active ? '' : ' style="opacity:0.45;"') + '>' +
+        '<td style="font-weight:700;">' + esc(t.name) + '</td>' +
+        '<td>' + t.count + '개</td>' +
+        '<td><button class="btn-sm" data-tact="toggle" data-id="' + t.id + '">' +
+          (t.active ? '표시중' : '숨김') + '</button></td>' +
+        '<td>' +
+          '<button class="btn-link danger" data-tact="clear" data-id="' + t.id + '">상품 전체 삭제</button> ' +
+          '<button class="btn-link danger" data-tact="del" data-id="' + t.id + '">주제 삭제</button>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function fillTopicSelects() {
+    var opts = '<option value="">주제를 고르세요</option>' + topics.map(function (t) {
+      return '<option value="' + esc(t.name) + '">' + esc(t.name) + ' (' + t.count + '개)</option>';
+    }).join('');
+
+    ['fTopic', 'sTopic'].forEach(function (id) {
+      var el = document.getElementById(id);
+      var cur = el.value;
+      el.innerHTML = opts;
+      el.value = cur;
+    });
+
+    var f = document.getElementById('topicFilter');
+    var curF = f.value;
+    f.innerHTML = '<option value="">전체 주제</option>' + topics.map(function (t) {
+      return '<option value="' + esc(t.name) + '">' + esc(t.name) + ' (' + t.count + '개)</option>';
+    }).join('');
+    f.value = curF;
+  }
+
+  document.getElementById('addTopicBtn').addEventListener('click', async function () {
+    var input = document.getElementById('newTopic');
+    var msg = document.getElementById('topicMsg');
+    var name = input.value.trim();
+    if (!name) { msg.textContent = '주제 이름을 입력하세요.'; return; }
+
+    var res = await sb.from('topics').insert({ name: name });
+    if (res.error) {
+      msg.textContent = res.error.code === '23505' ? '이미 있는 주제입니다.' : '추가 실패: ' + res.error.message;
+      return;
+    }
+    input.value = '';
+    msg.textContent = '"' + name + '" 추가됨';
+    await loadTopics();
+  });
+
+  document.getElementById('topicBody').addEventListener('click', async function (e) {
+    var btn = e.target.closest('button[data-tact]');
+    if (!btn) return;
+    var t = topics.find(function (x) { return x.id === Number(btn.dataset.id); });
+    if (!t) return;
+
+    if (btn.dataset.tact === 'toggle') {
+      var r = await sb.from('topics').update({ active: !t.active }).eq('id', t.id);
+      if (r.error) { alert('변경 실패: ' + r.error.message); return; }
+      await loadTopics();
+      return;
+    }
+
+    if (btn.dataset.tact === 'clear') {
+      if (!t.count) { alert('이 주제에는 상품이 없습니다.'); return; }
+      if (!confirm('"' + t.name + '" 주제의 상품 ' + t.count + '개를 모두 삭제할까요?\n되돌릴 수 없습니다.')) return;
+      var d = await sb.from('products').delete().eq('topic', t.name);
+      if (d.error) { alert('삭제 실패: ' + d.error.message); return; }
+      await refresh();
+      return;
+    }
+
+    if (btn.dataset.tact === 'del') {
+      if (t.count && !confirm('"' + t.name + '" 주제와 그 안의 상품 ' + t.count + '개를 모두 삭제할까요?\n되돌릴 수 없습니다.')) return;
+      if (!t.count && !confirm('"' + t.name + '" 주제를 삭제할까요?')) return;
+      if (t.count) {
+        var dp = await sb.from('products').delete().eq('topic', t.name);
+        if (dp.error) { alert('상품 삭제 실패: ' + dp.error.message); return; }
+      }
+      var dt = await sb.from('topics').delete().eq('id', t.id);
+      if (dt.error) { alert('주제 삭제 실패: ' + dt.error.message); return; }
+      await refresh();
+    }
+  });
+
+  /* =======================================================
+     파일 읽기 (구분자 자동 판별 + 따옴표/줄바꿈 처리)
+     ======================================================= */
   function sniffDelim(text) {
     var line = text.split('\n')[0];
     var counts = { ',': 0, '\t': 0, ';': 0 };
@@ -53,15 +176,10 @@
     if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
     rows = rows.filter(function (r) { return r.some(function (c) { return String(c).trim(); }); });
     if (rows.length < 2) return null;
-    return {
-      header: rows[0].map(function (h) { return String(h).trim(); }),
-      rows: rows.slice(1),
-    };
+    return { header: rows[0].map(function (h) { return String(h).trim(); }), rows: rows.slice(1) };
   }
 
-  /* ---------- 컬럼 자동 추측 ----------
-     쇼피파이 export(Handle/Title/Image Src/Variant Price)를 우선 인식한다.
-     쇼피파이는 한 상품이 여러 줄이고, 아래 줄들은 Handle만 같고 추가 이미지만 들어있음. */
+  /* ---------- 컬럼 자동 추측 ---------- */
   var GUESS = {
     group: ['handle', 'group', 'sku', 'asin', '핸들'],
     name: ['title', 'name', 'product name', 'product', 'item', '상품명', '제품명', '이름'],
@@ -76,14 +194,14 @@
       var hit = low.indexOf(cands[i]);
       if (hit !== -1) return hit;
     }
-    for (var j = 0; j < low.length; j++) {          // 정확히 일치하는 게 없으면 부분 일치
+    for (var j = 0; j < low.length; j++) {
       for (var k = 0; k < cands.length; k++) {
         if (low[j].indexOf(cands[k]) !== -1) return j;
       }
     }
     return -1;
   }
-  // 원가 자동 추측: 쇼피파이는 'Cost per item' 이 비어있는 경우가 많아 값이 실제로 있는 컬럼을 고른다
+  // 쇼피파이는 'Cost per item' 이 비어있는 경우가 많음 → 값이 실제로 채워진 컬럼을 고른다
   function guessCostColumn(t) {
     var cands = ['cost per item', 'variant price', 'cost', 'price', '원가', '단가'];
     var low = t.header.map(function (h) { return h.toLowerCase().trim(); });
@@ -92,8 +210,8 @@
       var i = low.indexOf(cands[c]);
       if (i === -1) continue;
       if (best === -1) best = i;
-      var filled = t.rows.some(function (r) { return isFinite(num(r[i])) && num(r[i]) > 0; });
-      if (filled) return i;                          // 값이 실제로 채워진 첫 후보
+      var filled = t.rows.some(function (r) { var v = num(r[i]); return isFinite(v) && v > 0; });
+      if (filled) return i;
     }
     return best !== -1 ? best : guessColumn(t.header, 'cost');
   }
@@ -117,31 +235,26 @@
       var g = kind === 'cost' ? guessCostColumn(table) : guessColumn(table.header, kind);
       mapEls[kind].value = String(g !== -1 ? g : (required ? 0 : -1));
     });
-    // 한 상품이 여러 줄인지 판단: 그룹 컬럼은 있는데 상품명이 비어있는 줄이 많으면 그렇다
+
+    // 한 상품이 여러 줄인가? (그룹 컬럼은 찼는데 상품명이 빈 줄이 있으면 그렇다)
     var gi = parseInt(mapEls.group.value, 10);
     var ni = parseInt(mapEls.name.value, 10);
     var multiRow = gi >= 0 && table.rows.some(function (r) {
       return String(r[gi] || '').trim() && !String(r[ni] || '').trim();
     });
     document.getElementById('groupNote').hidden = !multiRow;
-    if (!multiRow) mapEls.group.value = '-1';        // 한 줄 = 한 상품이면 그룹 사용 안 함
+    if (!multiRow) mapEls.group.value = '-1';
     document.getElementById('mapBox').hidden = false;
   }
 
-  function num(v) {
-    var n = parseFloat(String(v == null ? '' : v).replace(/[^0-9.\-]/g, ''));
-    return isFinite(n) ? n : NaN;
-  }
-
-  // 매핑 + 주제 + 중복 규칙을 적용해 등록할 행을 만든다
+  /* ---------- 매핑 적용 ---------- */
   function applyMapping() {
     var warn = document.getElementById('previewWarn');
-    var topic = document.getElementById('fTopic').value.trim();
+    var topic = document.getElementById('fTopic').value;
     if (!table) { pending = []; renderPreview(); return; }
     if (!topic) {
-      pending = [];
-      renderPreview();
-      warn.textContent = '주제를 먼저 입력하세요.';
+      pending = []; renderPreview();
+      warn.textContent = '어느 주제에 넣을지 먼저 고르세요.';
       return;
     }
 
@@ -150,12 +263,9 @@
     var iCost = parseInt(mapEls.cost.value, 10);
     var iImage = parseInt(mapEls.image.value, 10);
     var iSource = parseInt(mapEls.source.value, 10);
-
     var cell = function (r, i) { return i >= 0 ? String(r[i] == null ? '' : r[i]).trim() : ''; };
 
-    // 1) 줄들을 상품 단위로 모은다.
-    //    그룹 컬럼이 있으면(쇼피파이 Handle) 같은 값의 줄들을 하나로 합침 —
-    //    상품명·원가는 첫 줄에만, 추가 이미지는 아래 줄들에 있으므로 각각 '처음 채워진 값'을 취함
+    // 줄들을 상품 단위로 모은다 (그룹 컬럼이 있으면 같은 값끼리 하나로)
     var items = [], byKey = {};
     table.rows.forEach(function (r) {
       var gk = iGroup >= 0 ? cell(r, iGroup) : null;
@@ -170,24 +280,18 @@
         var c = num(cell(r, iCost));
         if (isFinite(c) && c > 0) item.cost = c;
       }
-      if (!item.image) item.image = cell(r, iImage);      // 첫 이미지 = 대표 이미지
+      if (!item.image) item.image = cell(r, iImage);     // 첫 이미지 = 대표 이미지
       if (!item.source) item.source = cell(r, iSource);
     });
 
-    // 2) 유효성 검사 + 중복 제거
     var skipDupe = document.getElementById('skipDupe').checked;
-    var existing = {};
-    products.forEach(function (p) {
-      if (p.topic === topic) existing[String(p.name).trim().toLowerCase()] = true;
-    });
-
     var seen = {}, bad = 0, dupe = 0;
     pending = [];
 
     items.forEach(function (it) {
       if (!it.name || !isFinite(it.cost)) { bad++; return; }
       var key = it.name.toLowerCase();
-      if (seen[key] || (skipDupe && existing[key])) { dupe++; return; }
+      if (seen[key] || (skipDupe && dupeNames[key])) { dupe++; return; }
       seen[key] = true;
       pending.push({
         topic: topic,
@@ -243,7 +347,7 @@
       renderPreview();
       return;
     }
-    msg.textContent = table.rows.length + '줄을 읽었습니다. 컬럼을 연결하세요.';
+    msg.textContent = table.rows.length + '줄을 읽었습니다.';
     fillMapSelects();
     applyMapping();
   }
@@ -251,6 +355,7 @@
   document.getElementById('fCsv').addEventListener('change', function (e) {
     var file = e.target.files && e.target.files[0];
     if (!file) return;
+    document.getElementById('uploadMsg').textContent = '파일 읽는 중...';
     var reader = new FileReader();
     reader.onload = function () { loadText(String(reader.result)); };
     reader.onerror = function () {
@@ -266,11 +371,20 @@
     loadText(text);
   });
 
-  document.getElementById('fTopic').addEventListener('input', applyMapping);
+  // 가져올 주제가 바뀌면 그 주제의 기존 상품명을 받아온다 (중복 건너뛰기용)
+  document.getElementById('fTopic').addEventListener('change', async function () {
+    dupeNames = {};
+    var topic = this.value;
+    if (topic) {
+      var res = await sb.from('products').select('name').eq('topic', topic).limit(20000);
+      (res.data || []).forEach(function (p) { dupeNames[String(p.name).trim().toLowerCase()] = true; });
+    }
+    applyMapping();
+  });
   document.getElementById('skipDupe').addEventListener('change', applyMapping);
   Object.keys(mapEls).forEach(function (k) { mapEls[k].addEventListener('change', applyMapping); });
 
-  /* ---------- 등록 (500개씩 나눠 저장) ---------- */
+  /* ---------- 등록 (500개씩) ---------- */
   document.getElementById('uploadBtn').addEventListener('click', async function () {
     if (!pending.length) return;
     var btn = this;
@@ -285,7 +399,7 @@
       if (res.error) {
         msg.textContent = done + '개까지 등록됨. 이후 실패: ' + res.error.message;
         btn.disabled = false;
-        await load();
+        await refresh();
         return;
       }
       done += slice.length;
@@ -298,66 +412,73 @@
     document.getElementById('pasteText').value = '';
     document.getElementById('mapBox').hidden = true;
     renderPreview();
-    await load();
+    await refresh();
   });
 
   /* ---------- 상품 하나만 추가 ---------- */
   document.getElementById('addBtn').addEventListener('click', async function () {
     var row = {
-      topic: document.getElementById('sTopic').value.trim(),
+      topic: document.getElementById('sTopic').value,
       name: document.getElementById('sName').value.trim(),
       image_url: document.getElementById('sImage').value.trim() || null,
       cost: parseFloat(document.getElementById('sCost').value) || 0,
     };
-    if (!row.topic || !row.name) { alert('주제와 상품명은 필수입니다.'); return; }
+    if (!row.topic) { alert('주제를 고르세요.'); return; }
+    if (!row.name) { alert('상품명을 입력하세요.'); return; }
     var res = await sb.from('products').insert(row);
     if (res.error) { alert('추가 실패: ' + res.error.message); return; }
     ['sName', 'sImage', 'sCost'].forEach(function (id) { document.getElementById(id).value = ''; });
     var msg = document.getElementById('addMsg');
     msg.hidden = false;
     setTimeout(function () { msg.hidden = true; }, 2000);
-    await load();
+    await refresh();
   });
 
-  /* ---------- 목록 ---------- */
+  /* =======================================================
+     상품 목록 + 삭제
+     ======================================================= */
   var filter = document.getElementById('topicFilter');
 
-  function topicList() {
-    var seen = {};
-    products.forEach(function (p) { if (p.topic) seen[p.topic] = (seen[p.topic] || 0) + 1; });
-    return Object.keys(seen).sort().map(function (t) { return { name: t, count: seen[t] }; });
+  async function loadProducts() {
+    var q = sb.from('products').select('*').order('created_at', { ascending: false }).limit(LIST_LIMIT);
+    if (filter.value) q = q.eq('topic', filter.value);
+    var res = await q;
+    if (res.error) { alert('상품을 불러오지 못했습니다: ' + res.error.message); return; }
+    products = res.data || [];
+    renderProducts();
   }
 
-  function renderTopics() {
-    var list = topicList();
-    document.getElementById('topicList').innerHTML = list.map(function (t) {
-      return '<option value="' + esc(t.name) + '">';
-    }).join('');
-    var cur = filter.value;
-    filter.innerHTML = '<option value="">전체 주제</option>' + list.map(function (t) {
-      return '<option value="' + esc(t.name) + '">' + esc(t.name) + ' (' + t.count + ')</option>';
-    }).join('');
-    filter.value = cur;
+  function totalCount() {
+    if (filter.value) {
+      var t = topics.find(function (x) { return x.name === filter.value; });
+      return t ? t.count : 0;
+    }
+    return topics.reduce(function (a, t) { return a + (t.count || 0); }, 0);
   }
 
-  function render() {
-    renderTopics();
-    var shown = filter.value
-      ? products.filter(function (p) { return p.topic === filter.value; })
-      : products;
+  function renderProducts() {
+    var total = totalCount();
+    document.getElementById('pCount').textContent = total ? '(' + total + '개)' : '';
+    document.getElementById('checkAll').checked = false;
+    document.getElementById('delSelBtn').disabled = true;
 
-    document.getElementById('pCount').textContent = shown.length ? '(' + shown.length + '개)' : '';
-    if (!shown.length) {
+    var note = document.getElementById('listNote');
+    note.textContent = total > products.length
+      ? '최근 ' + products.length + '개만 보여줍니다 (전체 ' + total + '개). 주제 단위로 지우려면 위 주제 관리의 [상품 전체 삭제]를 쓰세요.'
+      : '';
+
+    if (!products.length) {
       document.getElementById('prodBody').innerHTML =
-        '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">' +
-        '등록된 상품이 없습니다. 위에서 주제별로 상품을 가져오세요.</td></tr>';
+        '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">' +
+        '등록된 상품이 없습니다.</td></tr>';
       return;
     }
-    document.getElementById('prodBody').innerHTML = shown.map(function (p) {
+    document.getElementById('prodBody').innerHTML = products.map(function (p) {
       var img = p.image_url
         ? '<img class="prod-thumb" src="' + esc(p.image_url) + '" alt="">'
         : '<span class="prod-thumb prod-thumb--empty">?</span>';
       return '<tr' + (p.active ? '' : ' style="opacity:0.45;"') + '>' +
+        '<td><input type="checkbox" class="rowCheck" data-id="' + p.id + '"></td>' +
         '<td>' + img + '</td>' +
         '<td>' + esc(p.topic || '-') + '</td>' +
         '<td style="text-align:left;max-width:340px;">' + esc(p.name) + '</td>' +
@@ -369,7 +490,34 @@
     }).join('');
   }
 
-  filter.addEventListener('change', render);
+  function checkedIds() {
+    return Array.prototype.slice
+      .call(document.querySelectorAll('.rowCheck:checked'))
+      .map(function (c) { return Number(c.dataset.id); });
+  }
+
+  filter.addEventListener('change', loadProducts);
+
+  document.getElementById('checkAll').addEventListener('change', function () {
+    var on = this.checked;
+    document.querySelectorAll('.rowCheck').forEach(function (c) { c.checked = on; });
+    document.getElementById('delSelBtn').disabled = !checkedIds().length;
+  });
+
+  document.getElementById('prodBody').addEventListener('change', function (e) {
+    if (e.target.classList.contains('rowCheck')) {
+      document.getElementById('delSelBtn').disabled = !checkedIds().length;
+    }
+  });
+
+  document.getElementById('delSelBtn').addEventListener('click', async function () {
+    var ids = checkedIds();
+    if (!ids.length) return;
+    if (!confirm('선택한 상품 ' + ids.length + '개를 삭제할까요?')) return;
+    var d = await sb.from('products').delete().in('id', ids);
+    if (d.error) { alert('삭제 실패: ' + d.error.message); return; }
+    await refresh();
+  });
 
   document.getElementById('prodBody').addEventListener('click', async function (e) {
     var btn = e.target.closest('button[data-act]');
@@ -381,28 +529,25 @@
     if (btn.dataset.act === 'toggle') {
       var res = await sb.from('products').update({ active: !p.active }).eq('id', id);
       if (res.error) { alert('변경 실패: ' + res.error.message); return; }
-      await load();
+      await loadProducts();
       return;
     }
     if (btn.dataset.act === 'del') {
       if (!confirm('"' + p.name + '" 을 삭제할까요?')) return;
       var d = await sb.from('products').delete().eq('id', id);
       if (d.error) { alert('삭제 실패: ' + d.error.message); return; }
-      await load();
+      await refresh();
     }
   });
 
-  async function load() {
-    var res = await sb.from('products').select('*')
-      .order('topic').order('created_at', { ascending: false }).limit(5000);
-    if (res.error) { alert('상품을 불러오지 못했습니다: ' + res.error.message); return; }
-    products = res.data || [];
-    render();
+  async function refresh() {
+    await loadTopics();
+    await loadProducts();
   }
 
   (async function init() {
     var admin = await Auth.requireAdmin();
     if (!admin) return;
-    await load();
+    await refresh();
   })();
 })();

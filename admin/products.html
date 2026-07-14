@@ -12,28 +12,50 @@
   <main class="content">
     <div class="page-head">
       <h2>상품 관리</h2>
-      <p>주제별로 상품 CSV를 등록합니다. 수강생이 발주 연습 세팅에서 주제를 고르면, 그 주제의 상품으로 주문이 랜덤 생성됩니다.</p>
+      <p>주제를 먼저 등록하고, 그 주제에 상품을 넣습니다. 수강생은 여기 등록된 주제만 골라 발주 연습을 합니다.</p>
     </div>
 
+    <!-- 1. 주제 -->
+    <div class="panel">
+      <div class="panel__head">
+        <span>주제 관리</span>
+        <span style="font-size:0.8rem;color:var(--muted);">수강생 세팅 화면의 드롭다운에 그대로 보입니다</span>
+      </div>
+      <div style="padding:20px 24px;">
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:18px;">
+          <input type="text" id="newTopic" placeholder="주제 이름 (예: 고양이 텀블러)"
+            style="flex:1;max-width:340px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;">
+          <button class="btn-sm is-primary" id="addTopicBtn">주제 추가</button>
+          <span style="font-size:0.82rem;color:var(--muted);" id="topicMsg"></span>
+        </div>
+        <table>
+          <thead>
+            <tr><th>주제</th><th>등록된 상품</th><th>수강생에게 표시</th><th>관리</th></tr>
+          </thead>
+          <tbody id="topicBody">
+            <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:30px;">불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 2. 가져오기 -->
     <div class="panel">
       <div class="panel__head">
         <span>상품 가져오기 (CSV / 엑셀 붙여넣기)</span>
-        <span style="font-size:0.8rem;color:var(--muted);">
-          컬럼이 많아도 됩니다 — 쓸 컬럼만 아래에서 골라주세요
-        </span>
+        <span style="font-size:0.8rem;color:var(--muted);">컬럼이 많아도 됩니다 — 쓸 컬럼만 아래에서 골라주세요</span>
       </div>
       <div style="padding:20px 24px;">
         <div class="prod-form">
           <div class="field">
-            <label>주제</label>
-            <input type="text" id="fTopic" list="topicList" placeholder="주방용품">
-            <datalist id="topicList"></datalist>
+            <label>어느 주제에 넣을까요? <span style="color:var(--danger);">*</span></label>
+            <select id="fTopic"></select>
             <div class="field-hint">같은 주제로 여러 번 나눠 올려도 됩니다 (기존 상품에 더해집니다).</div>
           </div>
           <div class="field">
             <label>CSV / TSV 파일</label>
             <input type="file" id="fCsv" accept=".csv,.tsv,.txt,text/csv">
-            <div class="field-hint">엑셀에서 <b>다른 이름으로 저장 → CSV UTF-8</b> 로 저장한 파일.</div>
+            <div class="field-hint">쇼피파이 export처럼 한 상품이 여러 줄이어도 됩니다.</div>
           </div>
         </div>
 
@@ -104,15 +126,14 @@
       </div>
     </div>
 
+    <!-- 3. 상품 하나만 추가 -->
     <div class="panel">
-      <div class="panel__head">
-        <span>상품 하나만 추가</span>
-      </div>
+      <div class="panel__head"><span>상품 하나만 추가</span></div>
       <div style="padding:20px 24px;">
         <div class="prod-form">
           <div class="field">
             <label>주제</label>
-            <input type="text" id="sTopic" list="topicList" placeholder="주방용품">
+            <select id="sTopic"></select>
           </div>
           <div class="field">
             <label>상품명</label>
@@ -134,21 +155,29 @@
       </div>
     </div>
 
+    <!-- 4. 목록 -->
     <div class="panel">
       <div class="panel__head">
         <span>등록된 상품 <span id="pCount" style="color:var(--muted);font-weight:600;"></span></span>
-        <select id="topicFilter" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;">
-          <option value="">전체 주제</option>
-        </select>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="topicFilter" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;">
+            <option value="">전체 주제</option>
+          </select>
+          <button class="btn-sm" id="delSelBtn" disabled>선택 삭제</button>
+        </div>
       </div>
       <table>
         <thead>
-          <tr><th>사진</th><th>주제</th><th>상품명</th><th>원가</th><th>사용</th><th>관리</th></tr>
+          <tr>
+            <th style="width:36px;"><input type="checkbox" id="checkAll"></th>
+            <th>사진</th><th>주제</th><th>상품명</th><th>원가</th><th>사용</th><th>관리</th>
+          </tr>
         </thead>
         <tbody id="prodBody">
-          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
+          <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
         </tbody>
       </table>
+      <div id="listNote" style="padding:12px 18px;font-size:0.8rem;color:var(--muted);border-top:1px solid var(--border);"></div>
     </div>
   </main>
 </div>

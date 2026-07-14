@@ -40,6 +40,14 @@ create table if not exists public.submissions (
   unique (user_id, item)
 );
 
+-- 주제(카테고리) — 어드민이 등록한 것만 수강생 드롭다운에 보임
+create table if not exists public.topics (
+  id bigint generated always as identity primary key,
+  name text not null unique,
+  active boolean default true,      -- 끄면 수강생 세팅 드롭다운에서 사라짐
+  created_at timestamptz default now()
+);
+
 -- 발주 연습에 쓰이는 상품 카탈로그 (어드민이 주제별 CSV로 등록, 수강생은 조회만)
 --  * 판매가는 저장하지 않는다. 판매가 = 원가 × (1 + 설정마진/100) 으로 주문 생성 시점에 계산됨
 create table if not exists public.products (
@@ -57,6 +65,11 @@ alter table public.products add column if not exists topic text;
 alter table public.products drop column if exists price;
 alter table public.products drop column if exists category;
 create index if not exists products_topic_idx on public.products (topic);
+
+-- 이미 상품에 쓰인 주제가 있다면 topics 테이블로 옮겨둠 (한 번만 실행되면 됨)
+insert into public.topics (name)
+select distinct topic from public.products where topic is not null
+on conflict (name) do nothing;
 
 -- 사용자별 발주 연습 세팅 (order-setup.html 에서 저장 → order-practice.html 이 읽음)
 create table if not exists public.practice_settings (
@@ -106,6 +119,7 @@ alter table public.profiles    enable row level security;
 alter table public.stores      enable row level security;
 alter table public.submissions enable row level security;
 alter table public.products    enable row level security;
+alter table public.topics      enable row level security;
 alter table public.practice_settings enable row level security;
 
 -- 프로필: 본인 또는 어드민만 조회, 본인만 수정
@@ -150,6 +164,14 @@ create policy "products_select" on public.products for select
   to authenticated using (true);
 drop policy if exists "products_write" on public.products;
 create policy "products_write" on public.products for all
+  using (public.is_admin()) with check (public.is_admin());
+
+-- 주제: 로그인한 사람은 누구나 조회, 등록/삭제는 어드민만
+drop policy if exists "topics_select" on public.topics;
+create policy "topics_select" on public.topics for select
+  to authenticated using (true);
+drop policy if exists "topics_write" on public.topics;
+create policy "topics_write" on public.topics for all
   using (public.is_admin()) with check (public.is_admin());
 
 -- 연습 세팅: 본인 것만 읽고 쓰기 (어드민은 결과 확인용으로 조회 가능)
