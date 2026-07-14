@@ -800,6 +800,32 @@ tbody tr:hover { background: #fafbff; }
 .od-muted { color: var(--muted); }
 .od-missing { color: var(--danger); font-weight: 700; }
 
+/* 발주 처리 패널 (Mark as fulfilled) */
+.ff-guide {
+  background: #eef4ff; border: 1px solid #cfe0ff; border-radius: 10px;
+  padding: 12px 14px; font-size: 0.84rem; line-height: 1.6; margin-bottom: 18px;
+}
+.ff-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.ff-link { color: #c92a2a; font-size: 0.82rem; font-weight: 700; text-decoration: none; }
+.ff-items { border: 1px solid var(--border); border-radius: 10px; padding: 4px 14px; background: #f6f7f9; }
+.ff-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; }
+.ff-qty {
+  border: 1px solid var(--border); border-radius: 8px; background: #fff;
+  padding: 7px 12px; font-size: 0.82rem; white-space: nowrap;
+}
+.od-done {
+  margin-top: 14px; padding: 12px 14px; border-radius: 10px;
+  background: #eaf7ef; border: 1px solid #b7e3c8; color: #1a6b3c;
+  font-size: 0.85rem; font-weight: 600;
+}
+
+/* 배송 라벨 만들기 */
+.ol-guide {
+  background: #fff8e6; border: 1px solid #f5c86b; border-radius: 10px;
+  padding: 12px 16px; font-size: 0.85rem; line-height: 1.6; color: #7a5c00;
+  margin-bottom: 20px;
+}
+
 /* 리스크 뱃지 (목록 · 상세 헤더) — Low 는 표시하지 않음 */
 .risk-badge {
   display: inline-flex; align-items: center; gap: 4px;

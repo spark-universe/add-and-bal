@@ -307,11 +307,16 @@
             '<div class="od-method">🚚 ' + esc(o.method) + '</div>' +
             stockBox(o) +
             '<div class="od-lines">' + lineRows(o) + '</div>' +
-            '<div class="od-actions">' +
-              '<button class="btn-sm" id="btnFulfill">Mark as fulfilled</button>' +
-              '<button class="btn-sm" disabled>Create shipping label</button>' +
-              '<button class="btn-sm is-dark" disabled>Add to batch</button>' +
-            '</div>' +
+            (o.fulfillment === 'fulfilled'
+              ? '<div class="od-done">✅ 발주 완료 — 배송번호 <b>' + esc((o.tracking && o.tracking.number) || '-') +
+                '</b> (' + esc((o.tracking && o.tracking.carrier) || '-') + ')</div>'
+              : o.payment === 'refunded'
+                ? '<div class="od-done">환불된 주문입니다. 발주하지 않습니다.</div>'
+                : '<div class="od-actions">' +
+                    '<button class="btn-sm" id="btnFulfill">Mark as fulfilled</button>' +
+                    '<button class="btn-sm" id="btnLabel">Create shipping label</button>' +
+                    '<button class="btn-sm is-dark" id="btnBatch">Add to batch</button>' +
+                  '</div>') +
           '</div>' +
 
           '<div class="od-box">' +
@@ -373,10 +378,17 @@
         '</div>' +
       '</div>';
 
-    // TODO: 실제 발주 처리(정산·성적) 연결 — 지금은 상태만 바뀜
     var f = document.getElementById('btnFulfill');
-    if (f) f.addEventListener('click', function () {
-      alert('발주 처리 동작은 다음 단계에서 붙입니다.');
+    if (f) f.addEventListener('click', function () { openFulfill(o); });
+
+    var lb = document.getElementById('btnLabel');
+    if (lb) lb.addEventListener('click', function () {
+      location.href = 'order-label.html?no=' + encodeURIComponent(o.no);
+    });
+
+    var bt = document.getElementById('btnBatch');
+    if (bt) bt.addEventListener('click', function () {
+      alert('일괄 배송 처리 기능은 이 연습에서 사용되지 않습니다.');
     });
 
     var e = document.getElementById('btnEdit');
@@ -400,6 +412,98 @@
     });
 
     bindZoom(o);
+  }
+
+  /* ---------- 발주 처리 (Mark as fulfilled) ----------
+     드롭쉬핑에서는 내가 직접 배송하지 않는다.
+     아마존에서 고객 주소로 주문하면 아마존이 배송번호(Tracking number)를 주고,
+     그 번호를 여기에 넣어야 고객이 배송 조회를 할 수 있다. */
+  var CARRIERS = ['Amazon Logistics', 'UPS', 'USPS', 'FedEx', 'DHL eCommerce', 'Other'];
+
+  function openFulfill(o) {
+    var count = (o.lines || []).reduce(function (a, l) { return a + l.qty; }, 0);
+
+    var box = document.createElement('div');
+    box.className = 'modal-overlay is-open';
+    box.innerHTML =
+      '<div class="modal-card" style="max-width:600px;">' +
+        '<div class="modal-card__head">' +
+          '<h3>발주 처리 (Mark as fulfilled)</h3>' +
+          '<button class="modal-close" data-close>×</button>' +
+        '</div>' +
+        '<div class="modal-card__body">' +
+          '<div class="ff-guide">' +
+            '📦 <b>아마존에서 고객 주소로 주문한 뒤</b>, 아마존이 발급한 <b>배송번호(Tracking number)</b>를 여기에 입력합니다.<br>' +
+            '<span class="od-muted">이 번호가 있어야 고객이 배송 상황을 조회할 수 있습니다. ' +
+            '번호 없이 처리하면 고객 문의와 분쟁으로 이어집니다.</span>' +
+          '</div>' +
+
+          '<div class="ff-head">' +
+            '<span class="od-tag attn" style="margin:0;">📦 Unfulfilled (' + count + ')</span>' +
+            '<a href="#" class="ff-link" onclick="return false;">Print packing slip</a>' +
+          '</div>' +
+          '<div class="od-method">🚚 ' + esc(o.method) + '</div>' +
+
+          '<div class="ff-items">' +
+            (o.lines || []).map(function (l) {
+              var img = l.image
+                ? '<img class="od-img" src="' + esc(l.image) + '" alt="">'
+                : '<span class="od-img od-img--empty">?</span>';
+              return '<div class="ff-item">' +
+                '<input type="checkbox" checked disabled>' +
+                img +
+                '<div class="od-line__info">' +
+                  '<span class="od-line__name">' + esc(l.name) + '</span>' +
+                  '<div class="od-line__sku">' + esc(l.sku || '') + '</div>' +
+                '</div>' +
+                '<span class="ff-qty">' + l.qty + ' of ' + l.qty + '</span>' +
+              '</div>';
+            }).join('') +
+          '</div>' +
+
+          '<div class="prod-form" style="margin-top:18px;">' +
+            '<div class="field">' +
+              '<label>배송번호 (Tracking number) <span style="color:var(--danger);">*</span></label>' +
+              '<input type="text" id="ffTracking" placeholder="예: TBA123456789000">' +
+            '</div>' +
+            '<div class="field">' +
+              '<label>배송사 (Shipping carrier)</label>' +
+              '<select id="ffCarrier" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;">' +
+                CARRIERS.map(function (c) { return '<option>' + c + '</option>'; }).join('') +
+              '</select>' +
+            '</div>' +
+          '</div>' +
+
+          '<label style="display:inline-flex;align-items:center;gap:7px;font-size:0.85rem;">' +
+            '<input type="checkbox" id="ffNotify" checked> 고객에게 배송 알림 메일 보내기' +
+          '</label>' +
+          '<div id="ffError" style="color:var(--danger);font-size:0.82rem;margin-top:10px;"></div>' +
+        '</div>' +
+        '<div class="modal-card__foot">' +
+          '<button class="btn-sm" data-close>취소</button>' +
+          '<button class="btn-sm is-dark" id="ffGo">Mark as fulfilled</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(box);
+
+    box.addEventListener('click', function (ev) {
+      if (ev.target === box || ev.target.closest('[data-close]')) box.remove();
+    });
+
+    box.querySelector('#ffGo').addEventListener('click', function () {
+      var num = box.querySelector('#ffTracking').value.trim();
+      if (!num) {
+        box.querySelector('#ffError').textContent = '배송번호를 입력해야 발주 처리를 완료할 수 있습니다.';
+        return;
+      }
+      o.fulfillment = 'fulfilled';
+      o.tracking = { number: num, carrier: box.querySelector('#ffCarrier').value };
+      o.notified = box.querySelector('#ffNotify').checked;
+      o.fulfilledAt = Date.now();
+      saveOrder(o);
+      box.remove();
+      render(o);
+    });
   }
 
   /* ---------- 환불하기 (주문 취소) ----------
