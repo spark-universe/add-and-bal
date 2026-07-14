@@ -9,7 +9,6 @@
    ========================================================= */
 (function () {
   var STORE = 'ad_campaigns';
-  var COUNTRIES = ['United States', 'United Kingdom', 'Australia', 'Germany', 'Canada'];
 
   var campaigns = [];
   var tab = 'all';
@@ -35,32 +34,6 @@
     try { campaigns = JSON.parse(localStorage.getItem(STORE)) || []; } catch (e) { campaigns = []; }
   }
   function save() { localStorage.setItem(STORE, JSON.stringify(campaigns)); }
-
-  /* ---------- 캠페인 성과 시뮬레이션 ----------
-     광고비(일 예산 × 집행일)를 쓰면 그만큼 매출이 나온다.
-     ROAS(광고 수익률)는 캠페인마다 다르게 나오고, 그게 캠페인의 성패가 된다. */
-  function simulate(c) {
-    var days = c.end
-      ? Math.max(1, Math.round((new Date(c.end) - new Date(c.start)) / 86400000))
-      : randInt(4, 12);
-    days = Math.min(days, 30);
-
-    var spend = round2(c.budget * days * randF(0.85, 1.05));   // 예산을 다 못 쓰기도 한다
-    var roas = round2(randF(2.2, 8.5));                        // 광고비 1달러당 매출
-    var sales = round2(spend * roas);
-    var aov = round2(randF(45, 145));                          // 객단가
-    var customers = Math.max(1, Math.round(sales / aov));
-    var cac = round2(spend / customers);                       // 고객 1명 얻는 데 든 광고비
-
-    c.spend = spend;
-    c.sales = sales;
-    c.roas = roas;
-    c.aov = aov;
-    c.customers = customers;
-    c.cac = cac;
-    // ROAS 가 너무 낮으면 경고(TOV = 광고 목표 미달) 를 띄운다
-    c.alert = roas < 3 ? 'TOV' : null;
-  }
 
   /* ---------- 상단 지표 (모든 캠페인 합계) ---------- */
   function renderMetrics() {
@@ -127,89 +100,8 @@
     renderMetrics();
   }
 
-  /* ---------- 캠페인 만들기 ---------- */
-  function openCreate() {
-    var today = new Date().toISOString().slice(0, 10);
-
-    var box = document.createElement('div');
-    box.className = 'modal-overlay is-open';
-    box.innerHTML =
-      '<div class="modal-card" style="max-width:560px;">' +
-        '<div class="modal-card__head">' +
-          '<h3>Create campaign</h3>' +
-          '<button class="modal-close" data-close>×</button>' +
-        '</div>' +
-        '<div class="modal-card__body">' +
-          '<div class="ff-guide">' +
-            '📢 광고 캠페인은 <b>일 예산 × 집행 기간</b> 만큼 광고비를 씁니다.<br>' +
-            '<span class="od-muted">광고비 1달러로 매출을 얼마나 냈는지가 <b>ROAS</b>입니다. ' +
-            'ROAS 3 미만이면 경고가 뜹니다.</span>' +
-          '</div>' +
-          '<div class="prod-form">' +
-            '<div class="field" style="grid-column:1/-1;">' +
-              '<label>캠페인 이름 <span style="color:var(--danger);">*</span></label>' +
-              '<input type="text" id="cName" placeholder="예: 새 캠페인 01">' +
-            '</div>' +
-            '<div class="field">' +
-              '<label>일 예산 ($) <span style="color:var(--danger);">*</span></label>' +
-              '<input type="number" id="cBudget" min="1" step="1" placeholder="50">' +
-            '</div>' +
-            '<div class="field">' +
-              '<label>대상 국가</label>' +
-              '<select id="cCountry" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;">' +
-                COUNTRIES.map(function (c) { return '<option>' + c + '</option>'; }).join('') +
-              '</select>' +
-            '</div>' +
-            '<div class="field">' +
-              '<label>시작일</label>' +
-              '<input type="date" id="cStart" value="' + today + '">' +
-            '</div>' +
-            '<div class="field">' +
-              '<label>종료일 (비우면 진행 중)</label>' +
-              '<input type="date" id="cEnd">' +
-            '</div>' +
-          '</div>' +
-          '<div id="cError" style="color:var(--danger);font-size:0.82rem;"></div>' +
-        '</div>' +
-        '<div class="modal-card__foot">' +
-          '<button class="btn-sm" data-close>취소</button>' +
-          '<button class="btn-sm is-dark" id="cGo">캠페인 만들기</button>' +
-        '</div>' +
-      '</div>';
-    document.body.appendChild(box);
-
-    box.addEventListener('click', function (e) {
-      if (e.target === box || e.target.closest('[data-close]')) box.remove();
-    });
-
-    box.querySelector('#cGo').addEventListener('click', function () {
-      var name = box.querySelector('#cName').value.trim();
-      var budget = parseFloat(box.querySelector('#cBudget').value);
-      var start = box.querySelector('#cStart').value;
-      var end = box.querySelector('#cEnd').value;
-      var err = box.querySelector('#cError');
-
-      if (!name) { err.textContent = '캠페인 이름을 입력하세요.'; return; }
-      if (!isFinite(budget) || budget <= 0) { err.textContent = '일 예산을 입력하세요.'; return; }
-      if (end && end < start) { err.textContent = '종료일이 시작일보다 빠릅니다.'; return; }
-
-      var c = {
-        id: Date.now(),
-        name: name,
-        budget: budget,
-        country: box.querySelector('#cCountry').value,
-        segment: 'All',
-        start: start,
-        end: end || null,
-        status: end && end <= new Date().toISOString().slice(0, 10) ? 'completed' : 'active',
-      };
-      simulate(c);
-      campaigns.unshift(c);
-      save();
-      box.remove();
-      render();
-    });
-  }
+  /* ---------- 캠페인 만들기 → 별도 화면 ---------- */
+  function openCreate() { location.href = 'ad-campaign.html'; }
 
   /* ---------- 이벤트 ---------- */
   document.getElementById('createBtn').addEventListener('click', openCreate);
