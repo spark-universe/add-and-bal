@@ -842,10 +842,10 @@ tbody tr:hover { background: #fafbff; }
 .cac-row__input input:focus { outline: none; }
 .cac-row__input:focus-within { border-color: var(--primary); }
 
-/* 숫자 입력의 위아래 화살표(스피너) 제거 — 실수로 값이 바뀌는 걸 막는다 */
-input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+/* 캠페인 금액 입력의 위아래 화살표(스피너)만 제거 — 다른 화면의 숫자 입력은 그대로 둔다 */
+.cac-row__input input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.cac-row__input input[type="number"]::-webkit-outer-spin-button,
+.cac-row__input input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .cac-row__term, .cac-row__country {
   border: 1px solid var(--border); border-radius: 8px;
   padding: 7px 9px; font-size: 0.82rem; background: #f6f7f9;
