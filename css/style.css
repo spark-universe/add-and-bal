@@ -803,20 +803,6 @@ tbody tr:hover { background: #fafbff; }
 /* =========================================================
    광고 설정 (Advertising)
    ========================================================= */
-.adv-banner {
-  position: relative; display: flex; align-items: center; gap: 20px;
-  background: #fff; border: 1px solid var(--border); border-radius: 12px;
-  padding: 18px 20px; margin-bottom: 20px;
-}
-.adv-banner__title { font-weight: 800; font-size: 0.95rem; margin-bottom: 5px; }
-.adv-banner__text { font-size: 0.84rem; color: var(--muted); line-height: 1.6; max-width: 620px; }
-.adv-banner__flags { font-size: 1.6rem; letter-spacing: 4px; margin-left: auto; padding-right: 20px; }
-.adv-banner__close {
-  position: absolute; top: 10px; right: 12px;
-  background: none; border: none; color: var(--muted);
-  font-size: 1.2rem; line-height: 1; cursor: pointer;
-}
-
 .adv-tab {
   font-weight: 700; font-size: 0.82rem; border-radius: 8px;
   padding: 5px 12px; cursor: pointer; color: var(--muted);

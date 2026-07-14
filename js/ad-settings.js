@@ -105,10 +105,6 @@
 
   /* ---------- 이벤트 ---------- */
   document.getElementById('createBtn').addEventListener('click', openCreate);
-  document.getElementById('bannerCreate').addEventListener('click', openCreate);
-  document.getElementById('bannerClose').addEventListener('click', function () {
-    document.getElementById('advBanner').remove();
-  });
   document.getElementById('manageBtn').addEventListener('click', function () {
     alert('채널 관리는 이 연습에서 사용되지 않습니다.');
   });
