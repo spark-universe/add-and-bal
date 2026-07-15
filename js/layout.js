@@ -19,6 +19,18 @@
       ],
       footer: '<div class="who">홍길동 <span class="badge-admin">수강생</span></div><a href="#">로그아웃</a>',
     },
+    challenge: {
+      brand: { title: '챌린지', sub: '수강생 영역' },
+      base: '',
+      items: [
+        { key: 'hub',      ico: '🧭', label: '메뉴 선택',      href: 'home.html' },
+        { key: 'home',     ico: '🏆', label: '챌린지 메인',     href: 'challenge.html' },
+        { key: 'calendar', ico: '📅', label: '일정 보기',       href: 'challenge-calendar.html' },
+        { key: 'all',      ico: '📋', label: '과제 전체 보기',   href: 'challenge-all.html' },
+        { key: 'mine',     ico: '🗂️', label: '내 과제 관리',     href: 'challenge-mine.html' },
+      ],
+      footer: '<div class="who">홍길동 <span class="badge-admin">수강생</span></div><a href="#">로그아웃</a>',
+    },
     admin: {
       brand: { title: '발주 &amp; 광고<br>설정 훈련', sub: '어드민 영역' },
       base: '',            // 어드민 페이지는 admin/ 폴더 내부이므로 상대경로 그대로

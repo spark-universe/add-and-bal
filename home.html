@@ -15,11 +15,10 @@
   </div>
 
   <div class="hub__grid">
-    <a class="hub-card is-soon" href="#" id="cardChallenge">
-      <span class="hub-card__badge">준비 중</span>
+    <a class="hub-card" href="challenge.html">
       <div class="hub-card__ico">🏆</div>
       <div class="hub-card__title">챌린지</div>
-      <div class="hub-card__desc">기본 설정 챌린지 (준비 중입니다)</div>
+      <div class="hub-card__desc">과제를 확인하고 기한 안에 제출하는 챌린지</div>
     </a>
 
     <a class="hub-card" href="index.html">
@@ -39,11 +38,6 @@
   if (!user) return;
   var prof = await sb.from('profiles').select('name').eq('id', user.id).single();
   if (prof.data && prof.data.name) document.getElementById('hubName').textContent = prof.data.name;
-
-  document.getElementById('cardChallenge').addEventListener('click', function (e) {
-    e.preventDefault();
-    alert('챌린지는 준비 중입니다. 곧 열립니다!');
-  });
 })();
 </script>
 </body>

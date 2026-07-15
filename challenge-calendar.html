@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>챌린지 · 일정 보기</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-area="challenge" data-active="calendar">
+<div class="layout">
+  <div id="sidebar"></div>
+  <main class="content">
+    <div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
+      <div>
+        <h2>일정 보기</h2>
+        <p>과제 마감일을 달력으로 확인하세요.</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
+        <button class="btn-sm" id="calPrev">←</button>
+        <span style="font-weight:800;min-width:120px;text-align:center;" id="calLabel"></span>
+        <button class="btn-sm" id="calNext">→</button>
+      </div>
+    </div>
+
+    <div class="cal" id="cal"></div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/challenge.js"></script>
+<script>Challenge.calendar();</script>
+</body>
+</html>

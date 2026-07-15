@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>챌린지 · 과제 전체 보기</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-area="challenge" data-active="all">
+<div class="layout">
+  <div id="sidebar"></div>
+  <main class="content">
+    <div class="page-head">
+      <h2>과제 전체 보기</h2>
+      <p>등록된 챌린지 과제 목록입니다. 과제를 눌러 상세를 확인하고 제출하세요.</p>
+    </div>
+
+    <div class="ord-panel">
+      <div class="ord-toolbar">
+        <span class="adv-tab is-on" data-filter="all">전체</span>
+        <span class="adv-tab" data-filter="todo">미제출</span>
+        <span class="adv-tab" data-filter="done">제출완료</span>
+        <span style="flex:1;"></span>
+        <span style="font-size:0.82rem;color:var(--muted);" id="allCount"></span>
+      </div>
+      <div class="ord-scroll">
+        <table class="ord-table">
+          <thead>
+            <tr><th>과제</th><th>분류</th><th>배점</th><th>시작일</th><th>마감일</th><th>상태</th></tr>
+          </thead>
+          <tbody id="allBody">
+            <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/challenge.js"></script>
+<script>Challenge.all();</script>
+</body>
+</html>

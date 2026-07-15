@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>챌린지 · 내 과제 관리</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-area="challenge" data-active="mine">
+<div class="layout">
+  <div id="sidebar"></div>
+  <main class="content">
+    <div class="page-head">
+      <h2>내 과제 관리</h2>
+      <p>제출한 과제와 검수 결과를 확인합니다.</p>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat">
+        <div class="label">제출 완료</div>
+        <div class="value"><span id="mDone">-</span> <span style="font-size:0.9rem;font-weight:600;">개</span></div>
+      </div>
+      <div class="stat">
+        <div class="label">검수 통과</div>
+        <div class="value"><span id="mPass">-</span> <span style="font-size:0.9rem;font-weight:600;">개</span></div>
+      </div>
+      <div class="stat">
+        <div class="label">검수 대기</div>
+        <div class="value"><span id="mWait">-</span> <span style="font-size:0.9rem;font-weight:600;">개</span></div>
+      </div>
+      <div class="stat is-highlight">
+        <div class="label">획득 점수</div>
+        <div class="value"><span id="mScore">-</span> <span style="font-size:0.9rem;font-weight:600;">점</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head"><span>내 제출 내역</span></div>
+      <table>
+        <thead>
+          <tr><th>과제</th><th>제출일</th><th>검수 결과</th><th>점수</th><th>관리</th></tr>
+        </thead>
+        <tbody id="mineBody">
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/challenge.js"></script>
+<script>Challenge.mine();</script>
+</body>
+</html>

@@ -33,6 +33,47 @@ body {
 
 a { color: inherit; text-decoration: none; }
 
+/* ---------- 챌린지 ---------- */
+.ch-click { cursor: pointer; }
+.ch-click:hover td { background: #fafbfd; }
+.ch-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+.ch-review {
+  border-radius: 10px; padding: 12px 14px; font-size: 0.88rem; font-weight: 700;
+}
+.ch-review.ok { background: #eaf7ef; border: 1px solid #b7e3c8; color: #1a6b3c; }
+.ch-review.no { background: #fff1f1; border: 1px solid #f3aeae; color: #a32626; }
+
+/* 달력 */
+.cal {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px;
+  background: var(--border); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+}
+.cal__wd {
+  background: #f6f7f9; text-align: center; padding: 10px 0;
+  font-size: 0.8rem; font-weight: 700; color: var(--muted);
+}
+.cal__cell {
+  background: #fff; min-height: 96px; padding: 8px; display: flex; flex-direction: column; gap: 4px;
+}
+.cal__cell.is-empty { background: #fafbfc; }
+.cal__cell.is-today { background: #f2f7ff; }
+.cal__num { font-size: 0.8rem; font-weight: 700; color: var(--muted); }
+.cal__cell.is-today .cal__num { color: var(--primary); }
+.cal__ev {
+  display: block; font-size: 0.72rem; padding: 3px 6px; border-radius: 6px;
+  cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cal__ev.todo { background: #fff0d6; color: #a86b00; }
+.cal__ev.done { background: #eaf7ef; color: #1a6b3c; }
+.cal__ev.over { background: #ffe0e0; color: #c92a2a; }
+.cal__ev:hover { filter: brightness(0.95); }
+
+@media (max-width: 720px) {
+  .cal__cell { min-height: 64px; }
+  .cal__ev { font-size: 0.62rem; }
+}
+
 /* ---------- 메뉴 선택 허브 (로그인 후) ---------- */
 .hub {
   min-height: 100vh; max-width: 1080px; margin: 0 auto;

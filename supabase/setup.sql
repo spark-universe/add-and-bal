@@ -83,6 +83,39 @@ create table if not exists public.practice_settings (
   updated_at timestamptz default now()
 );
 
+-- ---------- 챌린지: 과제 + 제출 ----------
+-- 어드민이 등록하는 과제(챌린지)
+create table if not exists public.challenges (
+  id bigint generated always as identity primary key,
+  title text not null,
+  description text,                 -- 과제 설명
+  category text,                    -- 분류 (예: 기본 설정 / 광고 / 발주 ...)
+  points int default 0,             -- 배점
+  open_at date,                     -- 시작일 (일정 보기에 표시)
+  due_at date,                      -- 마감일
+  active boolean default true,      -- 끄면 수강생에게 안 보임
+  created_at timestamptz default now()
+);
+create index if not exists challenges_due_idx on public.challenges (due_at);
+
+-- 수강생의 과제 제출 (과제 1개당 1건)
+create table if not exists public.challenge_submissions (
+  id bigint generated always as identity primary key,
+  challenge_id bigint references public.challenges on delete cascade,
+  user_id uuid references auth.users on delete cascade,
+  content text,                     -- 제출 메모/링크
+  file_path text,                   -- 첨부 파일 (submissions 버킷)
+  file_name text,
+  status text default 'submitted',  -- 'submitted' | 'draft'
+  review_status text default 'pending',  -- 'pending' | 'pass' | 'fail'
+  review_reason text,
+  score int,
+  reviewed_at timestamptz,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  unique (challenge_id, user_id)
+);
+
 -- ---------- 2. 신규 가입 시 프로필 자동 생성 ----------
 create or replace function public.handle_new_user()
 returns trigger
@@ -123,6 +156,8 @@ alter table public.submissions enable row level security;
 alter table public.products    enable row level security;
 alter table public.topics      enable row level security;
 alter table public.practice_settings enable row level security;
+alter table public.challenges  enable row level security;
+alter table public.challenge_submissions enable row level security;
 
 -- 프로필: 본인 또는 어드민만 조회, 본인만 수정
 drop policy if exists "profiles_select" on public.profiles;
@@ -175,6 +210,28 @@ create policy "topics_select" on public.topics for select
 drop policy if exists "topics_write" on public.topics;
 create policy "topics_write" on public.topics for all
   using (public.is_admin()) with check (public.is_admin());
+
+-- 챌린지 과제: 로그인한 사람은 조회, 등록/수정/삭제는 어드민만
+drop policy if exists "challenges_select" on public.challenges;
+create policy "challenges_select" on public.challenges for select
+  to authenticated using (true);
+drop policy if exists "challenges_write" on public.challenges;
+create policy "challenges_write" on public.challenges for all
+  using (public.is_admin()) with check (public.is_admin());
+
+-- 챌린지 제출: 본인 것만 쓰기, 조회는 본인/어드민, 검수는 어드민
+drop policy if exists "chsub_select" on public.challenge_submissions;
+create policy "chsub_select" on public.challenge_submissions for select
+  using (user_id = auth.uid() or public.is_admin());
+drop policy if exists "chsub_insert" on public.challenge_submissions;
+create policy "chsub_insert" on public.challenge_submissions for insert
+  with check (user_id = auth.uid());
+drop policy if exists "chsub_update" on public.challenge_submissions;
+create policy "chsub_update" on public.challenge_submissions for update
+  using (user_id = auth.uid() or public.is_admin());
+drop policy if exists "chsub_delete" on public.challenge_submissions;
+create policy "chsub_delete" on public.challenge_submissions for delete
+  using (user_id = auth.uid());
 
 -- 연습 세팅: 본인 것만 읽고 쓰기 (어드민은 결과 확인용으로 조회 가능)
 drop policy if exists "practice_settings_select" on public.practice_settings;
