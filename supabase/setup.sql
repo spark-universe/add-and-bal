@@ -114,6 +114,38 @@ create table if not exists public.practice_settings (
   updated_at timestamptz default now()
 );
 
+-- ---------- 매뉴얼 챕터 공개/예약 ----------
+--  매뉴얼 본문(manual.html)은 정적 파일이고, 각 챕터의 "공개 여부/예약일"만 여기서 제어한다.
+--  visible = status='public' 또는 (status='scheduled' 이고 publish_at <= 지금)
+create table if not exists public.manual_chapters (
+  slug text primary key,              -- 매뉴얼 섹션 id / 목차 앵커 (예: 'signup')
+  title text not null,
+  sort int default 0,
+  status text default 'public',       -- 'public' | 'hidden' | 'scheduled'
+  publish_at timestamptz,             -- 예약 공개 시각
+  updated_at timestamptz default now()
+);
+insert into public.manual_chapters (slug, title, sort) values
+  ('signup','쇼피파이 가입 방법',10),
+  ('localize','미국 현지화 실습',20),
+  ('plan','스토어 구상',30),
+  ('sourcing','소싱 앱 소개',40),
+  ('spark','스파크 사용법',50),
+  ('upload','상품 업로드',60),
+  ('collection','컬렉션 설정',70),
+  ('favicon','파비콘 · 로고',80),
+  ('megamenu','메가메뉴',90),
+  ('banner','메인 배너',100),
+  ('category','카테고리 바로가기',110),
+  ('featured','추천 상품',120),
+  ('productlist','제품 리스트',130),
+  ('brand','브랜드 정보',140),
+  ('blog','블로그 작성',150),
+  ('review','리뷰',160),
+  ('footer','푸터 및 정책',170),
+  ('popup','팝업창 & 쿠키 설정',180)
+on conflict (slug) do nothing;
+
 -- ---------- 교재(레슨): 어드민이 등록, 과제에 연결 ----------
 create table if not exists public.lessons (
   id bigint generated always as identity primary key,
@@ -236,6 +268,7 @@ alter table public.challenge_submissions enable row level security;
 alter table public.lessons     enable row level security;
 alter table public.cohorts     enable row level security;
 alter table public.level_requests enable row level security;
+alter table public.manual_chapters enable row level security;
 
 -- 프로필: 본인 또는 어드민만 조회, 본인만 수정
 drop policy if exists "profiles_select" on public.profiles;
@@ -315,6 +348,14 @@ create policy "lr_insert" on public.level_requests for insert
   with check (user_id = auth.uid());
 drop policy if exists "lr_update" on public.level_requests;
 create policy "lr_update" on public.level_requests for update
+  using (public.is_admin()) with check (public.is_admin());
+
+-- 매뉴얼 챕터: 로그인한 사람은 조회(클라이언트가 숨김 판단), 수정은 어드민만
+drop policy if exists "manual_chapters_select" on public.manual_chapters;
+create policy "manual_chapters_select" on public.manual_chapters for select
+  to authenticated using (true);
+drop policy if exists "manual_chapters_write" on public.manual_chapters;
+create policy "manual_chapters_write" on public.manual_chapters for all
   using (public.is_admin()) with check (public.is_admin());
 
 -- 챌린지 과제: 로그인한 사람은 조회, 등록/수정/삭제는 어드민만

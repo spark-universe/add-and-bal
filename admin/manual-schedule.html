@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>어드민 · 매뉴얼 공개 관리</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-area="admin" data-active="manualsched">
+<div class="layout">
+  <div id="sidebar"></div>
+  <main class="content">
+    <div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
+      <div>
+        <h2>매뉴얼 공개 관리</h2>
+        <p>스토어 초기작업 매뉴얼의 챕터별 공개 여부와 예약 공개일을 설정합니다.
+          예약한 챕터는 그 시각 전까지 수강생 화면(목차·본문)에서 숨겨집니다.</p>
+      </div>
+      <a class="btn-sm" href="../manual.html" target="_blank" rel="noopener" style="flex-shrink:0;">매뉴얼 미리보기 ↗</a>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head">
+        <span>챕터 <span id="mcCount" style="color:var(--muted);font-weight:600;"></span></span>
+        <span class="form-saved" id="saved" hidden>저장되었습니다</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:64px;">번호</th>
+            <th>챕터</th>
+            <th style="width:120px;">현재</th>
+            <th style="width:130px;">상태</th>
+            <th style="width:210px;">예약 공개일시</th>
+            <th style="width:90px;">저장</th>
+          </tr>
+        </thead>
+        <tbody id="mcBody">
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/admin-manual.js"></script>
+</body>
+</html>

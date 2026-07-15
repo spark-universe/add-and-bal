@@ -2586,6 +2586,43 @@ const obs=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){li
 Object.keys(map).forEach(id=>{const el=document.getElementById(id);if(el)obs.observe(el);});
 links.forEach(l=>l.addEventListener('click',()=>document.body.classList.remove('nav-open')));
 </script>
+<script>
+// 챕터 공개/예약: manual_chapters 를 읽어 아직 공개 안 된 챕터를 숨긴다
+(async function () {
+  try {
+    var res = await sb.from('manual_chapters').select('slug,status,publish_at');
+    if (res.error || !res.data) return;
+    var now = Date.now();
+    res.data.forEach(function (c) {
+      var visible = c.status === 'public' ||
+        (c.status === 'scheduled' && c.publish_at && new Date(c.publish_at).getTime() <= now);
+      if (visible) return;
+      var sec = document.getElementById(c.slug);
+      if (sec) sec.style.display = 'none';
+      var nav = document.querySelector('.nav-item[href="#' + c.slug + '"]');
+      if (nav) nav.style.display = 'none';
+    });
+    // 파트 구분선: 그 파트에 보이는 챕터가 하나도 없으면 구분선도 숨김
+    document.querySelectorAll('.part-divider').forEach(function (div) {
+      var any = false, el = div.nextElementSibling;
+      while (el && !el.classList.contains('part-divider')) {
+        if (el.classList.contains('doc-section') && el.style.display !== 'none') { any = true; break; }
+        el = el.nextElementSibling;
+      }
+      if (!any) div.style.display = 'none';
+    });
+    // 목차 파트 라벨(.nav-part): 그 아래 보이는 항목이 없으면 라벨 숨김
+    document.querySelectorAll('.nav-part').forEach(function (p) {
+      var any = false, el = p.nextElementSibling;
+      while (el && !el.classList.contains('nav-part')) {
+        if (el.classList.contains('nav-item') && el.style.display !== 'none') { any = true; break; }
+        el = el.nextElementSibling;
+      }
+      if (!any) p.style.display = 'none';
+    });
+  } catch (e) {}
+})();
+</script>
 
 </body>
 </html>
