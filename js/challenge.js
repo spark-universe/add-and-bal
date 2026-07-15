@@ -49,10 +49,15 @@
     var su = await sb.from('challenge_submissions').select('*').eq('user_id', user.id);
     var subs = {};
     (su.data || []).forEach(function (s) { subs[s.challenge_id] = s; });
-    return (ch.data || []).map(function (c) {
-      c.sub = subs[c.id] || null;
-      return c;
-    });
+
+    // 예약 공개: open_at 이 미래인 과제는 아직 안 보이게 (그 시각 지나면 자동 노출)
+    var now = Date.now();
+    return (ch.data || [])
+      .filter(function (c) { return !c.open_at || new Date(c.open_at).getTime() <= now; })
+      .map(function (c) {
+        c.sub = subs[c.id] || null;
+        return c;
+      });
   }
 
   function statusTag(c) {

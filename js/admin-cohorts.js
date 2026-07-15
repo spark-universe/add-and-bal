@@ -41,7 +41,10 @@
         '<td>' + n + '명</td>' +
         '<td><button class="btn-sm" data-act="toggle" data-id="' + c.id + '">' +
           (c.active ? '노출중' : '숨김') + '</button></td>' +
-        '<td><button class="btn-link" data-act="rename" data-id="' + c.id + '">이름 변경</button></td>' +
+        '<td>' +
+          '<a class="btn-link" href="challenge-visibility.html?cohort=' + c.id + '">챌린지 공개</a> ' +
+          '<button class="btn-link" data-act="rename" data-id="' + c.id + '">이름 변경</button>' +
+        '</td>' +
       '</tr>';
     }).join('');
   }
