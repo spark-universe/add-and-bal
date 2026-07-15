@@ -28,11 +28,11 @@
         <thead>
           <tr>
             <th>성명</th><th>이메일</th><th>전화번호</th>
-            <th>상태</th><th>스토어</th><th>제출(확정)</th><th>관리</th>
+            <th>기수</th><th>상태</th><th>스토어</th><th>제출(확정)</th><th>관리</th>
           </tr>
         </thead>
         <tbody id="userBody">
-          <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
+          <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
         </tbody>
       </table>
     </div>
@@ -66,7 +66,7 @@
   var detailBody = document.getElementById('detailBody');
   var detailTitle = document.getElementById('detailTitle');
 
-  var students = [], storesByUser = {}, subsByUser = {};
+  var students = [], storesByUser = {}, subsByUser = {}, maxCohort = 1;
 
   function esc(s) {
     return String(s || '').replace(/[&<>"]/g, function (c) {
@@ -83,10 +83,12 @@
     // 수강생(비어드민) 프로필
     var pr = await sb.from('profiles').select('*').neq('role', 'admin').order('created_at');
     if (pr.error) {
-      body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--danger);padding:40px;">조회 실패: ' + esc(pr.error.message) + '</td></tr>';
+      body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--danger);padding:40px;">조회 실패: ' + esc(pr.error.message) + '</td></tr>';
       return;
     }
     students = (pr.data || []);
+    maxCohort = 1;
+    students.forEach(function (s) { if ((s.cohort || 1) > maxCohort) maxCohort = s.cohort; });
 
     // 전체 스토어 / 제출 (어드민은 RLS 로 전체 조회 가능) → 유저별로 그룹
     storesByUser = {}; subsByUser = {};
@@ -99,7 +101,7 @@
     countEl.textContent = approved.length;
 
     if (!students.length) {
-      body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">등록된 수강생이 없습니다.</td></tr>';
+      body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:40px;">등록된 수강생이 없습니다.</td></tr>';
       return;
     }
 
@@ -107,10 +109,14 @@
       var storeN = (storesByUser[u.id] || []).length;
       var subs = subsByUser[u.id] || [];
       var confirmed = subs.filter(function (r) { return r.status === 'confirmed'; }).length;
+      var cohort = u.cohort || 1;
+      var opts = '';
+      for (var i = 1; i <= maxCohort; i++) opts += '<option value="' + i + '"' + (i === cohort ? ' selected' : '') + '>' + i + '기</option>';
       return '<tr>' +
         '<td><b>' + esc(u.name) + '</b></td>' +
         '<td>' + esc(u.email) + '</td>' +
         '<td>' + esc(u.phone) + '</td>' +
+        '<td><select class="cohort-pick" data-id="' + u.id + '" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;">' + opts + '</select></td>' +
         '<td>' + statusTag(u.status) + '</td>' +
         '<td>' + storeN + '개</td>' +
         '<td>' + confirmed + ' / 4</td>' +
@@ -161,6 +167,21 @@
   function closeDetail() { modal.classList.remove('is-open'); }
   document.getElementById('detailClose').addEventListener('click', closeDetail);
   modal.addEventListener('click', function (e) { if (e.target === modal) closeDetail(); });
+
+  // 기수 변경
+  body.addEventListener('change', async function (e) {
+    var sel = e.target.closest('.cohort-pick');
+    if (!sel) return;
+    var id = sel.dataset.id;
+    var val = parseInt(sel.value, 10) || 1;
+    var res = await sb.from('profiles').update({ cohort: val }).eq('id', id).select();
+    if (res.error || !res.data || !res.data.length) {
+      alert('기수 변경 실패' + (res.error ? ': ' + res.error.message : ''));
+      return;
+    }
+    var u = students.filter(function (x) { return x.id === id; })[0];
+    if (u) u.cohort = val;
+  });
 
   // 목록 버튼 (상세 / 비번 재설정)
   body.addEventListener('click', async function (e) {

@@ -5,8 +5,8 @@
 --  * 같은 제목이 이미 있으면 건너뜁니다 (중복 실행 안전)
 -- =========================================================
 
-insert into public.challenges (title, category, points, manual, active)
-select v.title, '기본 설정', 10,
+insert into public.challenges (title, category, cohort, points, manual, active)
+select v.title, '기본 설정', 1, 10,
        jsonb_build_array(jsonb_build_object('title', v.title, 'url', v.url)),
        true
 from (values

@@ -33,9 +33,13 @@
   }
   function isOver(due) { return due ? (new Date(due) - new Date() < 0) : false; }
 
-  // 과제 + 내 제출을 합쳐서 가져온다
+  // 과제 + 내 제출을 합쳐서 가져온다 (내 기수 과제만)
   async function fetchData() {
-    var ch = await sb.from('challenges').select('*').eq('active', true)
+    var prof = await sb.from('profiles').select('cohort').eq('id', user.id).single();
+    var cohort = (prof.data && prof.data.cohort) || 1;
+
+    var ch = await sb.from('challenges').select('*')
+      .eq('active', true).eq('cohort', cohort)
       .order('due_at', { ascending: true });
     var su = await sb.from('challenge_submissions').select('*').eq('user_id', user.id);
     var subs = {};

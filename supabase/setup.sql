@@ -11,8 +11,11 @@ create table if not exists public.profiles (
   email text,
   role text default 'student',      -- 'student' | 'admin'
   status text default 'pending',    -- 'pending' | 'approved'
+  cohort int default 1,             -- 기수 (1기생, 2기생 ...)
   created_at timestamptz default now()
 );
+alter table public.profiles add column if not exists cohort int default 1;
+update public.profiles set cohort = 1 where cohort is null;
 
 create table if not exists public.stores (
   id bigint generated always as identity primary key,
@@ -91,6 +94,7 @@ create table if not exists public.challenges (
   description text,                 -- 과제 설명
   manual jsonb default '[]'::jsonb, -- 매뉴얼 링크 목록 [{title, url}]
   category text,                    -- 분류 (예: 기본 설정 / 광고 / 발주 ...)
+  cohort int default 1,             -- 기수 (해당 기수 수강생에게만 보임)
   points int default 0,             -- 배점
   open_at timestamptz,              -- 시작일시 (일정 보기에 표시)
   due_at timestamptz,               -- 마감일시
@@ -99,6 +103,8 @@ create table if not exists public.challenges (
 );
 -- (이전 버전 스키마를 이미 실행했다면 아래가 컬럼/타입을 맞춰줌)
 alter table public.challenges add column if not exists manual jsonb default '[]'::jsonb;
+alter table public.challenges add column if not exists cohort int default 1;
+update public.challenges set cohort = 1 where cohort is null;
 alter table public.challenges alter column open_at type timestamptz using open_at::timestamptz;
 alter table public.challenges alter column due_at  type timestamptz using due_at::timestamptz;
 create index if not exists challenges_due_idx on public.challenges (due_at);

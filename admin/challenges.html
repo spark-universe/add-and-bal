@@ -10,9 +10,18 @@
 <div class="layout">
   <div id="sidebar"></div>
   <main class="content">
-    <div class="page-head">
-      <h2>챌린지 관리</h2>
-      <p>수강생에게 낼 과제를 등록합니다. 여기 등록한 과제가 수강생 챌린지 화면에 표시됩니다.</p>
+    <div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
+      <div>
+        <h2>챌린지 관리</h2>
+        <p>수강생에게 낼 과제를 등록합니다. 선택한 기수의 수강생에게만 표시됩니다.</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        <span style="font-size:0.85rem;color:var(--muted);">기수</span>
+        <select id="cohortSel" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;font-weight:700;">
+          <option value="1">1기생</option>
+        </select>
+        <button class="btn-sm" id="addCohort">＋ 기수 추가</button>
+      </div>
     </div>
 
     <div class="panel">

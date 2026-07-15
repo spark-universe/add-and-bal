@@ -6,8 +6,10 @@
    ========================================================= */
 (function () {
   var editingId = null;
-  var challenges = [];
-  var subCount = {};   // challenge_id → 제출 건수
+  var challenges = [];      // 현재 기수의 과제만
+  var subCount = {};        // challenge_id → 제출 건수
+  var cohort = 1;           // 지금 관리 중인 기수
+  var maxCohort = 1;        // 존재하는 최대 기수
 
   var els = {
     title: document.getElementById('fTitle'),
@@ -90,6 +92,7 @@
       description: els.desc.value.trim() || null,
       manual: parseManual(els.manual.value),
       category: els.category.value.trim() || null,
+      cohort: cohort,                    // 지금 선택된 기수로 등록
       points: parseInt(els.points.value, 10) || 0,
       open_at: localToISO(els.open.value),
       due_at: localToISO(els.due.value),
@@ -161,7 +164,8 @@
   }
 
   async function load() {
-    var res = await sb.from('challenges').select('*').order('created_at', { ascending: false });
+    var res = await sb.from('challenges').select('*')
+      .eq('cohort', cohort).order('created_at', { ascending: false });
     if (res.error) { alert('과제를 불러오지 못했습니다: ' + res.error.message); return; }
     challenges = res.data || [];
 
@@ -173,6 +177,41 @@
     });
     render();
   }
+
+  // 존재하는 기수 목록을 만들어 드롭다운을 채운다 (수강생·과제에 쓰인 기수 + 최소 1)
+  async function loadCohorts() {
+    var maxC = 1;
+    var pr = await sb.from('profiles').select('cohort');
+    (pr.data || []).forEach(function (p) { if (p.cohort > maxC) maxC = p.cohort; });
+    var ch = await sb.from('challenges').select('cohort');
+    (ch.data || []).forEach(function (c) { if (c.cohort > maxC) maxC = c.cohort; });
+    maxCohort = maxC;
+
+    var sel = document.getElementById('cohortSel');
+    var opts = '';
+    for (var i = 1; i <= maxCohort; i++) opts += '<option value="' + i + '">' + i + '기생</option>';
+    sel.innerHTML = opts;
+    sel.value = String(cohort);
+  }
+
+  document.getElementById('cohortSel').addEventListener('change', function () {
+    cohort = parseInt(this.value, 10) || 1;
+    clearForm();
+    load();
+  });
+
+  document.getElementById('addCohort').addEventListener('click', function () {
+    // 다음 기수를 추가하고 그 기수로 전환 (과제를 하나 등록하면 실제로 기수가 생김)
+    maxCohort += 1;
+    var sel = document.getElementById('cohortSel');
+    sel.innerHTML += '<option value="' + maxCohort + '">' + maxCohort + '기생</option>';
+    sel.value = String(maxCohort);
+    cohort = maxCohort;
+    clearForm();
+    load();
+    alert(maxCohort + '기생으로 전환했습니다. 이 기수에 과제를 등록하세요.\n' +
+      '(수강생의 기수는 사용자 관리에서 지정합니다.)');
+  });
 
   els.saveBtn.addEventListener('click', async function () {
     var row = readForm();
@@ -228,6 +267,7 @@
   (async function init() {
     var admin = await Auth.requireAdmin();
     if (!admin) return;
+    await loadCohorts();
     await load();
   })();
 })();
