@@ -86,6 +86,8 @@
     setText('cSoon', soon.length);
     setText('cScore', score);
 
+    await renderPromo(list);
+
     var upcoming = list.filter(function (c) { return !c.sub && c.due_at; }).slice(0, 6);
     var body = document.getElementById('chBody');
     if (!upcoming.length) {
@@ -101,6 +103,79 @@
       '</tr>';
     }).join('');
     bindRows(list);
+  }
+
+  /* ===== 등급업(발주&광고 넘어가기) 신청 배너 ===== */
+  async function renderPromo(list) {
+    var box = document.getElementById('promoBox');
+    if (!box) return;
+
+    var pr = await sb.from('profiles').select('level').eq('id', user.id).single();
+    var level = (pr.data && pr.data.level) || 0;
+
+    // 이미 열렸으면 안내만
+    if (level >= 1) {
+      box.innerHTML =
+        '<div class="promo is-open">' +
+          '<div class="promo__body">' +
+            '<div class="promo__title">🎉 발주 &amp; 광고 훈련이 열렸습니다</div>' +
+            '<div class="promo__desc">메뉴 선택 화면에서 발주 &amp; 광고 설정 훈련으로 이동할 수 있습니다.</div>' +
+          '</div>' +
+          '<a class="btn-primary promo__btn" href="index.html">발주 &amp; 광고로 이동</a>' +
+        '</div>';
+      return;
+    }
+
+    // 챌린지 진행 상황 (검수 통과 기준)
+    var total = list.length;
+    var passed = list.filter(function (c) { return c.sub && c.sub.review_status === 'pass'; }).length;
+    var eligible = total > 0 && passed === total;
+
+    // 최근 신청 상태
+    var lr = await sb.from('level_requests').select('*')
+      .eq('user_id', user.id).order('created_at', { ascending: false }).limit(1);
+    var last = (lr.data && lr.data[0]) || null;
+
+    if (last && last.status === 'pending') {
+      box.innerHTML =
+        '<div class="promo is-wait">' +
+          '<div class="promo__body">' +
+            '<div class="promo__title">⏳ 승인 대기 중</div>' +
+            '<div class="promo__desc">발주 &amp; 광고 훈련 넘어가기를 신청했습니다. 어드민 승인을 기다려 주세요.</div>' +
+          '</div>' +
+        '</div>';
+      return;
+    }
+
+    var rejectMsg = (last && last.status === 'rejected')
+      ? '<div class="promo__desc" style="color:var(--danger);">반려됨' +
+        (last.note ? ' · 사유: ' + esc(last.note) : '') + '</div>'
+      : '';
+
+    box.innerHTML =
+      '<div class="promo ' + (last && last.status === 'rejected' ? 'is-reject' : '') + '">' +
+        '<div class="promo__body">' +
+          '<div class="promo__title">🚀 발주 &amp; 광고 훈련으로 넘어가기</div>' +
+          '<div class="promo__desc">챌린지 과제를 <b>모두 검수 통과</b>하면 신청할 수 있습니다. ' +
+            '(검수 통과 ' + passed + ' / ' + total + ')</div>' +
+          rejectMsg +
+        '</div>' +
+        '<button class="btn-primary promo__btn" id="promoApply"' + (eligible ? '' : ' disabled') + '>' +
+          '등급업 신청' + '</button>' +
+      '</div>';
+
+    var btn = document.getElementById('promoApply');
+    if (btn && eligible) {
+      btn.addEventListener('click', async function () {
+        if (!confirm('발주 & 광고 훈련으로 넘어가기를 신청할까요?\n어드민 승인 후 열립니다.')) return;
+        btn.disabled = true;
+        var res = await sb.from('level_requests').insert({
+          user_id: user.id, from_level: 0, to_level: 1
+        });
+        if (res.error) { btn.disabled = false; alert('신청 실패: ' + res.error.message); return; }
+        await renderPromo(list);
+      });
+    }
   }
 
   /* ================= 과제 전체 보기 ================= */

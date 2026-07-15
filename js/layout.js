@@ -39,6 +39,7 @@
         { key: 'registrants', ico: '🙋', label: '가입자 관리',  href: 'registrants.html' },
         { key: 'users',       ico: '👥', label: '사용자 관리',  href: 'users.html' },
         { key: 'cohorts',     ico: '🎓', label: '기수 관리',    href: 'cohorts.html' },
+        { key: 'promotions',  ico: '🚀', label: '등급 승인',    href: 'promotions.html' },
         { key: 'review',      ico: '📝', label: '자료 검수',    href: 'review.html' },
         { key: 'products',    ico: '🛍️', label: '상품 관리',    href: 'products.html' },
         { key: 'lessons',     ico: '📖', label: '교재 관리',    href: 'lessons.html' },

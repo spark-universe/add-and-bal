@@ -28,6 +28,23 @@ create table if not exists public.cohorts (
 insert into public.cohorts (id, label) values (1, '1기')
 on conflict (id) do nothing;
 
+-- 발주&광고 훈련 접근 등급: 0 = 챌린지 단계(발주&광고 잠김), 1 = 발주&광고 개방
+alter table public.profiles add column if not exists level int default 0;
+update public.profiles set level = 0 where level is null;
+
+-- 등급업 신청: 수강생이 신청 → 어드민이 승인/반려
+create table if not exists public.level_requests (
+  id bigint generated always as identity primary key,
+  user_id uuid references auth.users on delete cascade,
+  from_level int,
+  to_level int,
+  status text default 'pending',    -- 'pending' | 'approved' | 'rejected'
+  note text,                        -- 반려 사유 등
+  created_at timestamptz default now(),
+  decided_at timestamptz
+);
+create index if not exists level_requests_status_idx on public.level_requests (status);
+
 create table if not exists public.stores (
   id bigint generated always as identity primary key,
   user_id uuid references auth.users on delete cascade,
@@ -185,6 +202,28 @@ as $$
   select exists (select 1 from public.profiles where id = auth.uid() and role = 'admin');
 $$;
 
+-- ---------- 3-1. 프로필 민감 컬럼 보호 (수강생 스스로 등급·권한 변경 금지) ----------
+--  수강생이 본인 프로필을 수정하더라도 level/role/status/cohort 는 어드민만 바꿀 수 있게 되돌린다.
+create or replace function public.protect_profile_fields()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    new.level  := old.level;
+    new.role   := old.role;
+    new.status := old.status;
+    new.cohort := old.cohort;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists trg_protect_profile on public.profiles;
+create trigger trg_protect_profile
+  before update on public.profiles
+  for each row execute function public.protect_profile_fields();
+
 -- ---------- 4. RLS (행 수준 보안) ----------
 alter table public.profiles    enable row level security;
 alter table public.stores      enable row level security;
@@ -196,6 +235,7 @@ alter table public.challenges  enable row level security;
 alter table public.challenge_submissions enable row level security;
 alter table public.lessons     enable row level security;
 alter table public.cohorts     enable row level security;
+alter table public.level_requests enable row level security;
 
 -- 프로필: 본인 또는 어드민만 조회, 본인만 수정
 drop policy if exists "profiles_select" on public.profiles;
@@ -264,6 +304,17 @@ create policy "cohorts_select" on public.cohorts for select
          or id = (select cohort from public.profiles where id = auth.uid()));
 drop policy if exists "cohorts_write" on public.cohorts;
 create policy "cohorts_write" on public.cohorts for all
+  using (public.is_admin()) with check (public.is_admin());
+
+-- 등급업 신청: 본인 것만 신청/조회, 승인·반려(수정)는 어드민만
+drop policy if exists "lr_select" on public.level_requests;
+create policy "lr_select" on public.level_requests for select
+  using (user_id = auth.uid() or public.is_admin());
+drop policy if exists "lr_insert" on public.level_requests;
+create policy "lr_insert" on public.level_requests for insert
+  with check (user_id = auth.uid());
+drop policy if exists "lr_update" on public.level_requests;
+create policy "lr_update" on public.level_requests for update
   using (public.is_admin()) with check (public.is_admin());
 
 -- 챌린지 과제: 로그인한 사람은 조회, 등록/수정/삭제는 어드민만

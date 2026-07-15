@@ -21,10 +21,10 @@
       <div class="hub-card__desc">과제를 확인하고 기한 안에 제출하는 챌린지</div>
     </a>
 
-    <a class="hub-card" href="index.html">
+    <a class="hub-card" href="index.html" id="hubOrderAd">
       <div class="hub-card__ico">📦</div>
       <div class="hub-card__title">발주 &amp; 광고 설정 훈련</div>
-      <div class="hub-card__desc">발주 연습 · 광고 설정 · 기본 설정을 실습합니다</div>
+      <div class="hub-card__desc" id="hubOrderAdDesc">발주 연습 · 광고 설정 · 기본 설정을 실습합니다</div>
     </a>
   </div>
 </div>
@@ -36,8 +36,24 @@
 (async function () {
   var user = await Auth.require();
   if (!user) return;
-  var prof = await sb.from('profiles').select('name').eq('id', user.id).single();
-  if (prof.data && prof.data.name) document.getElementById('hubName').textContent = prof.data.name;
+  var prof = await sb.from('profiles').select('name, role, level').eq('id', user.id).single();
+  var p = (prof && prof.data) || {};
+  if (p.name) document.getElementById('hubName').textContent = p.name;
+
+  // 발주 & 광고 훈련: 등급이 열리지 않은 수강생에게는 잠금 표시
+  var open = p.role === 'admin' || (p.level || 0) >= 1;
+  if (!open) {
+    var card = document.getElementById('hubOrderAd');
+    card.classList.add('is-locked');
+    card.removeAttribute('href');
+    card.querySelector('.hub-card__ico').textContent = '🔒';
+    document.getElementById('hubOrderAdDesc').textContent =
+      '챌린지를 모두 마치고 승인되면 열립니다.';
+    card.addEventListener('click', function (e) {
+      e.preventDefault();
+      alert('발주 & 광고 훈련은 아직 열리지 않았습니다.\n챌린지를 모두 마치고 승인되면 열립니다.');
+    });
+  }
 })();
 </script>
 </body>

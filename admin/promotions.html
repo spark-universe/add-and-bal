@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>어드민 · 등급 승인</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-area="admin" data-active="promotions">
+<div class="layout">
+  <div id="sidebar"></div>
+  <main class="content">
+    <div class="page-head">
+      <h2>등급 승인</h2>
+      <p>수강생이 챌린지를 마치고 낸 <b>발주 &amp; 광고 훈련 넘어가기</b> 신청을 승인/반려합니다.
+        승인하면 그 수강생에게 발주 &amp; 광고 영역이 열립니다.</p>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head">
+        <span>대기 중인 신청 <span id="pendCount" style="color:var(--muted);font-weight:600;"></span></span>
+      </div>
+      <table>
+        <thead>
+          <tr><th>성명</th><th>이메일</th><th>기수</th><th>신청일</th><th style="width:180px;">처리</th></tr>
+        </thead>
+        <tbody id="pendBody">
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head"><span>처리 내역</span></div>
+      <table>
+        <thead>
+          <tr><th>성명</th><th>결과</th><th>사유</th><th>처리일</th></tr>
+        </thead>
+        <tbody id="histBody">
+          <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:30px;">-</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/admin-promotions.js"></script>
+</body>
+</html>

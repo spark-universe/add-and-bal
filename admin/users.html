@@ -28,11 +28,11 @@
         <thead>
           <tr>
             <th>성명</th><th>이메일</th><th>전화번호</th>
-            <th>기수</th><th>상태</th><th>스토어</th><th>제출(확정)</th><th>관리</th>
+            <th>기수</th><th>상태</th><th>스토어</th><th>제출(확정)</th><th>발주&amp;광고</th><th>관리</th>
           </tr>
         </thead>
         <tbody id="userBody">
-          <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
+          <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
         </tbody>
       </table>
     </div>
@@ -94,7 +94,7 @@
     // 수강생(비어드민) 프로필
     var pr = await sb.from('profiles').select('*').neq('role', 'admin').order('created_at');
     if (pr.error) {
-      body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--danger);padding:40px;">조회 실패: ' + esc(pr.error.message) + '</td></tr>';
+      body.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--danger);padding:40px;">조회 실패: ' + esc(pr.error.message) + '</td></tr>';
       return;
     }
     students = (pr.data || []);
@@ -114,7 +114,7 @@
     countEl.textContent = approved.length;
 
     if (!students.length) {
-      body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:40px;">등록된 수강생이 없습니다.</td></tr>';
+      body.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:40px;">등록된 수강생이 없습니다.</td></tr>';
       return;
     }
 
@@ -124,6 +124,10 @@
       var confirmed = subs.filter(function (r) { return r.status === 'confirmed'; }).length;
       var cohort = u.cohort || 1;
       var opts = cohortOptions(cohort);
+      var lvOpen = (u.level || 0) >= 1;
+      var lvCell = lvOpen
+        ? '<span class="tag tag--ok">열림</span> <button class="btn-link" data-level="' + u.id + '" data-to="0">닫기</button>'
+        : '<span class="tag tag--wait">잠금</span> <button class="btn-link" data-level="' + u.id + '" data-to="1">열기</button>';
       return '<tr>' +
         '<td><b>' + esc(u.name) + '</b></td>' +
         '<td>' + esc(u.email) + '</td>' +
@@ -132,6 +136,7 @@
         '<td>' + statusTag(u.status) + '</td>' +
         '<td>' + storeN + '개</td>' +
         '<td>' + confirmed + ' / 4</td>' +
+        '<td>' + lvCell + '</td>' +
         '<td>' +
           '<button class="btn-sm" data-detail="' + u.id + '">상세</button> ' +
           '<button class="btn-sm" data-reset="' + esc(u.email) + '">비번 재설정</button>' +
@@ -195,12 +200,26 @@
     if (u) u.cohort = val;
   });
 
-  // 목록 버튼 (상세 / 비번 재설정)
+  // 목록 버튼 (상세 / 비번 재설정 / 발주&광고 열기·닫기)
   body.addEventListener('click', async function (e) {
     var btn = e.target.closest('button');
     if (!btn) return;
     var detail = btn.getAttribute('data-detail');
     var reset = btn.getAttribute('data-reset');
+    var levelId = btn.getAttribute('data-level');
+    if (levelId) {
+      var to = parseInt(btn.getAttribute('data-to'), 10) || 0;
+      var u0 = students.filter(function (x) { return x.id === levelId; })[0];
+      var msg = to >= 1
+        ? '"' + (u0 ? u0.name : '수강생') + '"님에게 발주 & 광고 훈련을 열어줄까요?'
+        : '"' + (u0 ? u0.name : '수강생') + '"님의 발주 & 광고 훈련을 다시 잠글까요?';
+      if (!confirm(msg)) return;
+      var r = await sb.from('profiles').update({ level: to }).eq('id', levelId).select();
+      if (r.error || !r.data || !r.data.length) { alert('변경 실패' + (r.error ? ': ' + r.error.message : '')); return; }
+      if (u0) u0.level = to;
+      await load();
+      return;
+    }
     if (detail) {
       var u = students.filter(function (x) { return x.id === detail; })[0];
       if (u) openDetail(u);

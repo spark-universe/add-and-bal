@@ -59,6 +59,25 @@ a { color: inherit; text-decoration: none; }
 .ch-mn__t { flex: 1; font-size: 0.85rem; font-weight: 600; }
 .ch-mn__u { font-size: 0.78rem; color: var(--primary); font-weight: 700; white-space: nowrap; }
 
+/* 잠긴 허브 카드 */
+.hub-card.is-locked { cursor: not-allowed; opacity: 0.62; filter: grayscale(0.4); }
+.hub-card.is-locked:hover { transform: none; box-shadow: none; }
+
+/* 등급업 신청 배너 (수강생 챌린지 메인) */
+.promo {
+  border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px;
+  margin-bottom: 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  background: #fafbfc;
+}
+.promo__body { flex: 1; min-width: 220px; }
+.promo__title { font-weight: 800; font-size: 1rem; margin-bottom: 4px; }
+.promo__desc { font-size: 0.86rem; color: var(--muted); line-height: 1.6; }
+.promo.is-open { background: #eefaf1; border-color: #b9e6c6; }
+.promo.is-wait { background: #fff8e8; border-color: #f0dfb0; }
+.promo.is-reject { background: #fdeeee; border-color: #f0c4c4; }
+.promo__btn { flex-shrink: 0; }
+.promo__btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* 기수 배지 (수강생 챌린지 메인) */
 .cohort-badge {
   display: inline-block; vertical-align: middle; margin-left: 8px;
