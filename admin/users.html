@@ -66,7 +66,18 @@
   var detailBody = document.getElementById('detailBody');
   var detailTitle = document.getElementById('detailTitle');
 
-  var students = [], storesByUser = {}, subsByUser = {}, maxCohort = 1;
+  var students = [], storesByUser = {}, subsByUser = {}, cohorts = [];
+
+  // 기수 드롭다운 옵션 (라벨 기반). 현재 값이 목록에 없으면 임시로 포함시킨다.
+  function cohortOptions(cur) {
+    var seen = {}, opts = '';
+    cohorts.forEach(function (c) {
+      seen[c.id] = true;
+      opts += '<option value="' + c.id + '"' + (c.id === cur ? ' selected' : '') + '>' + esc(c.label) + '</option>';
+    });
+    if (!seen[cur]) opts = '<option value="' + cur + '" selected>' + cur + '기</option>' + opts;
+    return opts;
+  }
 
   function esc(s) {
     return String(s || '').replace(/[&<>"]/g, function (c) {
@@ -87,8 +98,10 @@
       return;
     }
     students = (pr.data || []);
-    maxCohort = 1;
-    students.forEach(function (s) { if ((s.cohort || 1) > maxCohort) maxCohort = s.cohort; });
+
+    // 기수 라벨 목록
+    var co = await sb.from('cohorts').select('*').order('id');
+    cohorts = co.data || [];
 
     // 전체 스토어 / 제출 (어드민은 RLS 로 전체 조회 가능) → 유저별로 그룹
     storesByUser = {}; subsByUser = {};
@@ -110,8 +123,7 @@
       var subs = subsByUser[u.id] || [];
       var confirmed = subs.filter(function (r) { return r.status === 'confirmed'; }).length;
       var cohort = u.cohort || 1;
-      var opts = '';
-      for (var i = 1; i <= maxCohort; i++) opts += '<option value="' + i + '"' + (i === cohort ? ' selected' : '') + '>' + i + '기</option>';
+      var opts = cohortOptions(cohort);
       return '<tr>' +
         '<td><b>' + esc(u.name) + '</b></td>' +
         '<td>' + esc(u.email) + '</td>' +

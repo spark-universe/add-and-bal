@@ -17,6 +17,17 @@ create table if not exists public.profiles (
 alter table public.profiles add column if not exists cohort int default 1;
 update public.profiles set cohort = 1 where cohort is null;
 
+-- 기수(코호트): 번호 + 어드민이 정하는 표시 이름 (예: "1기", "2026년 7월")
+--  * 수강생은 자기 기수 한 줄만 조회 가능 (다른 기수 존재 자체를 알 수 없음)
+create table if not exists public.cohorts (
+  id int primary key,               -- 기수 번호 (profiles.cohort 와 매칭)
+  label text not null,              -- 표시 이름
+  active boolean default true,      -- 끄면 신규 배정 등에서 숨김
+  created_at timestamptz default now()
+);
+insert into public.cohorts (id, label) values (1, '1기')
+on conflict (id) do nothing;
+
 create table if not exists public.stores (
   id bigint generated always as identity primary key,
   user_id uuid references auth.users on delete cascade,
@@ -184,6 +195,7 @@ alter table public.practice_settings enable row level security;
 alter table public.challenges  enable row level security;
 alter table public.challenge_submissions enable row level security;
 alter table public.lessons     enable row level security;
+alter table public.cohorts     enable row level security;
 
 -- 프로필: 본인 또는 어드민만 조회, 본인만 수정
 drop policy if exists "profiles_select" on public.profiles;
@@ -243,6 +255,15 @@ create policy "lessons_select" on public.lessons for select
   to authenticated using (true);
 drop policy if exists "lessons_write" on public.lessons;
 create policy "lessons_write" on public.lessons for all
+  using (public.is_admin()) with check (public.is_admin());
+
+-- 기수: 어드민은 전체 조회/수정, 수강생은 "자기 기수" 한 줄만 조회 (다른 기수 비노출)
+drop policy if exists "cohorts_select" on public.cohorts;
+create policy "cohorts_select" on public.cohorts for select
+  using (public.is_admin()
+         or id = (select cohort from public.profiles where id = auth.uid()));
+drop policy if exists "cohorts_write" on public.cohorts;
+create policy "cohorts_write" on public.cohorts for all
   using (public.is_admin()) with check (public.is_admin());
 
 -- 챌린지 과제: 로그인한 사람은 조회, 등록/수정/삭제는 어드민만

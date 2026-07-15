@@ -34,9 +34,14 @@
   function isOver(due) { return due ? (new Date(due) - new Date() < 0) : false; }
 
   // 과제 + 내 제출을 합쳐서 가져온다 (내 기수 과제만)
+  var myCohortLabel = '';
   async function fetchData() {
     var prof = await sb.from('profiles').select('cohort').eq('id', user.id).single();
     var cohort = (prof.data && prof.data.cohort) || 1;
+
+    // 내 기수 이름 (RLS 로 내 기수 한 줄만 조회됨 → 다른 기수는 알 수 없음)
+    var co = await sb.from('cohorts').select('label').eq('id', cohort).maybeSingle();
+    myCohortLabel = (co.data && co.data.label) || '';
 
     var ch = await sb.from('challenges').select('*')
       .eq('active', true).eq('cohort', cohort)
@@ -67,6 +72,8 @@
     setName('chName');
 
     var list = await fetchData();
+    var badge = document.getElementById('chCohort');
+    if (badge && myCohortLabel) { badge.textContent = myCohortLabel; badge.hidden = false; }
     var done = list.filter(function (c) { return c.sub; });
     var soon = list.filter(function (c) {
       var d = daysLeft(c.due_at);

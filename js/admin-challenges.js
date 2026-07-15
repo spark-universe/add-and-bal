@@ -158,19 +158,18 @@
     render();
   }
 
-  // 존재하는 기수 목록을 만들어 드롭다운을 채운다 (수강생·과제에 쓰인 기수 + 최소 1)
+  // 기수 목록을 cohorts 테이블에서 읽어 드롭다운을 채운다 (라벨 표시)
+  var cohortList = [];
   async function loadCohorts() {
-    var maxC = 1;
-    var pr = await sb.from('profiles').select('cohort');
-    (pr.data || []).forEach(function (p) { if (p.cohort > maxC) maxC = p.cohort; });
-    var ch = await sb.from('challenges').select('cohort');
-    (ch.data || []).forEach(function (c) { if (c.cohort > maxC) maxC = c.cohort; });
-    maxCohort = maxC;
+    var co = await sb.from('cohorts').select('*').order('id');
+    cohortList = (co.data && co.data.length) ? co.data : [{ id: 1, label: '1기' }];
+    maxCohort = cohortList.reduce(function (m, c) { return Math.max(m, c.id); }, 1);
 
     var sel = document.getElementById('cohortSel');
-    var opts = '';
-    for (var i = 1; i <= maxCohort; i++) opts += '<option value="' + i + '">' + i + '기생</option>';
-    sel.innerHTML = opts;
+    sel.innerHTML = cohortList.map(function (c) {
+      return '<option value="' + c.id + '">' + esc(c.label) + '</option>';
+    }).join('');
+    if (!cohortList.some(function (c) { return c.id === cohort; })) cohort = cohortList[0].id;
     sel.value = String(cohort);
   }
 
@@ -180,16 +179,22 @@
     load();
   });
 
-  document.getElementById('addCohort').addEventListener('click', function () {
-    // 다음 기수를 추가하고 그 기수로 전환 (과제를 하나 등록하면 실제로 기수가 생김)
-    maxCohort += 1;
-    var sel = document.getElementById('cohortSel');
-    sel.innerHTML += '<option value="' + maxCohort + '">' + maxCohort + '기생</option>';
-    sel.value = String(maxCohort);
-    cohort = maxCohort;
+  document.getElementById('addCohort').addEventListener('click', async function () {
+    // 새 기수를 이름과 함께 만든다 (cohorts 테이블에 저장 → 기수 관리와 공유)
+    var label = prompt('새 기수 이름을 입력하세요:', '');
+    if (label == null) return;
+    label = label.trim();
+    if (!label) { alert('기수 이름을 입력하세요.'); return; }
+
+    var nextId = maxCohort + 1;
+    var res = await sb.from('cohorts').insert({ id: nextId, label: label });
+    if (res.error) { alert('기수 추가 실패: ' + res.error.message); return; }
+
+    cohort = nextId;
+    await loadCohorts();
     clearForm();
-    load();
-    alert(maxCohort + '기생으로 전환했습니다. 이 기수에 과제를 등록하세요.\n' +
+    await load();
+    alert('"' + label + '" 기수로 전환했습니다. 이 기수에 과제를 등록하세요.\n' +
       '(수강생의 기수는 사용자 관리에서 지정합니다.)');
   });
 

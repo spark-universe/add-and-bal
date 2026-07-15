@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>어드민 · 기수 관리</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-area="admin" data-active="cohorts">
+<div class="layout">
+  <div id="sidebar"></div>
+  <main class="content">
+    <div class="page-head">
+      <h2>기수 관리</h2>
+      <p>기수마다 표시 이름을 정합니다. 지금은 "1기"처럼 쓰지만 "2026년 7월"처럼 바꿀 수 있습니다.
+        수강생에게는 <b>자기 기수 이름만</b> 보이고, 다른 기수가 있다는 사실은 알 수 없습니다.</p>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head"><span>새 기수 추가</span></div>
+      <div style="padding:18px 24px;display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+        <div class="field" style="min-width:240px;">
+          <label>기수 이름</label>
+          <input type="text" id="newLabel" placeholder="예: 2026년 7월">
+          <div class="field-hint">기수 번호는 자동으로 다음 번호가 매겨집니다.</div>
+        </div>
+        <button class="btn-primary" id="addBtn">＋ 기수 추가</button>
+        <span class="form-saved" id="saved" hidden>저장되었습니다</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head">
+        <span>기수 목록 <span id="coCount" style="color:var(--muted);font-weight:600;"></span></span>
+      </div>
+      <table>
+        <thead>
+          <tr><th style="width:70px;">번호</th><th>표시 이름</th><th style="width:110px;">수강생</th><th style="width:100px;">노출</th><th style="width:140px;">관리</th></tr>
+        </thead>
+        <tbody id="coBody">
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/admin-cohorts.js"></script>
+</body>
+</html>
