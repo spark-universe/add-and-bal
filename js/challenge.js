@@ -288,21 +288,25 @@
     });
   }
 
-  function openDetail(c) {
+  // 교재 캐시 (같은 교재를 여러 번 안 부르도록)
+  var lessonCache = {};
+  async function fetchLesson(id) {
+    if (!id) return null;
+    if (lessonCache[id] !== undefined) return lessonCache[id];
+    var res = await sb.from('lessons').select('*').eq('id', id).maybeSingle();
+    lessonCache[id] = res.data || null;
+    return lessonCache[id];
+  }
+
+  async function openDetail(c) {
     var d = daysLeft(c.due_at);
     var overdue = isOver(c.due_at) && !c.sub;
-    var manual = c.manual || [];
 
-    var manualHtml = manual.length
-      ? '<div class="od-card__sub" style="margin-top:0;">📖 매뉴얼</div>' +
-        '<div class="ch-mn__list">' +
-          manual.map(function (m, i) {
-            return '<a class="ch-mn" href="' + esc(m.url) + '" target="_blank">' +
-              '<span class="ch-mn__n">' + (i + 1) + '</span>' +
-              '<span class="ch-mn__t">' + esc(m.title) + '</span>' +
-              '<span class="ch-mn__u">링크 ↗</span></a>';
-          }).join('') +
-        '</div>'
+    // 연결된 교재 본문 (사이트 내부에 저장된 리치 텍스트)
+    var lesson = c.lesson_id ? await fetchLesson(c.lesson_id) : null;
+    var manualHtml = lesson && lesson.body
+      ? '<div class="od-card__sub" style="margin-top:0;">📖 교재</div>' +
+        '<div class="lesson-body">' + lesson.body + '</div>'
       : '';
 
     var already = c.sub && c.sub.file_name

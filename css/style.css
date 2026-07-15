@@ -59,6 +59,41 @@ a { color: inherit; text-decoration: none; }
 .ch-mn__t { flex: 1; font-size: 0.85rem; font-weight: 600; }
 .ch-mn__u { font-size: 0.78rem; color: var(--primary); font-weight: 700; white-space: nowrap; }
 
+/* 리치 텍스트 에디터 (교재 관리) */
+.rte { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: #fff; }
+.rte__bar {
+  display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+  padding: 8px 10px; border-bottom: 1px solid var(--border); background: #f6f7f9;
+}
+.rte__bar button {
+  border: 1px solid var(--border); background: #fff; border-radius: 7px;
+  padding: 5px 9px; font-size: 0.8rem; cursor: pointer; color: var(--text);
+}
+.rte__bar button:hover { border-color: var(--primary); color: var(--primary); }
+.rte__sep { width: 1px; height: 20px; background: var(--border); margin: 0 3px; }
+.rte__body {
+  min-height: 320px; max-height: 60vh; overflow-y: auto;
+  padding: 16px 18px; font-size: 0.92rem; line-height: 1.7; outline: none;
+}
+.rte__body:empty::before { content: '여기에 교재 내용을 작성하세요...'; color: var(--muted); }
+.rte__body img { max-width: 100%; border-radius: 8px; }
+.rte__body h2 { font-size: 1.15rem; font-weight: 800; margin: 18px 0 8px; }
+.rte__body h3 { font-size: 1rem; font-weight: 700; margin: 14px 0 6px; }
+.rte__body ul, .rte__body ol { padding-left: 22px; margin: 8px 0; }
+.rte__body a { color: var(--primary); }
+
+/* 교재 본문 (수강생 과제 상세에서 표시) */
+.lesson-body {
+  margin: 10px 0 4px; font-size: 0.9rem; line-height: 1.75;
+  border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; background: #fafbfc;
+  max-height: 46vh; overflow-y: auto;
+}
+.lesson-body img { max-width: 100%; border-radius: 8px; margin: 8px 0; }
+.lesson-body h2 { font-size: 1.1rem; font-weight: 800; margin: 16px 0 8px; }
+.lesson-body h3 { font-size: 0.98rem; font-weight: 700; margin: 12px 0 6px; }
+.lesson-body ul, .lesson-body ol { padding-left: 22px; margin: 8px 0; }
+.lesson-body a { color: var(--primary); }
+
 /* 별도 제출란 */
 .ch-submit {
   margin-top: 18px; border-top: 2px solid var(--border); padding-top: 16px;

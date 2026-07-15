@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>어드민 · 교재 관리</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-area="admin" data-active="lessons">
+<div class="layout">
+  <div id="sidebar"></div>
+  <main class="content">
+    <div class="page-head">
+      <h2>교재 관리</h2>
+      <p>교재(레슨)를 사이트 안에 저장합니다. 과제 등록 시 여기서 만든 교재를 드롭다운으로 골라 연결합니다.</p>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head">
+        <span id="formTitle">교재 등록</span>
+        <button class="btn-link" id="cancelEdit" hidden>수정 취소</button>
+      </div>
+      <div style="padding:20px 24px;">
+        <div class="prod-form">
+          <div class="field">
+            <label>분류</label>
+            <input type="text" id="fCategory" list="catList" placeholder="예: 3-1 현지화">
+            <datalist id="catList"></datalist>
+          </div>
+          <div class="field">
+            <label>정렬 순서 (작을수록 위)</label>
+            <input type="number" id="fSort" step="1" placeholder="예: 10">
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label>제목 <span style="color:var(--danger);">*</span></label>
+            <input type="text" id="fTitle" placeholder="예: 3-1-1 쇼피파이 $1 플랜 가입">
+          </div>
+        </div>
+
+        <div class="field" style="grid-column:1/-1;">
+          <label>교재 내용</label>
+          <div class="rte">
+            <div class="rte__bar">
+              <button type="button" data-cmd="bold" title="굵게"><b>B</b></button>
+              <button type="button" data-cmd="italic" title="기울임"><i>I</i></button>
+              <span class="rte__sep"></span>
+              <button type="button" data-block="h2" title="큰 제목">제목</button>
+              <button type="button" data-block="h3" title="작은 제목">소제목</button>
+              <button type="button" data-block="p" title="본문">본문</button>
+              <span class="rte__sep"></span>
+              <button type="button" data-cmd="insertUnorderedList" title="글머리 목록">• 목록</button>
+              <button type="button" data-cmd="insertOrderedList" title="번호 목록">1. 목록</button>
+              <span class="rte__sep"></span>
+              <button type="button" id="rteLink" title="링크">🔗 링크</button>
+              <button type="button" id="rteImage" title="이미지 업로드">🖼 이미지</button>
+              <input type="file" id="rteFile" accept="image/*" hidden>
+              <span class="rte__sep"></span>
+              <button type="button" data-cmd="removeFormat" title="서식 지우기">서식 지우기</button>
+              <span style="margin-left:auto;font-size:0.78rem;color:var(--muted);" id="rteStatus"></span>
+            </div>
+            <div class="rte__body" id="fBody" contenteditable="true"></div>
+          </div>
+          <div class="field-hint">이미지는 🖼 버튼으로 업로드하면 본문에 바로 들어갑니다. (교재 이미지는 공개로 저장됩니다.)</div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+          <button class="btn-primary" id="saveBtn">등록하기</button>
+          <button class="btn-sm" id="previewBtn">미리보기</button>
+          <span class="form-saved" id="saved" hidden>저장되었습니다</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head">
+        <span>등록된 교재 <span id="lsCount" style="color:var(--muted);font-weight:600;"></span></span>
+      </div>
+      <table>
+        <thead>
+          <tr><th>분류</th><th>제목</th><th>연결된 과제</th><th>표시</th><th>관리</th></tr>
+        </thead>
+        <tbody id="lsBody">
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/admin-lessons.js"></script>
+</body>
+</html>

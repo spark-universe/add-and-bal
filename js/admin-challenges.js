@@ -11,10 +11,12 @@
   var cohort = 1;           // 지금 관리 중인 기수
   var maxCohort = 1;        // 존재하는 최대 기수
 
+  var lessons = [];         // 드롭다운용 교재 목록
+
   var els = {
     title: document.getElementById('fTitle'),
     desc: document.getElementById('fDesc'),
-    manual: document.getElementById('fManual'),
+    lesson: document.getElementById('fLesson'),
     category: document.getElementById('fCategory'),
     points: document.getElementById('fPoints'),
     open: document.getElementById('fOpen'),
@@ -50,47 +52,28 @@
     return new Date(d - off).toISOString().slice(0, 16);
   }
 
-  /* 매뉴얼 붙여넣기 파싱:
-     "[제목]\n링크"  또는  "제목 | 링크"  형식을 {title, url} 목록으로 */
-  function parseManual(text) {
-    var out = [];
-    var lines = text.split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
-    var pendingTitle = null;
-
-    lines.forEach(function (line) {
-      var pipe = line.split('|');
-      if (pipe.length >= 2 && /https?:\/\//.test(pipe[1])) {   // 제목 | 링크
-        out.push({ title: pipe[0].trim(), url: pipe.slice(1).join('|').trim() });
-        pendingTitle = null;
-        return;
-      }
-      var m = line.match(/^\[(.+)\]$/);         // [제목]
-      if (m) { pendingTitle = m[1].trim(); return; }
-      if (/^https?:\/\//.test(line)) {          // 링크 줄
-        out.push({ title: pendingTitle || line, url: line });
-        pendingTitle = null;
-      }
+  // 교재 목록으로 드롭다운 채우기
+  function fillLessonSelect() {
+    var opts = '<option value="">교재 없음</option>';
+    var byCat = {};
+    lessons.forEach(function (l) { (byCat[l.category || '기타'] = byCat[l.category || '기타'] || []).push(l); });
+    Object.keys(byCat).sort().forEach(function (cat) {
+      opts += '<optgroup label="' + esc(cat) + '">';
+      byCat[cat].forEach(function (l) {
+        opts += '<option value="' + l.id + '">' + esc(l.title) + '</option>';
+      });
+      opts += '</optgroup>';
     });
-    return out;
-  }
-
-  function renderManualPreview() {
-    var items = parseManual(els.manual.value);
-    var box = document.getElementById('manualPreview');
-    box.innerHTML = items.length
-      ? items.map(function (m, i) {
-          return '<div class="ch-mn"><span class="ch-mn__n">' + (i + 1) + '</span>' +
-            '<span class="ch-mn__t">' + esc(m.title) + '</span>' +
-            '<a class="ch-mn__u" href="' + esc(m.url) + '" target="_blank">링크 ↗</a></div>';
-        }).join('')
-      : '';
+    var cur = els.lesson.value;
+    els.lesson.innerHTML = opts;
+    els.lesson.value = cur;
   }
 
   function readForm() {
     return {
       title: els.title.value.trim(),
       description: els.desc.value.trim() || null,
-      manual: parseManual(els.manual.value),
+      lesson_id: els.lesson.value ? Number(els.lesson.value) : null,
       category: els.category.value.trim() || null,
       cohort: cohort,                    // 지금 선택된 기수로 등록
       points: parseInt(els.points.value, 10) || 0,
@@ -100,9 +83,9 @@
   }
   function clearForm() {
     editingId = null;
-    els.title.value = els.desc.value = els.manual.value = els.category.value =
+    els.title.value = els.desc.value = els.category.value =
       els.points.value = els.open.value = els.due.value = '';
-    renderManualPreview();
+    els.lesson.value = '';
     els.formTitle.textContent = '과제 등록';
     els.saveBtn.textContent = '등록하기';
     els.cancelEdit.hidden = true;
@@ -111,10 +94,7 @@
     editingId = c.id;
     els.title.value = c.title || '';
     els.desc.value = c.description || '';
-    els.manual.value = (c.manual || []).map(function (m) {
-      return '[' + m.title + ']\n' + m.url;
-    }).join('\n');
-    renderManualPreview();
+    els.lesson.value = c.lesson_id ? String(c.lesson_id) : '';
     els.category.value = c.category || '';
     els.points.value = c.points != null ? c.points : '';
     els.open.value = isoToLocal(c.open_at);
@@ -233,7 +213,6 @@
   });
 
   els.cancelEdit.addEventListener('click', clearForm);
-  els.manual.addEventListener('input', renderManualPreview);
 
   els.body.addEventListener('click', async function (e) {
     var btn = e.target.closest('button[data-act]');
@@ -264,10 +243,18 @@
     }
   });
 
+  async function loadLessons() {
+    var res = await sb.from('lessons').select('id, title, category').eq('active', true)
+      .order('sort').order('created_at');
+    lessons = res.data || [];
+    fillLessonSelect();
+  }
+
   (async function init() {
     var admin = await Auth.requireAdmin();
     if (!admin) return;
     await loadCohorts();
+    await loadLessons();
     await load();
   })();
 })();
