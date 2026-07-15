@@ -199,40 +199,80 @@
   }
 
   /* ================= 내 과제 관리 ================= */
+  var mineList = [], mineFilter = 'all';
+
   async function mine() {
     user = await require();
     if (!user) return;
-    var list = (await fetchData()).filter(function (c) { return c.sub; });
+    mineList = await fetchData();   // 미제출 과제까지 전부
 
-    var pass = list.filter(function (c) { return c.sub.review_status === 'pass'; }).length;
-    var wait = list.filter(function (c) { return c.sub.review_status === 'pending'; }).length;
-    var score = list.reduce(function (a, c) { return a + (c.sub.score || 0); }, 0);
+    var done = mineList.filter(function (c) { return c.sub; });
+    var pass = done.filter(function (c) { return c.sub.review_status === 'pass'; }).length;
+    var wait = done.filter(function (c) { return c.sub.review_status === 'pending'; }).length;
+    var score = done.reduce(function (a, c) { return a + (c.sub.score || 0); }, 0);
 
-    setText('mDone', list.length);
+    setText('mDone', done.length);
     setText('mPass', pass);
     setText('mWait', wait);
     setText('mScore', score);
 
+    document.querySelectorAll('.adv-tab').forEach(function (t) {
+      t.addEventListener('click', function () {
+        document.querySelectorAll('.adv-tab').forEach(function (x) { x.classList.remove('is-on'); });
+        this.classList.add('is-on');
+        mineFilter = this.dataset.filter;
+        renderMine();
+      });
+    });
+    renderMine();
+  }
+
+  function renderMine() {
+    var list = mineList.filter(function (c) {
+      if (mineFilter === 'todo') return !c.sub;
+      if (mineFilter === 'done') return !!c.sub;
+      if (mineFilter === 'pass') return c.sub && c.sub.review_status === 'pass';
+      return true;
+    });
+    document.getElementById('mineCount').textContent =
+      list.length + ' / ' + mineList.length + '개';
+
     var body = document.getElementById('mineBody');
     if (!list.length) {
-      body.innerHTML = row(5, '제출한 과제가 없습니다. 과제 전체 보기에서 제출하세요.');
+      body.innerHTML = row(7, mineList.length ? '해당하는 과제가 없습니다.' : '등록된 과제가 없습니다.');
       return;
     }
     body.innerHTML = list.map(function (c) {
-      var review = c.sub.review_status === 'pass' ? '<span class="tag tag--ok">통과</span>'
-        : c.sub.review_status === 'fail' ? '<span class="tag tag--no">미통과</span>'
-        : '<span class="tag tag--wait">대기</span>';
+      var review, submitted, score;
+      if (!c.sub) {
+        review = isOver(c.due_at)
+          ? '<span class="tag tag--no">기한 지남</span>'
+          : '<span class="tag tag--wait">미제출</span>';
+        submitted = '-';
+        score = '-';
+      } else {
+        review = c.sub.review_status === 'pass' ? '<span class="tag tag--ok">통과</span>'
+          : c.sub.review_status === 'fail' ? '<span class="tag tag--no">미통과</span>'
+          : '<span class="tag tag--wait">검수 대기</span>';
+        if (c.sub.review_reason) {
+          review += '<div style="font-size:0.72rem;color:var(--muted);margin-top:3px;">' +
+            esc(c.sub.review_reason) + '</div>';
+        }
+        submitted = fmtDate(c.sub.created_at);
+        score = c.sub.score != null ? c.sub.score + '점' : '-';
+      }
       return '<tr class="ch-click" data-id="' + c.id + '">' +
         '<td style="text-align:left;font-weight:600;">' + esc(c.title) + '</td>' +
-        '<td>' + fmtDate(c.sub.created_at) + '</td>' +
-        '<td>' + review +
-          (c.sub.review_reason ? '<div style="font-size:0.75rem;color:var(--muted);margin-top:3px;">' +
-            esc(c.sub.review_reason) + '</div>' : '') + '</td>' +
-        '<td>' + (c.sub.score != null ? c.sub.score + '점' : '-') + '</td>' +
-        '<td><button class="btn-link" data-open="' + c.id + '">보기</button></td>' +
+        '<td>' + esc(c.category || '-') + '</td>' +
+        '<td>' + fmtDate(c.due_at) + '</td>' +
+        '<td>' + submitted + '</td>' +
+        '<td>' + review + '</td>' +
+        '<td>' + score + '</td>' +
+        '<td><button class="btn-link" data-open="' + c.id + '">' +
+          (c.sub ? '보기' : '제출') + '</button></td>' +
       '</tr>';
     }).join('');
-    bindRows(list);
+    bindRows(mineList);
   }
 
   /* ================= 과제 상세 / 제출 모달 ================= */
