@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>어드민 · 챌린지 관리</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-area="admin" data-active="challenges">
+<div class="layout">
+  <div id="sidebar"></div>
+  <main class="content">
+    <div class="page-head">
+      <h2>챌린지 관리</h2>
+      <p>수강생에게 낼 과제를 등록합니다. 여기 등록한 과제가 수강생 챌린지 화면에 표시됩니다.</p>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head">
+        <span id="formTitle">과제 등록</span>
+        <button class="btn-link" id="cancelEdit" hidden>수정 취소</button>
+      </div>
+      <div style="padding:20px 24px;">
+        <div class="prod-form">
+          <div class="field" style="grid-column:1/-1;">
+            <label>과제 제목 <span style="color:var(--danger);">*</span></label>
+            <input type="text" id="fTitle" placeholder="예: Shop 기본 설정 완료하기">
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label>과제 설명</label>
+            <textarea id="fDesc" rows="4" placeholder="수강생이 해야 할 내용을 적어주세요."
+              style="width:100%;padding:11px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:0.88rem;resize:vertical;"></textarea>
+          </div>
+          <div class="field">
+            <label>분류</label>
+            <input type="text" id="fCategory" list="catList" placeholder="예: 기본 설정">
+            <datalist id="catList"></datalist>
+          </div>
+          <div class="field">
+            <label>배점</label>
+            <input type="number" id="fPoints" min="0" step="1" placeholder="10">
+          </div>
+          <div class="field">
+            <label>시작일</label>
+            <input type="date" id="fOpen">
+          </div>
+          <div class="field">
+            <label>마감일</label>
+            <input type="date" id="fDue">
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+          <button class="btn-primary" id="saveBtn">등록하기</button>
+          <span class="form-saved" id="saved" hidden>저장되었습니다</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head">
+        <span>등록된 과제 <span id="chCount" style="color:var(--muted);font-weight:600;"></span></span>
+      </div>
+      <table>
+        <thead>
+          <tr><th>제목</th><th>분류</th><th>배점</th><th>마감일</th><th>제출</th><th>표시</th><th>관리</th></tr>
+        </thead>
+        <tbody id="chBody">
+          <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/admin-challenges.js"></script>
+</body>
+</html>
