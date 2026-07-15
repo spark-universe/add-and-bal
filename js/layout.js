@@ -28,7 +28,7 @@
         { key: 'calendar', ico: '📅', label: '일정 보기',       href: 'challenge-calendar.html' },
         { key: 'all',      ico: '📋', label: '과제 전체 보기',   href: 'challenge-all.html' },
         { key: 'mine',     ico: '🗂️', label: '내 과제 관리',     href: 'challenge-mine.html' },
-        { key: 'manual',   ico: '📘', label: '스토어 초기작업 매뉴얼', href: 'manual.html' },
+        { key: 'manual',   ico: '📘', label: '스토어 초기작업 매뉴얼', href: 'manual.html', target: '_blank' },
       ],
       footer: '<div class="who">홍길동 <span class="badge-admin">수강생</span></div><a href="#">로그아웃</a>',
     },
@@ -58,8 +58,11 @@
 
   const links = menu.items.map(function (it) {
     const cls = it.key === active ? 'is-active' : '';
-    return '<li><a class="' + cls + '" href="' + it.href + '">' +
-           '<span class="ico">' + it.ico + '</span>' + it.label + '</a></li>';
+    // target 지정 시 새 탭으로 (예: 매뉴얼)
+    const tgt = it.target ? ' target="' + it.target + '" rel="noopener"' : '';
+    const ext = it.target === '_blank' ? ' <span class="nav-ext">↗</span>' : '';
+    return '<li><a class="' + cls + '" href="' + it.href + '"' + tgt + '>' +
+           '<span class="ico">' + it.ico + '</span>' + it.label + ext + '</a></li>';
   }).join('');
 
   const html =

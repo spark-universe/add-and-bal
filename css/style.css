@@ -262,6 +262,7 @@ a { color: inherit; text-decoration: none; }
   font-weight: 700;
 }
 .nav a .ico { width: 18px; text-align: center; }
+.nav a .nav-ext { margin-left: auto; font-size: 0.72rem; color: var(--muted); }
 
 .sidebar__footer {
   padding: 16px 22px 0;
