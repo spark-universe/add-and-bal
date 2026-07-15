@@ -28,6 +28,7 @@
         { key: 'calendar', ico: '📅', label: '일정 보기',       href: 'challenge-calendar.html' },
         { key: 'all',      ico: '📋', label: '과제 전체 보기',   href: 'challenge-all.html' },
         { key: 'mine',     ico: '🗂️', label: '내 과제 관리',     href: 'challenge-mine.html' },
+        { key: 'manual',   ico: '📘', label: '스토어 초기작업 매뉴얼', href: 'manual.html' },
       ],
       footer: '<div class="who">홍길동 <span class="badge-admin">수강생</span></div><a href="#">로그아웃</a>',
     },

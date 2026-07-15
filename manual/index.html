@@ -1,0 +1,2711 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shopify 스토어 초기 작업 · 실무 매뉴얼</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+:root{
+  --accent:#1f8a5b; --accent-d:#146c46; --accent-soft:#e8f5ee;
+  --ink:#1c2024; --muted:#6b7280; --line:#e7e9ec; --bg:#ffffff; --panel:#f7f8f9;
+  --amber:#b9791a; --amber-soft:#fdf5e6; --blue:#1f6feb; --blue-soft:#eef4ff;
+  --radius:12px; --sidebar:280px; --maxw:840px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;
+  color:var(--ink);background:var(--bg);line-height:1.72;-webkit-font-smoothing:antialiased;font-size:16px}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;height:auto;display:block}
+
+/* layout */
+.layout{display:flex;align-items:flex-start}
+.sidebar{width:var(--sidebar);flex:0 0 var(--sidebar);position:sticky;top:0;height:100vh;overflow-y:auto;
+  border-right:1px solid var(--line);background:var(--panel);padding:26px 18px 60px}
+.brand{padding:6px 10px 18px;border-bottom:1px solid var(--line);margin-bottom:16px}
+.brand .logo{font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accent-d)}
+.brand .sub{font-size:12.5px;color:var(--muted);margin-top:4px}
+.nav-part{font-size:11.5px;font-weight:800;letter-spacing:.08em;color:var(--muted);
+  text-transform:uppercase;margin:20px 10px 8px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;font-size:14px;color:#3a3f45;margin:1px 0}
+.nav-item:hover{background:#eef1f3}
+.nav-item.active{background:var(--accent-soft);color:var(--accent-d);font-weight:700}
+.nav-num{font-variant-numeric:tabular-nums;font-size:12px;font-weight:700;color:var(--accent);
+  background:#fff;border:1px solid var(--line);border-radius:6px;padding:1px 6px;min-width:26px;text-align:center}
+.nav-item.active .nav-num{background:var(--accent);color:#fff;border-color:var(--accent)}
+.nav-txt{flex:1}
+.nav-item.soon{color:#a2a8af}
+.nav-item.soon .nav-num{color:#b7bcc2}
+.nav-badge{font-size:10px;font-weight:700;color:#9aa0a6;background:#eceef0;border-radius:20px;padding:1px 7px}
+
+.main{flex:1;min-width:0;padding:0 46px 120px;max-width:calc(var(--maxw) + 92px);margin:0 auto}
+
+/* hero */
+.hero{padding:64px 0 30px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.hero .eyebrow{display:inline-block;font-size:12.5px;font-weight:800;letter-spacing:.1em;color:var(--accent);
+  background:var(--accent-soft);padding:5px 12px;border-radius:20px;text-transform:uppercase}
+.hero h1{font-size:36px;line-height:1.25;margin:18px 0 10px;letter-spacing:-.01em;font-weight:800}
+.hero p.lead{font-size:16.5px;color:#454b52;max-width:64ch;margin:0}
+.hero .meta{margin-top:20px;font-size:13px;color:var(--muted)}
+
+.section-intro{margin:34px 0 10px}
+.section-intro h2{font-size:15px;font-weight:800;letter-spacing:.02em;color:var(--muted);text-transform:uppercase;margin:0 0 14px}
+.glossary{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.term{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 15px}
+.term-h{font-weight:700;font-size:14px;color:var(--accent-d);margin-bottom:3px}
+.term-d{font-size:13px;color:#565c63;line-height:1.55}
+
+/* part divider */
+.part-divider{display:flex;align-items:center;gap:16px;margin:70px 0 6px}
+.part-divider span{font-size:13px;font-weight:800;letter-spacing:.14em;color:var(--accent-d);text-transform:uppercase;white-space:nowrap}
+.part-divider::before,.part-divider::after{content:"";height:1px;background:var(--line);flex:1}
+
+/* section */
+.doc-section{padding:40px 0 8px;scroll-margin-top:20px}
+.sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:6px}
+.sec-num{font-size:15px;font-weight:800;color:#fff;background:var(--accent);border-radius:8px;
+  padding:4px 10px;font-variant-numeric:tabular-nums;line-height:1.2}
+.sec-title{font-size:27px;font-weight:800;margin:0;letter-spacing:-.01em}
+.doc-section > p{margin:14px 0}
+.subsection{font-size:20px;font-weight:800;margin:40px 0 6px;padding-top:22px;border-top:2px solid var(--accent-soft);color:var(--accent-d)}
+.subhead{font-size:17px;font-weight:700;margin:26px 0 6px;color:#232830}
+
+/* step */
+.step{display:flex;align-items:center;gap:12px;margin:30px 0 8px;padding:11px 16px;
+  background:linear-gradient(90deg,var(--accent-soft),transparent);border-left:3px solid var(--accent);border-radius:0 8px 8px 0}
+.step-badge{font-size:11.5px;font-weight:800;letter-spacing:.06em;color:#fff;background:var(--accent);
+  border-radius:6px;padding:3px 9px;white-space:nowrap}
+.step-title{font-size:16.5px;font-weight:700;color:#20262d}
+
+/* screenshots */
+figure.shot{margin:16px 0 22px}
+figure.shot img{border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 22px rgba(20,30,40,.07);margin:0 auto}
+.img-missing{margin:16px 0 22px;border:1.5px dashed #cdd3da;border-radius:10px;background:var(--panel);
+  color:#98a0a8;font-size:14px;text-align:center;padding:34px 12px;font-weight:600}
+
+/* callouts */
+.callout{border-radius:var(--radius);padding:18px 20px;margin:22px 0}
+.callout .callout-label{font-weight:800;font-size:14.5px;margin-bottom:8px}
+.callout p{margin:6px 0}
+.callout.overview{background:var(--blue-soft);border:1px solid #d7e3ff}
+.callout.overview .callout-label{color:var(--blue)}
+.callout.note{background:var(--panel);border:1px solid var(--line)}
+.callout.note .callout-label{color:#41474e}
+.callout.quiz{background:var(--amber-soft);border:1px solid #f0dfbf}
+.callout.quiz .callout-label{color:var(--amber)}
+.quiz-list{margin:6px 0 0;padding-left:20px}
+.quiz-list li{margin:7px 0}
+
+/* lists */
+ul.bullets{margin:12px 0;padding-left:6px;list-style:none}
+ul.bullets li{position:relative;padding-left:20px;margin:7px 0}
+ul.bullets li::before{content:"";position:absolute;left:4px;top:11px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+ol.ordered{margin:12px 0;padding-left:22px}
+ol.ordered li{margin:7px 0}
+
+/* soon */
+.soon-box{background:var(--panel);border:1.5px dashed #d3d8de;border-radius:var(--radius);
+  padding:40px 20px;text-align:center;color:#8a9199;font-size:15px;margin:20px 0}
+.soon-box b{color:#5f666d}
+
+.footer{margin-top:90px;padding-top:26px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+
+/* print / PDF export */
+@media print{
+  .sidebar,.menu-toggle,.backdrop{display:none!important}
+  .main{max-width:100%;margin:0;padding:0 8mm}
+  .hero{padding-top:8mm}
+  figure.shot img{box-shadow:none}
+  .doc-section{page-break-inside:auto}
+  .step,figure.shot,.callout{page-break-inside:avoid}
+  a[href]{color:inherit}
+}
+
+/* mobile */
+.menu-toggle{display:none}
+@media(max-width:960px){
+  .sidebar{position:fixed;left:0;top:0;transform:translateX(-100%);transition:.25s;z-index:40;box-shadow:0 0 40px rgba(0,0,0,.15);width:290px}
+  body.nav-open .sidebar{transform:translateX(0)}
+  .main{padding:0 20px 100px}
+  .menu-toggle{display:flex;align-items:center;gap:8px;position:fixed;top:14px;right:14px;z-index:50;
+    background:var(--accent);color:#fff;border:none;border-radius:24px;padding:9px 16px;font-size:14px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.18);cursor:pointer}
+  .hero h1{font-size:29px}.sec-title{font-size:23px}
+  .backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:35}
+  body.nav-open .backdrop{display:block}
+}
+</style>
+</head>
+<body>
+<button class="menu-toggle" onclick="document.body.classList.toggle('nav-open')">☰ 목차</button>
+<div class="backdrop" onclick="document.body.classList.remove('nav-open')"></div>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">SHOPIFY 실무 매뉴얼</div>
+      <div class="sub">3단원 · 스토어 초기 작업</div>
+    </div>
+    <nav id="nav">
+    <div class="nav-part">현지화</div>
+<a class="nav-item" href="#signup"><span class="nav-num">01</span><span class="nav-txt">쇼피파이 가입 방법</span></a>
+<a class="nav-item" href="#localize"><span class="nav-num">02</span><span class="nav-txt">미국 현지화 실습</span></a>
+<div class="nav-part">스토어 기획</div>
+<a class="nav-item" href="#plan"><span class="nav-num">03</span><span class="nav-txt">스토어 구상</span></a>
+<div class="nav-part">상품 업로드</div>
+<a class="nav-item soon" href="#sourcing"><span class="nav-num">04</span><span class="nav-txt">소싱 앱 소개</span><span class="nav-badge">준비중</span></a>
+<a class="nav-item soon" href="#spark"><span class="nav-num">05</span><span class="nav-txt">스파크 사용법</span><span class="nav-badge">준비중</span></a>
+<a class="nav-item soon" href="#upload"><span class="nav-num">06</span><span class="nav-txt">상품 업로드</span><span class="nav-badge">준비중</span></a>
+<a class="nav-item soon" href="#collection"><span class="nav-num">07</span><span class="nav-txt">컬렉션 설정</span><span class="nav-badge">준비중</span></a>
+<div class="nav-part">스토어 디자인</div>
+<a class="nav-item soon" href="#favicon"><span class="nav-num">08</span><span class="nav-txt">파비콘 · 로고</span><span class="nav-badge">준비중</span></a>
+<a class="nav-item" href="#megamenu"><span class="nav-num">09</span><span class="nav-txt">메가메뉴</span></a>
+<a class="nav-item" href="#banner"><span class="nav-num">10</span><span class="nav-txt">메인 배너</span></a>
+<a class="nav-item" href="#category"><span class="nav-num">11</span><span class="nav-txt">카테고리 바로가기</span></a>
+<a class="nav-item" href="#featured"><span class="nav-num">12</span><span class="nav-txt">추천 상품</span></a>
+<a class="nav-item" href="#productlist"><span class="nav-num">13</span><span class="nav-txt">제품 리스트</span></a>
+<a class="nav-item" href="#brand"><span class="nav-num">14</span><span class="nav-txt">브랜드 정보</span></a>
+<a class="nav-item" href="#blog"><span class="nav-num">15</span><span class="nav-txt">블로그 작성</span></a>
+<a class="nav-item" href="#review"><span class="nav-num">16</span><span class="nav-txt">리뷰</span></a>
+<a class="nav-item soon" href="#footer"><span class="nav-num">17</span><span class="nav-txt">푸터 및 정책</span><span class="nav-badge">준비중</span></a>
+<a class="nav-item" href="#popup"><span class="nav-num">18</span><span class="nav-txt">팝업창 & 쿠키 설정</span></a>
+    </nav>
+  </aside>
+  <main class="main">
+    <header class="hero" id="top">
+      <span class="eyebrow">3단원 · 실습</span>
+      <h1>스토어 초기 작업</h1>
+      <p class="lead">쇼피파이 가입부터 세금·배송·마켓 현지화, 그리고 메가메뉴·배너·블로그·리뷰까지 —
+      실제 관리자 화면을 그대로 따라 하며 미국 판매용 스토어를 완성하는 실습 매뉴얼입니다.</p>
+      <div class="meta">각 챕터의 스크린샷을 순서대로 따라 클릭하세요. 예시 화면의 수치·지역은 참고용이며, 실제 운영 기준은 본인 스토어 상황에 맞게 정합니다.</div>
+    </header>
+    <div class="section-intro">
+      <h2>미리 알아두면 좋은 용어</h2>
+      <div class="glossary"><div class="term"><div class="term-h">현지화 (Localization)</div><div class="term-d">타깃 국가(미국) 고객에게</div></div><div class="term"><div class="term-h">마켓 (Market)</div><div class="term-d">쇼피파이에서 판매 대상 국가/지역과</div></div><div class="term"><div class="term-h">세금관세</div><div class="term-d">결제 시 판매세가 정확히 계산되도록</div></div><div class="term"><div class="term-h">소싱 (Sourcing)</div><div class="term-d">스토어에서 판매할 상품을</div></div><div class="term"><div class="term-h">메가 메뉴</div><div class="term-d">상단 내비게이션에서 여러 카테고리를 한</div></div><div class="term"><div class="term-h">히어로 섹션/배너</div><div class="term-d">메인 페이지 최상단의 대표 배너</div></div><div class="term"><div class="term-h">섹션 / 블록</div><div class="term-d">테마 편집기(또는 PageFly)에서</div></div><div class="term"><div class="term-h">컬렉션 (Collection)</div><div class="term-d">조건이나 수동으로 묶은 상품</div></div><div class="term"><div class="term-h">푸터 (Footer)</div><div class="term-d">모든 페이지 하단의 정책·링크·안내</div></div></div>
+    </div>
+    <div class="part-divider" id="part-현지화"><span>현지화</span></div>
+<section class="doc-section" id="signup">
+<div class="sec-head"><span class="sec-num">01</span><h2 class="sec-title">쇼피파이 가입 방법</h2></div>
+<p>최종 업데이트 시간: 2026년 6월 26일 오후 3:46</p>
+<h3 class="subhead">쇼피파이 3개월 $1달러 가입하는 방법</h3>
+<h3 class="subhead">※중요: 같은 계정으로 샵을 추가해주실 때는 기존 계정에서
+추가하는 것이 아닌 처음으로 돌아와주셔서 1번부터 다시 진행해주셔야
+하십니다.</h3>
+<ul class="bullets"><li>검색창에 shopify.pxf.io/spharmy 을
+검색하여 들어가줍니다.</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image316.jpg" alt=""></figure>
+<ul class="bullets"><li>해당 대한민국 버튼을 클릭 후 꼭 미국으로
+바꿔주세요.</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image305.jpg" alt=""></figure>
+<ul class="bullets"><li>미국으로 꼭 변경해주시고, 구글 이메일 기입하여
+“이메일로 계속하기” 버튼을 눌러주세요.</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image308.jpg" alt=""></figure>
+<ul class="bullets"><li>“새 스토어 생성” 버튼을 눌러주세요.</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image315.jpg" alt=""></figure>
+<ul class="bullets"><li>카드번호 정보를 기입 후, “$1에 구독” 버튼을
+눌러주세요.</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image311.jpg" alt=""></figure>
+<ul class="bullets"><li>“온라인 판매” 버튼을 눌러주시고 계속 버튼을
+눌러주셔서 샵을 개설해주세요.</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image328.jpg" alt=""></figure>
+<p>같은 계정에 샵을 개설해주실 때는 미국으로 설정하기 위해서 꼭
+1번부터 다시 차례로 진행을 해주셔야 하십니다.쇼피파이 샵에서 “마켓”에
+들어가주셨을 때 “미국”으로 되어 있으시면 올바르게 되신
+것입니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image327.jpg" alt=""></figure>
+<div class="callout quiz"><div class="callout-label">✓ 확인 문제</div><ol class="quiz-list"><li>미국 스토어로 가입하려면 국가를 어디로 바꿔
+주어야 하나요?</li><li>같은 계정에 샵을 추가할 때는 기존 계정에서 이어서
+진행해도 되나요? 왜 그런가요?</li><li>가입이 올바르게 되었는지 ‘마켓’에서 무엇을
+확인하면 되나요?</li></ol></div>
+</section>
+<section class="doc-section" id="localize">
+<div class="sec-head"><span class="sec-num">02</span><h2 class="sec-title">미국 현지화 실습</h2></div>
+<h3 class="subsection">세금 및 관세 설정</h3>
+<p>최종 업데이트 시간: 2026년 7월 1일 오후 4:27</p>
+<div class="callout overview"><div class="callout-label">이 절 개요</div><p>본 매뉴얼은 Shopify 관리자 페이지에서 세금 및 관세 설정을
+확인하고, 필요한 지역의 세금 징수를 설정하는 방법 을 안내하기
+위해 제작되었습니다.</p><p>세금 설정은 고객이 결제할 때 판매세가 정상적으로 계산되도록 하는
+중요한 설정입니다.</p><p>특히 미국 판매를 진행하는 경우 주(State)별로 세금 징수 기준이 다를 수
+있으므로, 스토어 운영 전 반드시 세금 및 관세 설정 화면을 확인해야
+합니다.</p><p>본 매뉴얼에서는 Shopify의 세금 및 관세 메뉴에서 미국
+지역을 확인하고, 세금 책임 검토를 진행한 뒤, 필요한 주의 세금 징수를
+활성화하는 과정을 안내합니다.</p></div>
+<div class="step"><span class="step-badge">STEP 1</span><span class="step-title">세금 및 관세 메뉴 접속하기</span></div>
+<p>먼저 Shopify 관리자 페이지에서 왼쪽 메뉴의 세금 및
+관세 메뉴로 이동합니다.</p>
+<p>세금 및 관세 화면에서는 국가별 세금 설정 상태를 확인할 수
+있습니다.</p>
+<p>여기서 세금 설정이 필요한 국가를 선택해야 합니다.</p>
+<p>예시 화면에서는 북아메리카 > 미국 항목을
+클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image329.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 2</span><span class="step-title">세금 책임 검토 시작하기</span></div>
+<p>미국 세금 설정 화면으로 이동하면, 현재 스토어의 세금 책임 상태를
+확인할 수 있습니다.</p>
+<p>이 화면에서는 판매세를 징수해야 할 가능성이 있는 지역을 Shopify가
+기준에 따라 검토할 수 있도록 도와줍니다.</p>
+<p>세금 책임을 확인하기 위해 검토 시작 버튼을
+클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image319.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 3</span><span class="step-title">세금 징수 지역 선택하기</span></div>
+<p>세금 책임 검토 화면이 열리면 세금을 징수할 주 또는 지역을 선택할 수
+있습니다.</p>
+<p>예시 화면에서는 플로리다 항목을 선택합니다.</p>
+<p>체크박스를 클릭하면 해당 주가 선택되며, 선택한 지역은 세금 징수 대상
+지역으로 설정할 수 있습니다.</p>
+<p>단, 실제 운영 시에는 예시 화면을 그대로 따라 하기보다 본인의 스토어
+매출, 거래 수, 운영 기준에 따라 필요한 주를 선택해야 합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image330.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 4</span><span class="step-title">선택한 지역 세금 징수 진행하기</span></div>
+<p>세금 징수할 주를 선택하면 상단 또는 우측에 선택된 지역이
+표시됩니다.</p>
+<p>선택한 지역이 맞는지 확인한 뒤 세금 징수 버튼을
+클릭합니다.</p>
+<p>이 버튼을 클릭하면 해당 지역에 대한 판매세 징수 설정 단계로
+이동합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image322.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 5</span><span class="step-title">세금 징수 정보 확인하기</span></div>
+<p>세금 징수 설정 화면에서는 선택한 지역의 세금 징수 시작 정보를
+확인합니다.</p>
+<p>화면에 표시되는 내용을 확인한 뒤, 필요한 항목을 체크합니다.</p>
+<p>예시 화면에서는 책임 확인 체크박스를 선택한 뒤 세금
+징수 버튼을 클릭합니다.</p>
+<p>이 단계는 실제로 해당 지역의 판매세 징수를 활성화하는 과정이므로,
+반드시 선택한 지역이 맞는지 확인한 후 진행해야 합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image331.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 6</span><span class="step-title">세금 징수 설정 완료 확인하기</span></div>
+<p>설정이 완료되면 세금 및 관세 화면에서 해당 지역의 세금 징수 상태를
+확인할 수 있습니다.</p>
+<p>예시 화면처럼 선택한 주가 세금 징수 지역으로 표시되면 설정이
+정상적으로 완료된 것입니다.</p>
+<p>이후 고객이 해당 지역으로 주문할 경우, Shopify 설정에 따라 결제
+화면에서 세금이 계산될 수 있습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image320.jpg" alt=""></figure>
+<h3 class="subhead">세금 및 관세 설정 시 주의사항</h3>
+<p>세금 설정은 단순한 화면 설정이 아니라 실제 판매 국가와 지역의 세금
+규정과 연결되는 항목입니다.</p>
+<p>따라서 세금 징수 지역은 임의로 설정하기보다, 실제 판매 현황과 세금
+책임 기준을 확인한 뒤 설정해야 합니다.</p>
+<p>특히 미국은 주마다 판매세 기준이 다를 수 있으므로, 특정 주에서 일정
+매출 또는 거래 수를 초과한 경우 세금 징수 의무가 발생할 수 있습니다.</p>
+<p>처음 설정할 때는 화면의 안내를 기준으로 진행하되, 실제 세금 신고나
+납부와 관련된 부분은 담당자 또는 세무 전문가와 확인하는 것이
+안전합니다.</p>
+<h3 class="subhead">최종 확인 체크리스트</h3>
+<p>세금 및 관세 설정이 끝난 뒤 아래 항목을 확인합니다.</p>
+<ul class="bullets"><li>세금 및 관세 메뉴에 접속했는지 확인</li><li>미국 세금 설정 화면으로 이동했는지 확인</li><li>검토 시작 버튼을 클릭했는지 확인</li><li>세금 징수가 필요한 주를 선택했는지 확인</li><li>선택한 지역이 맞는지 확인 후 세금 징수를
+진행했는지 확인</li><li>설정 완료 후 해당 지역이 정상적으로 표시되는지
+확인</li></ul>
+<p>위 항목이 모두 완료되었다면 기본적인 세금 및 관세 설정 확인 과정은
+완료된 것입니다.</p>
+<div class="callout quiz"><div class="callout-label">✓ 확인 문제</div><ol class="quiz-list"><li>미국에서 세금 징수 기준이 지역마다 다를 수 있는
+이유는 무엇인가요?</li><li>세금 책임을 확인하려면 어떤 버튼부터 눌러 검토를
+시작하나요?</li><li>예시로 든 주(예: 플로리다)를 그대로 선택하면
+되나요, 아니면 무엇을 기준으로 정해야 하나요?</li></ol></div>
+<h3 class="subsection">배송 설정</h3>
+<p>최종 업데이트 시간: 2026년 7월 1일 오후 4:27</p>
+<div class="callout overview"><div class="callout-label">이 절 개요</div><p>본 매뉴얼은 Shopify 스토어 운영 시 고객이 정상적으로 결제를 진행할 수
+있도록 배송 지역 및 배송 옵션을 설정하는 방법 을
+안내하기 위해 제작되었습니다.</p><p>배송 설정은 고객이 상품을 구매할 때 결제 화면에서 배송 가능 여부와
+배송비가 표시되도록 하는 필수 설정입니다.</p><p>배송 지역이나 배송 옵션이 제대로 설정되어 있지 않으면 고객이 주문을
+완료하지 못할 수 있으므로, 스토어 오픈 전 반드시 확인해야 합니다.</p><p>본 매뉴얼에서는 기본 배송 프로필을 기준으로 배송 지역을 추가하고,
+배송 옵션을 설정한 뒤 최종 저장하는 과정까지 순서대로
+안내합니다.</p></div>
+<div class="step"><span class="step-badge">STEP 1</span><span class="step-title">배송 프로필 접속하기</span></div>
+<p>먼저 Shopify 관리자 페이지에서 왼쪽 메뉴의 배송 메뉴로 이동합니다.</p>
+<p>배송 설정 화면에 들어오면 배송 프로필 영역이
+보입니다.</p>
+<p>여기서 기본적으로 생성되어 있는 일반 프로필 을
+클릭합니다.</p>
+<p>일반 프로필은 기본 배송 설정을 관리하는 영역이며, 별도로 배송 조건을
+나누지 않는 경우 대부분 이 프로필에서 설정을 진행하면 됩니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image326.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 2</span><span class="step-title">배송 지역 추가하기</span></div>
+<p>일반 프로필 화면으로 이동하면 현재 상품이 어떤 위치에서 주문
+처리되는지 확인할 수 있습니다.</p>
+<p>아래쪽의 배송 지역 항목에서 아직 배송 지역이
+설정되어 있지 않다면, 고객이 결제할 수 있도록 배송 가능 지역을 추가해야
+합니다.</p>
+<p>지역 추가 버튼을 클릭합니다.</p>
+<div class="img-missing">🖼 이미지 준비 중</div>
+<div class="step"><span class="step-badge">STEP 3</span><span class="step-title">배송할 국가 및 지역 선택하기</span></div>
+<p>새 배송 지역 생성 창이 열리면 배송할 국가와 지역을 선택할 수
+있습니다.</p>
+<p>여기서는 예시로 북아메리카 와 미국 을
+선택합니다.</p>
+<p>체크박스를 클릭하면 해당 지역이 배송 가능 지역으로 추가됩니다.</p>
+<p>미국을 대상으로 판매하는 스토어라면 최소한 미국 은
+반드시 선택되어 있어야 합니다.</p>
+<div class="img-missing">🖼 이미지 준비 중</div>
+<div class="step"><span class="step-badge">STEP 4</span><span class="step-title">선택한 배송 지역 완료하기</span></div>
+<p>배송할 국가와 지역을 선택했다면 우측 하단의 완료 버튼을 클릭합니다.</p>
+<p>완료를 눌러야 선택한 배송 지역이 프로필에 반영됩니다.</p>
+<div class="img-missing">🖼 이미지 준비 중</div>
+<div class="step"><span class="step-badge">STEP 5</span><span class="step-title">배송 옵션 추가하기</span></div>
+<p>배송 지역을 추가하면 해당 지역 안에 배송 옵션을 추가해야 합니다.</p>
+<p>배송 지역만 추가하고 배송 옵션을 설정하지 않으면 고객이 결제 단계에서
+배송 방법을 선택할 수 없습니다.</p>
+<p>추가된 배송 지역 안에서 배송 옵션 추가 버튼을
+클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image313.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 6</span><span class="step-title">배송 옵션 설정하기</span></div>
+<p>배송 옵션 추가 화면에서는 고객에게 보여질 배송 방법을 설정합니다.</p>
+<p>예시 기준으로 아래와 같이 입력합니다.</p>
+<ul class="bullets"><li>이름: 이코노미</li><li>요금 유형: 고정</li><li>요금: $7.90</li><li>운송 시간: 3 ~ 5 영업일</li></ul>
+<p>이름은 고객 결제 화면에 표시되는 배송 옵션명입니다.</p>
+<p>요금은 고객이 결제할 배송비이며, 운송 시간은 예상 배송
+기간입니다.</p>
+<p>설정이 완료되면 우측 상단의 완료 버튼을
+클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image323.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 7</span><span class="step-title">배송 옵션 조건 변경하기</span></div>
+<p>배송 옵션은 운영 방식에 맞게 자유롭게 변경할 수 있습니다.</p>
+<p>예를 들어 무료 배송으로 운영하고 싶다면 요금을 $0.00 으로 설정할 수 있고, 유료 배송으로 운영하고 싶다면
+원하는 금액을 입력하면 됩니다.</p>
+<p>또한 배송 기간도 실제 공급처의 배송 기간에 맞춰 조정해야 합니다.</p>
+<p>예시로는 3~5 영업일 로 설정되어 있지만, 실제 배송
+기간이 더 길다면 고객 문의를 줄이기 위해 현실적인 기간으로 설정하는 것이
+좋습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image321.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 8</span><span class="step-title">최종 저장하기</span></div>
+<p>배송 지역과 배송 옵션을 모두 추가했다면 마지막으로 우측 상단의 저장 버튼을 클릭합니다.</p>
+<p>저장을 누르지 않으면 지금까지 설정한 내용이 반영되지 않을 수
+있습니다.</p>
+<p>저장 후에는 배송 지역 안에 설정한 배송 옵션이 정상적으로 표시되는지
+확인합니다.</p>
+<p>예시 화면처럼 이코노미 / 영업일 기준 3~5일 / $7.90 이
+표시되면 배송 옵션이 정상적으로 추가된 것입니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image325.jpg" alt=""></figure>
+<h3 class="subhead">최종 확인 체크리스트</h3>
+<p>배송 설정이 끝난 뒤 아래 내용을 확인합니다.</p>
+<ul class="bullets"><li>일반 프로필에 접속했는지 확인</li><li>배송 지역이 추가되어 있는지 확인</li><li>미국 또는 판매할 국가가 선택되어 있는지 확인</li><li>배송 옵션이 추가되어 있는지 확인</li><li>배송 옵션 이름, 요금, 운송 시간이 입력되어 있는지
+확인</li><li>마지막에 저장 버튼을 눌렀는지 확인</li></ul>
+<p>위 항목이 모두 완료되었다면 Shopify 기본 배송 설정은 정상적으로
+완료된 것입니다.</p>
+<div class="callout quiz"><div class="callout-label">✓ 확인 문제</div><ol class="quiz-list"><li>배송 지역/배송 프로필을 설정하는 이유는
+무엇인가요?</li><li>미국 내 배송을 위해 어떤 지역을 배송 대상으로
+추가해야 하나요?</li><li>배송비 요금은 어떤 방식으로 설정할 수 있나요?</li></ol></div>
+<h3 class="subsection">마켓 설정</h3>
+<p>최종 업데이트 시간: 2026년 6월 24일 오후 8:16</p>
+<div class="callout overview"><div class="callout-label">이 절 개요</div><p>본 매뉴얼은 Shopify 관리자 페이지에서 Markets(마켓) 을 생성하고, 판매 대상 국가를 추가하는
+방법을 안내하기 위해 제작되었습니다.</p><p>마켓 설정은 스토어에서 판매할 국가와 지역을 관리하는 기본
+설정입니다.</p><p>마켓이 제대로 설정되어 있지 않으면 특정 국가의 고객이 스토어에
+접속하거나 결제하는 과정에서 국가, 통화, 언어, 배송 조건 등이 정상적으로
+적용되지 않을 수 있습니다.</p><p>본 매뉴얼에서는 미국 판매를 기준으로 새로운 마켓을 생성하고, 조건에
+미국을 추가한 뒤 저장하는 과정까지 순서대로 안내합니다.</p></div>
+<div class="step"><span class="step-badge">STEP 1</span><span class="step-title">Markets 메뉴 접속하기</span></div>
+<p>먼저 Shopify 관리자 페이지에 접속합니다.</p>
+<p>왼쪽 메뉴에서 Markets 를 클릭합니다.</p>
+<p>Markets 메뉴에서는 스토어가 판매할 국가 및 지역을 관리할 수
+있습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image324.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 2</span><span class="step-title">마켓 생성하기</span></div>
+<p>Markets 화면으로 이동하면 현재 생성되어 있는 마켓 목록을 확인할 수
+있습니다.</p>
+<p>새로운 판매 국가 또는 지역을 추가하려면 우측 상단의 마켓
+생성 버튼을 클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image318.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 3</span><span class="step-title">조건 추가하기</span></div>
+<p>새 마켓 생성 화면으로 이동하면 마켓 이름과 조건을 설정할 수
+있습니다.</p>
+<p>이 단계에서는 해당 마켓에 어떤 국가 또는 지역을 포함할지 설정해야
+합니다.</p>
+<p>조건 항목에서 조건 추가 버튼을 클릭합니다.</p>
+<p>⟪이미지 로드 실패: 03_조건추가_클릭.jpg⟫</p>
+<div class="step"><span class="step-badge">STEP 4</span><span class="step-title">판매 국가 선택하기</span></div>
+<p>마켓 조건 창이 열리면 포함할 국가 또는 지역을 검색할 수 있습니다.</p>
+<p>검색창에 미국 을 입력한 뒤, 목록에서 미국 항목의 체크박스를 클릭합니다.</p>
+<p>미국 고객을 대상으로 판매할 경우, 이 단계에서 반드시 미국이
+선택되어야 합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image292.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 5</span><span class="step-title">선택한 조건 완료하기</span></div>
+<p>미국 항목이 선택되었는지 확인한 뒤 우측 하단의 완료 버튼을 클릭합니다.</p>
+<p>완료 버튼을 눌러야 선택한 국가가 새 마켓 조건에 반영됩니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image284.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 6</span><span class="step-title">마켓 설정 저장하기</span></div>
+<p>조건에 미국이 추가된 것을 확인한 뒤, 화면 상단의 저장 버튼을 클릭합니다.</p>
+<p>저장을 누르지 않으면 새로 생성한 마켓 설정이 반영되지 않을 수
+있으므로 반드시 저장까지 진행해야 합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image302.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 7</span><span class="step-title">마켓 생성 완료 확인하기</span></div>
+<p>저장이 완료되면 Markets 목록 화면으로 돌아와 새로 생성된 마켓을
+확인합니다.</p>
+<p>예시 화면처럼 미국 마켓이 표시되고, 상태가 활성 으로 보이면 정상적으로 생성된 것입니다.</p>
+<p>또한 포함 항목에 1개 지역 이 표시되면 미국이 마켓
+조건에 정상적으로 추가된 상태입니다.</p>
+<div class="img-missing">🖼 이미지 준비 중</div>
+<h3 class="subhead">마켓 설정 시 주의사항</h3>
+<p>마켓 설정은 판매 국가, 통화, 언어, 도메인, 결제 및 배송 설정과
+연결되는 기본 설정입니다.</p>
+<p>미국 판매를 기준으로 운영하는 경우에는 미국 마켓이 활성화되어 있어야
+하며, 이후 배송 설정과 세금 및 관세 설정에서도 미국이 정상적으로
+연결되어 있는지 확인해야 합니다.</p>
+<p>마켓만 생성했다고 모든 설정이 끝나는 것은 아니므로, 마켓 설정 후에는
+배송 지역, 배송 옵션, 세금 및 관세 설정까지 함께 확인하는 것이
+좋습니다.</p>
+<h3 class="subhead">최종 확인 체크리스트</h3>
+<p>마켓 설정이 끝난 뒤 아래 내용을 확인합니다.</p>
+<ul class="bullets"><li>Shopify 관리자 페이지에서 Markets 메뉴에
+접속했는지 확인</li><li>마켓 생성 버튼을 클릭했는지 확인</li><li>조건 추가 버튼을 클릭했는지 확인</li><li>국가 또는 지역에서 미국을 선택했는지 확인</li><li>완료 버튼을 눌러 조건을 반영했는지 확인</li><li>저장 버튼을 클릭했는지 확인</li><li>Markets 목록에서 미국 마켓이 활성 상태로
+표시되는지 확인</li></ul>
+<p>위 항목이 모두 완료되었다면 Shopify 마켓 설정은 정상적으로 완료된
+것입니다.</p>
+<div class="callout quiz"><div class="callout-label">✓ 확인 문제</div><ol class="quiz-list"><li>‘마켓(Market)’ 메뉴에서 관리하는 핵심 항목은
+무엇인가요?</li><li>미국 판매를 위해 기본 마켓/통화를 어떻게 맞춰야
+하나요?</li><li>마켓 설정이 현지화에서 중요한 이유를 한 문장으로
+정리해 보세요.</li></ol></div>
+<h3 class="subhead">PART</h3>
+<h3 class="subhead">3-2</h3>
+<h3 class="subhead">스토어 기획</h3>
+<p>본격적인 디자인 전에, 어떤 상품을 어떤 구조로 보여줄지 먼저
+설계합니다. 소싱 방향, 메가메뉴, 메인 페이지, 푸터를 미리 정해 두면 이후
+작업이 훨씬 빨라집니다.</p>
+</section>
+<div class="part-divider" id="part-스토어 기획"><span>스토어 기획</span></div>
+<section class="doc-section" id="plan">
+<div class="sec-head"><span class="sec-num">03</span><h2 class="sec-title">스토어 구상</h2></div>
+<div class="callout overview"><div class="callout-label">이 절 개요</div><p>스토어를 만들기 전에 ‘무엇을, 어떻게 보여줄지’를 먼저 설계합니다.
+여기서 정한 소싱·메뉴·메인·푸터 방향이 이후 디자인 작업의 기준이
+됩니다.</p></div>
+<h3 class="subhead">① 샵 상품 소싱 — 무엇을 팔 것인가</h3>
+<p>운영할 샵의 종류와 그 이유를 먼저 정합니다. 예를 들어 건강기능식품샵,
+가구샵, 운동용품샵처럼 구체적인 방향을 잡습니다. ‘왜 이 상품인가’를
+근거와 함께 적어 두면(예: 미국은 성인병·만성질환 비율이 높아
+건강기능식품 수요가 크다) 이후 메뉴·메인·상세페이지 구성이 훨씬
+명확해집니다.</p>
+<h3 class="subhead">② 메가메뉴 — 어떻게 분류할 것인가</h3>
+<p>고객이 원하는 상품군을 빠르게 찾도록 상단 메가메뉴 구조를 설계합니다.
+벤치마킹한 스토어의 메뉴를 참고하되, 메뉴(카테고리) 개수는 50개
+이상 으로 넉넉히 잡는 것을 권장합니다. 대분류–중분류–소분류로
+나눠 두면 상품이 늘어나도 구조가 무너지지 않습니다.</p>
+<h3 class="subhead">③ 메인 페이지 — 첫 화면 구성</h3>
+<p>메인에 어떤 섹션을 어떤 순서로 배치할지 정합니다. 히어로 배너,
+카테고리 바로가기, 추천/신상품, 브랜드 스토리 등에서 무엇을 위에 둘지
+미리 정해 두면 디자인 단계가 빨라집니다. 벤치마킹한 화면이 있다면 캡처해
+두고 ‘이런 느낌’으로 기준을 잡습니다.</p>
+<h3 class="subhead">④ 푸터(Footer) — 하단 안내</h3>
+<p>모든 페이지 하단에 공통으로 들어갈 내용을 정합니다.
+배송·환불·개인정보 등 정책 링크, 고객센터, 회사 정보, SNS 링크 등이
+대표적입니다. 신뢰와 관련된 요소이므로 초기부터 빠짐없이 넣는 것이
+좋습니다.</p>
+<h3 class="subhead">구상 계획서 — 아래 항목을 채워 정리해 보세요</h3>
+<div class="callout quiz"><div class="callout-label">✓ 확인 문제</div><ol class="quiz-list"><li>스토어를 만들기 전에 ‘구상(기획)’을 먼저 하는
+이유는 무엇인가요?</li><li>메가메뉴는 최소 몇 개 이상으로 구성하는 것이
+권장되나요?</li><li>메인 페이지와 푸터에 각각 어떤 요소를 넣으면
+좋을지 정리해 보세요.</li></ol></div>
+<h3 class="subhead">PART</h3>
+<h3 class="subhead">3-3</h3>
+<h3 class="subhead">상품 업로드</h3>
+<p>상품을 실제 판매 가능한 상태로 등록하는 파트입니다. 소싱 앱 활용,
+상품 업로드, 컬렉션 설정 등이 여기에 포함됩니다.</p>
+<div class="callout note"><div class="callout-label">이 파트에서 다루는 내용</div><p>3-3-1 자료 준비 중</p><p>자료 준비 중</p><p>이 파트의 실습 자료는 현재 준비 중입니다.</p><p>이후 상품 소싱 앱(예: 스파크) · 상품 업로드 · 컬렉션
+설정 매뉴얼이 이 자리에 추가될 예정입니다.</p></div>
+<h3 class="subhead">PART</h3>
+<h3 class="subhead">3-4</h3>
+<h3 class="subhead">스토어 디자인</h3>
+<p>고객이 실제로 보는 화면을 완성하는 파트입니다. 상단 메뉴부터 메인
+배너, 카테고리, 추천/신상품, 브랜드 정보, 블로그, 리뷰, 쿠키 배너까지
+하나씩 만들어 스토어의 얼굴을 갖춥니다.</p>
+</section>
+<div class="part-divider" id="part-상품 업로드"><span>상품 업로드</span></div>
+<section class="doc-section" id="sourcing">
+<div class="sec-head"><span class="sec-num">04</span><h2 class="sec-title">소싱 앱 소개</h2></div>
+<div class="soon-box">이 챕터는 <b>준비 중</b>입니다. 자료가 업데이트되면 이 자리에 채워집니다.</div>
+</section>
+<section class="doc-section" id="spark">
+<div class="sec-head"><span class="sec-num">05</span><h2 class="sec-title">스파크 사용법</h2></div>
+<div class="soon-box">이 챕터는 <b>준비 중</b>입니다. 자료가 업데이트되면 이 자리에 채워집니다.</div>
+</section>
+<section class="doc-section" id="upload">
+<div class="sec-head"><span class="sec-num">06</span><h2 class="sec-title">상품 업로드</h2></div>
+<div class="soon-box">이 챕터는 <b>준비 중</b>입니다. 자료가 업데이트되면 이 자리에 채워집니다.</div>
+</section>
+<section class="doc-section" id="collection">
+<div class="sec-head"><span class="sec-num">07</span><h2 class="sec-title">컬렉션 설정</h2></div>
+<div class="soon-box">이 챕터는 <b>준비 중</b>입니다. 자료가 업데이트되면 이 자리에 채워집니다.</div>
+</section>
+<div class="part-divider" id="part-스토어 디자인"><span>스토어 디자인</span></div>
+<section class="doc-section" id="favicon">
+<div class="sec-head"><span class="sec-num">08</span><h2 class="sec-title">파비콘 · 로고</h2></div>
+<div class="soon-box">이 챕터는 <b>준비 중</b>입니다. 자료가 업데이트되면 이 자리에 채워집니다.</div>
+</section>
+<section class="doc-section" id="megamenu">
+<div class="sec-head"><span class="sec-num">09</span><h2 class="sec-title">메가메뉴</h2></div>
+<p>최종 업데이트 시간: 2026년 6월 25일 오후 4:34</p>
+<p>Shopify 메가 메뉴 설정 매뉴</p>
+<p>매뉴얼 안내</p>
+<p>본 매뉴얼은 Shopify 관리자 페이지에서 상위 메뉴와 하위 메뉴를
+구성하고, 스토어 상단 메뉴에 반영하는 방법 을 안내하기 위해
+제작되었습니다.</p>
+<p>메가 메뉴는 고객이 스토어 상단 메뉴를 통해 원하는 카테고리로 쉽게
+이동할 수 있도록 구성하는 메뉴 구조입니다.</p>
+<p>예시에서는 상위 메뉴로 Vitamin 을 만들고, 하위 메뉴로 Vitamin A, Vitamin B, Vitamin C, Vitamin D 등을
+추가하는 방식으로 진행합니다.</p>
+<div class="step"><span class="step-badge">STEP 1</span><span class="step-title">메뉴 관리 화면으로 이동하기</span></div>
+<p>Shopify 관리자 페이지에서 왼쪽 메뉴의 콘텐츠 를
+클릭합니다.</p>
+<p>콘텐츠 하위 메뉴에서 메뉴 를 클릭합니다.</p>
+<p>이곳에서 스토어 상단에 표시될 메뉴 항목을 추가하거나 수정할 수
+있습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image300.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 2</span><span class="step-title">메뉴 항목 추가하기</span></div>
+<p>주 메뉴 관리 화면으로 이동한 뒤, 새로운 메뉴를 추가하기 위해 메뉴 항목 추가 버튼을 클릭합니다.</p>
+<p>메뉴 항목 추가 버튼을 클릭하면 메뉴 이름과 링크를 입력할 수 있는
+입력칸이 생성됩니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image307.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 3</span><span class="step-title">상위 메뉴 이름 입력하기</span></div>
+<p>새로 생성된 메뉴 항목의 레이블 입력칸에 상위 메뉴
+이름을 입력합니다.</p>
+<p>예시에서는 상위 메뉴 이름으로 Vitamin 을
+입력합니다.</p>
+<p>이 메뉴는 스토어 상단에 표시될 큰 카테고리 역할을 합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image288.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 4</span><span class="step-title">상위 메뉴 링크 입력칸 클릭하기</span></div>
+<p>Vitamin 메뉴를 생성한 뒤, 오른쪽에 있는 링크
+입력칸 을 클릭합니다.</p>
+<p>Shopify 메뉴는 이름만 입력하면 저장이 되지 않을 수 있으므로, 각
+메뉴에는 반드시 연결할 링크를 설정해야 합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image309.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 5</span><span class="step-title">임시 링크 연결하기</span></div>
+<p>링크 입력칸을 클릭하면 연결 가능한 페이지 목록이 표시됩니다.</p>
+<p>예시에서는 임시로 홈페이지 를 선택합니다.</p>
+<p>실제 운영 시에는 Vitamin 메뉴에 맞는 컬렉션 페이지가 있다면 해당
+컬렉션으로 연결하는 것이 좋습니다</p>
+<figure class="shot"><img loading="lazy" src="images/image301.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 6</span><span class="step-title">하위 메뉴 입력칸 클릭하기</span></div>
+<p>Vitamin 아래에 들어갈 하위 메뉴를 만들기 위해 다시 메뉴 항목
+추가 버튼을 클릭합니다.</p>
+<p>하위 메뉴는 상위 메뉴 안에 들어가는 세부 카테고리입니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image314.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 7</span><span class="step-title">Vitamin A 입력하기</span></div>
+<p>새로 생성된 메뉴 항목의 레이블 입력칸에 Vitamin A 를
+입력합니다.</p>
+<p>Vitamin A는 Vitamin 상위 메뉴 안에 들어갈 하위 메뉴로 사용할
+예정입니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image298.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 8</span><span class="step-title">Vitamin B 입력하기</span></div>
+<p>같은 방식으로 추가 하위 메뉴를 생성합니다.</p>
+<p>예시에서는 두 번째 하위 메뉴로 Vitamin B 를
+입력합니다.</p>
+<p>필요한 경우 Vitamin C, Vitamin D 등도 같은 방식으로 추가할 수
+있습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image40.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 9</span><span class="step-title">하위 메뉴를 Vitamin 아래로 이동하기</span></div>
+<p>하위 메뉴를 입력한 뒤에는 메뉴 위치를 조정해야 합니다.</p>
+<p>메뉴 항목 왼쪽의 드래그 아이콘을 잡고 Vitamin 아래쪽으로
+이동 합니다.</p>
+<p>하위 메뉴가 Vitamin보다 안쪽으로 들어가면 정상적으로 자식 메뉴 구조가
+됩니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image53.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 10</span><span class="step-title">Vitamin A 아래에 추가 메뉴 만들기</span></div>
+<p>필요한 경우 Vitamin A 아래에도 하위 메뉴를 추가할 수 있습니다.</p>
+<p>Vitamin A에 메뉴 항목 추가 버튼을 클릭하면 Vitamin A
+안쪽에 추가 메뉴를 만들 수 있습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image35.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 11</span><span class="step-title">추가 하위 메뉴 입력칸 확인하기</span></div>
+<p>Vitamin A 안쪽에 새 메뉴 입력칸이 생성되었는지 확인합니다.</p>
+<p>이 입력칸에 원하는 하위 메뉴명을 입력하면 Vitamin A의 하위 메뉴로
+구성됩니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image55.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 12</span><span class="step-title">하위 메뉴 구조 확인하기</span></div>
+<p>상위 메뉴와 하위 메뉴가 정상적으로 정리되었는지 확인합니다.</p>
+<p>예시 구조는 아래와 같습니다.</p>
+<ul class="bullets"><li>Vitamin</li><li>Vitamin A</li><li>Vitamin B</li></ul>
+<p>하위 메뉴는 반드시 상위 메뉴보다 안쪽으로 들여쓰기 되어 있어야
+합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image33.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 13</span><span class="step-title">링크 오류 확인하기</span></div>
+<p>메뉴에 링크가 설정되어 있지 않으면 저장 시 오류가 발생할 수
+있습니다.</p>
+<p>오류가 표시되는 경우, 각 메뉴의 링크 입력칸에 유효한 URL을 입력하거나
+Shopify 내부 페이지를 선택해야 합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image31.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 14</span><span class="step-title">하위 메뉴 링크 선택하기</span></div>
+<p>하위 메뉴의 링크 입력칸을 클릭합니다.</p>
+<p>목록에서 연결할 페이지를 선택합니다.</p>
+<p>예를 들어 Vitamin A 메뉴는 Vitamin A 컬렉션 페이지로 연결하는 것이
+가장 적절합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image37.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 15</span><span class="step-title">메뉴 저장하기</span></div>
+<p>상위 메뉴와 하위 메뉴 구성이 완료되면 화면 상단 또는 우측의 저장 버튼을 클릭합니다.</p>
+<p>저장을 클릭해야 지금까지 설정한 메뉴 구조가 반영됩니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image43.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 16</span><span class="step-title">저장 완료 메시지 확인하기</span></div>
+<p>저장 후 화면에 메뉴가 업데이트되었습니다 라는
+메시지가 표시되는지 확인합니다.</p>
+<p>이 메시지가 보이면 메뉴 설정이 정상적으로 저장된 것입니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image77.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 17</span><span class="step-title">Notice 메뉴 수정하기</span></div>
+<p>기존에 생성된 공지사항 메뉴를 수정하려면 해당 메뉴 오른쪽의 연필 아이콘 을 클릭합니다.</p>
+<p>이 단계에서는 공지사항 메뉴명을 Notice로 변경하는 예시로
+진행합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image60.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 18</span><span class="step-title">이름을 Notice로 수정하기</span></div>
+<p>이름 입력칸에 기존 메뉴명을 지우고 Notice 를
+입력합니다.</p>
+<p>입력한 이름은 스토어 메뉴에 표시되는 메뉴명입니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image23.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 19</span><span class="step-title">Notice 링크 입력하기</span></div>
+<p>링크 입력칸에 /notice 를 입력합니다.</p>
+<p>이 링크는 고객이 Notice 메뉴를 클릭했을 때 이동할 경로입니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image26.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 20</span><span class="step-title">새 창에서 열기 설정하기</span></div>
+<p>표시 옵션에서 새 창에서 열기 토글을 클릭하여 ON
+상태로 변경합니다.</p>
+<p>이 설정을 켜면 고객이 Notice 메뉴를 클릭했을 때 새 창에서 페이지가
+열립니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image7.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 21</span><span class="step-title">Notice 메뉴 저장하기</span></div>
+<p>Notice 메뉴 수정이 완료되면 저장 버튼을
+클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image13.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 22</span><span class="step-title">Notice 저장 완료 확인하기</span></div>
+<p>저장 후 상단에 메뉴가 업데이트되었다는 메시지가 표시되는지
+확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image2.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 23</span><span class="step-title">Notice 메뉴 위치 이동하기</span></div>
+<p>Notice 메뉴를 원하는 위치로 이동하기 위해 메뉴 항목을
+드래그합니다.</p>
+<p>예시에서는 Notice 메뉴를 Vitamin 아래로 이동합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image6.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 24</span><span class="step-title">Notice를 하위 메뉴로 설정하기</span></div>
+<p>Notice 메뉴 왼쪽의 들여쓰기 화살표를 클릭합니다.</p>
+<p>들여쓰기를 적용하면 Notice가 상위 메뉴 아래의 하위 메뉴로
+설정됩니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image14.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 25</span><span class="step-title">Notice 순서 변경하기</span></div>
+<p>Notice 메뉴를 원하는 순서로 드래그하여 위치를 조정합니다.</p>
+<p>예시처럼 Vitamin A 아래쪽으로 배치할 수 있습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image39.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 26</span><span class="step-title">Notice 최종 위치 저장하기</span></div>
+<p>Notice 메뉴의 최종 위치가 맞는지 확인한 뒤 저장 버튼을 클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image24.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 27</span><span class="step-title">온라인 스토어로 이동하기</span></div>
+<p>메뉴 구성이 끝났다면 실제 스토어 상단에 메뉴가 반영되는지 확인해야
+합니다.</p>
+<p>Shopify 관리자 페이지 왼쪽 메뉴에서 온라인 스토어 를
+클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image22.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 28</span><span class="step-title">사용자 지정 클릭하기</span></div>
+<p>현재 사용 중인 테마에서 사용자 지정 버튼을
+클릭합니다.</p>
+<p>사용자 지정 화면에서는 스토어 화면에 보이는 머리글, 메뉴, 배너 등을
+수정할 수 있습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image88.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 29</span><span class="step-title">머리글 영역 선택하기</span></div>
+<p>테마 편집기 화면에서 상단의 머리글 영역을
+클릭합니다.</p>
+<p>머리글은 스토어 로고와 상단 메뉴가 표시되는 영역입니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image86.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 30</span><span class="step-title">주 메뉴 선택하기</span></div>
+<p>왼쪽 설정 패널에서 메뉴 항목을 확인합니다.</p>
+<p>현재 연결된 메뉴가 주 메뉴가 아니라면 메뉴 선택 영역을 클릭하고 주 메뉴 를 선택합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image74.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 31</span><span class="step-title">메뉴 교체하기</span></div>
+<p>기존에 다른 메뉴가 연결되어 있다면 메뉴 설정에서 교체 를 클릭합니다.</p>
+<p>교체 후 주 메뉴를 선택하면, 방금 설정한 메뉴 구조가 스토어 상단에
+연결됩니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image115.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 32</span><span class="step-title">상단 메뉴 반영 확인하기</span></div>
+<p>주 메뉴가 정상적으로 연결되면 미리보기 화면 상단에 메뉴가
+표시됩니다.</p>
+<p>예시처럼 Home, Contact US, Vitamin 메뉴가 보이는지 확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image85.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 33</span><span class="step-title">테마 설정 저장하기</span></div>
+<p>상단 메뉴가 정상적으로 표시되면 테마 편집기 우측 상단의 저장 버튼을 클릭합니다.</p>
+<p>저장을 누르지 않으면 테마 화면에 변경 사항이 반영되지 않을 수
+있습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image92.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 34</span><span class="step-title">상단 드롭다운 메뉴 확인하기</span></div>
+<p>스토어 미리보기 화면에서 Vitamin 메뉴를 클릭하거나 마우스를 올려 하위
+메뉴가 드롭다운으로 표시되는지 확인합니다.</p>
+<p>Vitamin A, Vitamin B 등의 하위 메뉴가 정상적으로 보이면 메뉴 구조가
+제대로 연결된 것입니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image90.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 35</span><span class="step-title">컬렉션 페이지 이동 확인하기</span></div>
+<p>메뉴를 클릭했을 때 연결된 페이지로 정상 이동되는지 확인합니다.</p>
+<p>예시처럼 Vitamin 메뉴를 클릭했을 때 해당 컬렉션 페이지로 이동하면
+정상입니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image98.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 36</span><span class="step-title">최종 메뉴 구조 확인하기</span></div>
+<p>마지막으로 메뉴 관리 화면에서 최종 메뉴 구조를 확인합니다.</p>
+<p>상위 메뉴 아래에 하위 메뉴가 정상적으로 정리되어 있어야 합니다.</p>
+<p>예시 구조는 아래와 같습니다.</p>
+<ul class="bullets"><li>Home</li><li>Contact US</li><li>Vitamin</li><li>Vitamin A</li><li>Vitamin B</li><li>Notice</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image103.jpg" alt=""></figure>
+<h3 class="subhead">메가 메뉴 설정 시 주의사항</h3>
+<p>메뉴 항목은 이름만 입력하는 것이 아니라 반드시 링크도 함께 연결해야
+합니다.</p>
+<p>링크가 비어 있으면 저장 시 오류가 발생하거나, 고객이 메뉴를 클릭했을
+때 이동할 수 없습니다.</p>
+<p>따라서 각 메뉴에는 홈페이지, 컬렉션, 제품, 페이지, 블로그 등의 링크를
+연결해야 합니다.</p>
+<p>또한 하위 메뉴는 반드시 상위 메뉴보다 안쪽으로 들여쓰기 되어 있어야
+합니다.</p>
+<p>들여쓰기 구조가 맞지 않으면 드롭다운 메뉴가 정상적으로 표시되지
+않습니다.</p>
+<p>상위 메뉴가 너무 많거나 메뉴명이 너무 길면 스토어 상단 메뉴가 복잡해
+보일 수 있으므로, 핵심 카테고리 위주로 정리하는 것이 좋습니다.</p>
+<h3 class="subhead">최종 확인 체크리스트</h3>
+<p>메가 메뉴 설정이 끝난 뒤 아래 내용을 확인합니다.</p>
+<ul class="bullets"><li>콘텐츠 > 메뉴 화면에 접속했는지 확인</li><li>주 메뉴에서 메뉴 항목 추가를 진행했는지 확인</li><li>상위 메뉴를 생성했는지 확인</li><li>하위 메뉴를 추가했는지 확인</li><li>하위 메뉴가 상위 메뉴 아래로 들여쓰기 되었는지
+확인</li><li>각 메뉴에 링크가 연결되어 있는지 확인</li><li>Notice 메뉴를 필요한 위치에 추가했는지 확인</li><li>저장 버튼을 클릭했는지 확인</li><li>온라인 스토어 > 사용자 지정에서 주 메뉴가
+연결되어 있는지 확인</li><li>스토어 미리보기에서 드롭다운 메뉴가 정상적으로
+보이는지 확인</li><li>메뉴 클릭 시 연결된 페이지로 정상 이동되는지
+확인</li></ul>
+<p>위 항목이 모두 완료되었다면 Shopify 메가 메뉴 설정은 정상적으로
+완료된 것입니다.</p>
+<div class="callout quiz"><div class="callout-label">✓ 확인 문제</div><ol class="quiz-list"><li>메가 메뉴에서 상위 메뉴와 하위 메뉴는 각각 어떤
+역할을 하나요?</li><li>하위 메뉴를 특정 상위 메뉴 아래로 넣으려면 어떻게
+이동시키나요?</li><li>메뉴를 모두 만든 뒤 반드시 확인해야 하는 것은
+무엇인가요?</li></ol></div>
+</section>
+<section class="doc-section" id="banner">
+<div class="sec-head"><span class="sec-num">10</span><h2 class="sec-title">메인 배너</h2></div>
+<p>최종 업데이트 시간: 2026년 7월 1일 오후 4:33</p>
+<p>본 매뉴얼은 Shopify 스토어 홈 화면 상단에 노출되는 히어로 배너를
+PageFly에서 제작하는 방법을 안내합니다.</p>
+<p>배너 이미지 설정, 문구 입력, 버튼 추가, 버튼 링크 연결, PC/모바일
+화면 확인까지 순서대로 진행합니다.</p>
+<div class="step"><span class="step-badge">STEP 1</span><span class="step-title">작업 목표</span></div>
+<p>히어로 배너는 고객이 스토어에 접속했을 때 가장 먼저 보이는
+영역입니다.</p>
+<p>브랜드 분위기와 핵심 메시지를 전달하고, 고객이 원하는 페이지로 이동할
+수 있도록 버튼을 연결하는 것이 목적입니다.</p>
+<p>이번 작업에서는 아래 내용을 진행합니다.</p>
+<ul class="bullets"><li>PageFly에서 홈 페이지 배너 영역 생성</li><li>배너 배경 이미지 적용</li><li>메인 문구와 보조 문구 입력</li><li>버튼 생성 및 링크 연결</li><li>저장 후 실제 화면에서 정상 노출 여부 확인</li></ul><div class="step"><span class="step-badge">STEP 2</span><span class="step-title">PageFly 접속 및 Home Pages 확인</span></div>
+<p>PageFly 앱에 접속한 뒤, 왼쪽 메뉴에서 Home Pages를 클릭합니다.</p>
+<p>Home Pages는 쇼핑몰 메인 화면을 제작하는 메뉴입니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image129.jpg" alt=""></figure>
+<p>기존에 생성된 홈 페이지가 있다면 해당 페이지를 수정할 수 있고, 새로
+만들 수도 있습니다.</p>
+<div class="step"><span class="step-badge">STEP 3</span><span class="step-title">템플릿 선택</span></div>
+<p>Home Pages 화면에서 사용할 템플릿을 선택합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image89.jpg" alt=""></figure>
+<p>템플릿은 처음부터 빈 화면으로 제작하지 않고, 기본 구조를 참고해서
+작업할 수 있도록 제공되는 샘플 페이지입니다.</p>
+<p>히어로 배너 제작이 목적이라면 상단 배너가 포함된 템플릿을 선택하는
+것이 좋습니다.</p>
+<div class="step"><span class="step-badge">STEP 4</span><span class="step-title">불필요한 페이지 삭제</span></div>
+<p>기존에 생성된 페이지가 필요 없다면 삭제 버튼을 클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image57.jpg" alt=""></figure>
+<p>삭제 확인 창이 뜨면 Confirm 또는 확인 버튼을 클릭합니다.</p>
+<p>불필요한 페이지를 정리하면 작업 중 헷갈리지 않고, 새 페이지 제작이 더
+편해집니다.</p>
+<div class="step"><span class="step-badge">STEP 5</span><span class="step-title">새 페이지 또는 빈 화면 준비</span></div>
+<p>빈 화면이 열리면 Add section 버튼을 클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image54.jpg" alt=""></figure>
+<p>Add section은 페이지 안에 새로운 영역을 추가하는 버튼입니다.</p>
+<p>히어로 배너는 보통 홈 화면 가장 상단에 들어가므로, 페이지 상단에
+섹션을 먼저 추가합니다.</p>
+<div class="step"><span class="step-badge">STEP 6</span><span class="step-title">Banner 요소 추가</span></div>
+<p>왼쪽 Elements 메뉴에서 Banner 요소를 선택하거나 드래그하여 페이지에
+추가합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image80.jpg" alt=""></figure>
+<p>Banner는 배경 이미지를 크게 넣고, 그 위에 문구와 버튼을 배치할 수
+있는 영역입니다.</p>
+<p>히어로 배너를 만들 때 가장 기본적으로 사용하는 요소입니다.</p>
+<div class="step"><span class="step-badge">STEP 7</span><span class="step-title">배너 배경 이미지 선택</span></div>
+<p>배너 영역을 클릭한 뒤, 오른쪽 설정 패널에서 Background 또는 Banner
+image 항목을 확인합니다.</p>
+<p>Pick 버튼을 클릭하여 사용할 이미지를 선택합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image68.jpg" alt=""></figure>
+<p>이미지 선택 창이 열리면 My assets 또는 업로드된 이미지 목록에서
+원하는 이미지를 선택합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image64.jpg" alt=""></figure>
+<p>이미지는 쇼핑몰 분위기와 맞는 이미지를 사용하는 것이 좋습니다.</p>
+<p>예를 들어 건강식품 쇼핑몰이라면 자연, 건강, 신뢰감, 깨끗함이 느껴지는
+이미지를 사용하는 것이 좋습니다.</p>
+<div class="step"><span class="step-badge">STEP 8</span><span class="step-title">배너 이미지 위치 조정</span></div>
+<p>배경 이미지가 들어간 뒤, 오른쪽 설정 패널에서 Vertical 값을
+조정합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image59.jpg" alt=""></figure>
+<p>Vertical 값은 배경 이미지가 위아래로 보이는 위치를 조정하는
+설정입니다.</p>
+<p>이미지의 중요한 부분이 잘 보이도록 값을 조정합니다.</p>
+<p>예시 설정값:</p>
+<ul class="bullets"><li>Vertical: 33%</li><li>Horizontal: center</li></ul>
+<p>이미지 위치가 어색하면 Vertical 값을 조금씩 움직이면서 가장
+자연스러운 위치를 찾습니다.</p>
+<div class="step"><span class="step-badge">STEP 9</span><span class="step-title">배너 높이 조정</span></div>
+<p>배너가 너무 크거나 작게 보이면 Height 값을 조정합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image72.jpg" alt=""></figure>
+<p>예시 설정값:</p>
+<ul class="bullets"><li>Height: 230px</li></ul>
+<p>단, 스토어 분위기나 이미지 비율에 따라 높이는 달라질 수 있습니다.</p>
+<p>상단 배너는 너무 낮으면 임팩트가 약하고, 너무 높으면 아래 콘텐츠가 잘
+보이지 않으므로 적당한 높이로 조정합니다.</p>
+<div class="step"><span class="step-badge">STEP 10</span><span class="step-title">배너 안에 Row 추가</span></div>
+<p>배너 안에 문구와 버튼을 넣기 위해 Row를 추가합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image79.jpg" alt=""></figure>
+<p>Row는 배너 안에서 문구와 버튼을 배치할 수 있는 구조입니다.</p>
+<p>배너 배경만 넣으면 고객에게 전달되는 메시지가 부족하기 때문에, Row를
+추가해서 텍스트와 버튼을 넣어줍니다.</p>
+<div class="step"><span class="step-badge">STEP 11</span><span class="step-title">Row 레이아웃 설정</span></div>
+<p>Row를 선택한 뒤, 오른쪽 Layout 설정에서 컬럼 구조를 선택합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image104.jpg" alt=""></figure>
+<p>가운데에 문구와 버튼을 배치하려면 중앙 컬럼이 넓은 구조를 선택하면
+좋습니다.</p>
+<p>추천 구조:</p>
+<ul class="bullets"><li>3 / 6 / 3</li><li>4 / 4 / 4</li></ul>
+<p>가운데 컬럼에 문구와 버튼을 넣으면 배너 중앙 정렬이 쉬워집니다.</p>
+<div class="step"><span class="step-badge">STEP 12</span><span class="step-title">Heading 추가</span></div>
+<p>왼쪽 Elements 메뉴에서 Heading을 배너 안쪽 가운데 영역으로
+추가합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image52.jpg" alt=""></figure>
+<p>Heading은 배너에서 가장 크게 보이는 메인 문구입니다.</p>
+<p>고객이 처음 봤을 때 브랜드 콘셉트가 바로 전달될 수 있도록 짧고 강하게
+작성합니다.</p>
+<p>예시 문구:</p>
+<p>MODERN ROOTS LIFE</p>
+<div class="step"><span class="step-badge">STEP 13</span><span class="step-title">Heading 문구 수정</span></div>
+<p>Heading 영역을 클릭한 뒤, 원하는 문구로 수정합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image56.jpg" alt=""></figure>
+<p>문구 예시:</p>
+<p>MODERN ROOTS LIFE</p>
+<p>또는 건강식품 스토어라면 아래처럼 작성할 수 있습니다.</p>
+<p>예시:</p>
+<ul class="bullets"><li>HEALTHY LIFE STARTS HERE</li><li>DAILY WELLNESS FOR YOU</li><li>NATURAL CARE FOR YOUR BODY</li><li>PREMIUM HEALTH PRODUCTS</li></ul><div class="step"><span class="step-badge">STEP 14</span><span class="step-title">Heading 디자인 설정</span></div>
+<p>Heading을 선택한 상태에서 오른쪽 설정 패널에서 Typography를
+조정합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image56.jpg" alt=""></figure>
+<p>추천 설정:</p>
+<ul class="bullets"><li>Font color: #FFFFFF</li><li>Font size: 50px</li><li>Font weight: Bold</li><li>Text alignment: Center</li></ul>
+<p>배경 이미지가 어두운 경우 흰색 글씨가 잘 보입니다.</p>
+<p>배경이 밝은 이미지라면 검정색 또는 진한 색상으로 변경해도 됩니다.</p>
+<div class="step"><span class="step-badge">STEP 15</span><span class="step-title">보조 문구 추가</span></div>
+<p>Heading 아래에 Text 요소를 추가하여 보조 문구를 입력합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image52.jpg" alt=""></figure>
+<p>보조 문구는 메인 문구를 보완해주는 짧은 설명입니다.</p>
+<p>너무 길게 작성하지 않고, 한 줄 또는 두 줄 정도로 작성하는 것이
+좋습니다.</p>
+<p>예시 문구:</p>
+<p>LAB TESTED PRODUCTS AND KNOWLEDGE YOU CAN TRUST, IN A WORLD YOU
+CAN’T.</p>
+<p>건강식품 스토어 예시:</p>
+<p>우리 몸에 필요한 다양한 건강 솔루션을 만나보세요.</p>
+<div class="step"><span class="step-badge">STEP 16</span><span class="step-title">보조 문구 디자인 설정</span></div>
+<p>Text 요소를 클릭한 뒤 오른쪽 설정에서 글자 크기와 색상을
+조정합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image147.jpg" alt=""></figure>
+<p>추천 설정:</p>
+<ul class="bullets"><li>Font size: 12px ~ 16px</li><li>Text color: #FFFFFF</li><li>Text alignment: Center</li><li>Line height: 1.4em</li></ul>
+<p>보조 문구는 메인 문구보다 작게 설정하는 것이 좋습니다.</p>
+<p>메인 문구보다 크면 배너의 중심이 흐려질 수 있습니다.</p>
+<div class="step"><span class="step-badge">STEP 17</span><span class="step-title">Button 추가</span></div>
+<p>왼쪽 Elements 메뉴에서 Button을 배너 안쪽 가운데 영역에
+추가합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image160.jpg" alt=""></figure>
+<p>버튼은 고객을 특정 페이지로 이동시키는 역할을 합니다.</p>
+<p>히어로 배너에서는 보통 전체 상품 페이지, 컬렉션 페이지, 이벤트 페이지
+등으로 연결합니다.</p>
+<div class="step"><span class="step-badge">STEP 18</span><span class="step-title">Button 문구 수정</span></div>
+<p>Button을 클릭한 뒤 버튼 문구를 수정합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image160.jpg" alt=""></figure>
+<p>예시 문구:</p>
+<p>SHOP ALL PRODUCTS</p>
+<p>또는 한국어 쇼핑몰에서는 아래처럼 작성할 수 있습니다.</p>
+<p>예시:</p>
+<ul class="bullets"><li>전체 상품 보기</li><li>지금 쇼핑하기</li><li>상품 보러가기</li><li>컬렉션 보기</li></ul><div class="step"><span class="step-badge">STEP 19</span><span class="step-title">Button 링크 연결</span></div>
+<p>Button을 선택한 상태에서 오른쪽 설정 패널의 Button link 항목에 이동할
+링크를 입력합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image158.jpg" alt=""></figure>
+<p>예시 링크:</p>
+<p>/collections/vitamin</p>
+<p>위 링크를 입력하면 버튼 클릭 시 Vitamin 컬렉션 페이지로
+이동합니다.</p>
+<p>링크 입력 시 주의사항:</p>
+<ul class="bullets"><li>내부 컬렉션 이동은 /collections/컬렉션핸들
+형식으로 입력</li><li>새 창으로 열 필요가 없으면 Open link in new tab은
+꺼두기</li><li>링크 입력 후 미리보기에서 실제 이동이 되는지
+확인하기</li></ul><div class="step"><span class="step-badge">STEP 20</span><span class="step-title">Button 디자인 설정</span></div>
+<p>Button을 선택한 상태에서 오른쪽 Color 설정을 수정합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image189.jpg" alt=""></figure>
+<p>추천 설정:</p>
+<ul class="bullets"><li>Text color: #FFFFFF</li><li>Button color: #000000</li><li>Font size: 16px</li><li>Text alignment: Center</li></ul>
+<p>강조가 필요한 경우 버튼 색상을 빨간색 계열로 변경할 수 있습니다.</p>
+<p>예시:</p>
+<ul class="bullets"><li>Button color: #FF2424</li><li>Text color: #FFFFFF</li></ul>
+<p>단, 배너 이미지와 어울리는 색상을 선택해야 합니다.</p>
+<p>너무 튀는 색상은 전체 디자인을 어색하게 만들 수 있습니다.</p>
+<div class="step"><span class="step-badge">STEP 21</span><span class="step-title">버튼 링크 정상 연결 확인</span></div>
+<p>미리보기 화면에서 상단 메뉴 또는 버튼을 클릭하여 링크가 정상적으로
+연결되는지 확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image172.jpg" alt=""></figure>
+<p>버튼을 클릭했을 때 지정한 컬렉션 페이지로 이동하면 정상입니다.</p>
+<p>이동이 되지 않는 경우 Button link에 입력한 주소를 다시
+확인합니다.</p>
+<div class="step"><span class="step-badge">STEP 22</span><span class="step-title">저장하기</span></div>
+<p>작업이 끝나면 오른쪽 상단의 Save 버튼을 클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image161.jpg" alt=""></figure>
+<p>저장이 완료되면 Page saved successfully 또는 Published 문구가
+표시됩니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image142.jpg" alt=""></figure>
+<p>저장하지 않으면 작업한 내용이 반영되지 않을 수 있으므로, 수정 후에는
+반드시 저장합니다.</p>
+<div class="step"><span class="step-badge">STEP 23</span><span class="step-title">미리보기 확인</span></div>
+<p>Preview 버튼을 클릭하여 실제 고객이 보는 화면을 확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image153.jpg" alt=""></figure>
+<p>확인할 내용:</p>
+<ul class="bullets"><li>배너 이미지가 정상적으로 보이는지</li><li>문구가 배경과 겹쳐서 안 보이지 않는지</li><li>버튼이 중앙에 잘 배치되어 있는지</li><li>버튼 클릭 시 원하는 페이지로 이동하는지</li><li>PC 화면에서 디자인이 어색하지 않은지</li></ul><div class="step"><span class="step-badge">STEP 24</span><span class="step-title">모바일 화면 확인</span></div>
+<p>상단의 모바일 아이콘을 클릭하여 모바일 화면에서도 확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image125.jpg" alt=""></figure>
+<p>모바일에서는 PC보다 화면 폭이 좁기 때문에 문구가 줄바꿈되거나 버튼이
+아래로 내려갈 수 있습니다.</p>
+<p>모바일 화면에서 문구가 너무 크다면 Font size를 줄여줍니다.</p>
+<p>모바일 확인 시 체크할 부분:</p>
+<ul class="bullets"><li>배너 이미지가 잘리지 않는지</li><li>문구가 화면 밖으로 나가지 않는지</li><li>버튼이 정상적으로 보이는지</li><li>화면 스크롤 시 어색하지 않은지</li></ul><div class="step"><span class="step-badge">STEP 25</span><span class="step-title">최종 화면 확인</span></div>
+<p>스토어 미리보기 또는 실제 페이지에서 최종 화면을 확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image131.jpg" alt=""></figure>
+<p>정상적으로 적용되면 상단에 배너 이미지, 메인 문구, 보조 문구, 버튼이
+함께 노출됩니다.</p>
+<p>완성 예시 구성:</p>
+<ul class="bullets"><li>배경 이미지: 도시 야경 또는 브랜드 분위기
+이미지</li><li>메인 문구: MODERN ROOTS LIFE</li><li>보조 문구: LAB TESTED PRODUCTS AND KNOWLEDGE YOU
+CAN TRUST</li><li>버튼 문구: SHOP ALL PRODUCTS</li><li>버튼 링크: /collections/vitamin</li></ul><div class="step"><span class="step-badge">STEP 26</span><span class="step-title">ChatGPT로 배너 문구 만들기</span></div>
+<p>히어로 배너에 들어갈 문구가 고민될 경우 ChatGPT를 활용할 수
+있습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image124.jpg" alt=""></figure>
+<p>예시 입력문:</p>
+<p>나는 쇼핑몰을 운영하고 있어요.</p>
+<p>건강식품 쇼핑몰에 어울리는 히어로 배너 문구를 만들어줘.</p>
+<p>고객이 신뢰감을 느낄 수 있고, 건강하고 깔끔한 느낌이 나도록 해줘.</p>
+<div class="step"><span class="step-badge">STEP 27</span><span class="step-title">ChatGPT로 배너 콘셉트 잡기</span></div>
+<p>배너 이미지나 문구의 방향성이 정해지지 않았다면 아래처럼 요청할 수
+있습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image121.jpg" alt=""></figure>
+<p>예시 입력문:</p>
+<p>나는 쇼핑몰의 유입률을 올리고 싶어.</p>
+<p>건강식품 쇼핑몰에 어울리는 홈 화면 히어로 배너 콘셉트 5가지를
+추천해줘.</p>
+<p>각 콘셉트마다 메인 문구, 보조 문구, 버튼 문구까지 같이 알려줘.</p>
+<div class="step"><span class="step-badge">STEP 28</span><span class="step-title">ChatGPT로 이미지 방향 요청하기</span></div>
+<p>배너에 사용할 이미지가 필요할 경우, 원하는 이미지 분위기를 구체적으로
+작성합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image146.jpg" alt=""></figure>
+<p>예시 입력문:</p>
+<p>건강식품 쇼핑몰 히어로 배너에 사용할 이미지를 만들고 싶어.</p>
+<p>자연스럽고 깨끗한 분위기, 건강한 느낌, 신뢰감 있는 톤으로 배경 이미지
+콘셉트를 추천해줘.</p>
+<div class="step"><span class="step-badge">STEP 29</span><span class="step-title">이미지 소싱 사이트 활용</span></div>
+<p>직접 이미지를 찾을 경우 무료 이미지 사이트를 활용할 수 있습니다.</p>
+<p>이미지 검색 시 추천 키워드:</p>
+<ul class="bullets"><li>wellness</li><li>health product</li><li>natural supplement</li><li>vitamin</li><li>healthy lifestyle</li><li>skincare nature</li><li>organic product</li><li>clean background</li></ul>
+<p>이미지는 쇼핑몰 제품군과 분위기가 맞아야 합니다.</p>
+<p>너무 복잡한 이미지는 문구가 잘 보이지 않을 수 있으므로, 배경이 깔끔한
+이미지를 선택하는 것이 좋습니다.</p>
+<div class="step"><span class="step-badge">STEP 30</span><span class="step-title">최종 체크리스트</span></div>
+<p>히어로 배너 제작 후 아래 항목을 최종 확인합니다.</p>
+<ul class="bullets"><li>배너 이미지가 정상적으로 들어갔는가?</li><li>이미지 위치가 어색하지 않은가?</li><li>메인 문구가 잘 보이는가?</li><li>보조 문구가 너무 길지 않은가?</li><li>버튼 문구가 명확한가?</li><li>버튼 링크가 정상적으로 연결되는가?</li><li>PC 화면에서 자연스럽게 보이는가?</li><li>모바일 화면에서도 깨지지 않는가?</li><li>저장 및 게시가 완료되었는가?</li></ul><div class="step"><span class="step-badge">STEP 31</span><span class="step-title">자주 발생하는 문제</span></div>
+<h3 class="subhead">1) 배너 이미지가 이상한 위치로 잘려 보이는 경우</h3>
+<p>Vertical 값을 조정합니다.</p>
+<p>이미지의 중요한 부분이 위나 아래로 잘려 보이면 Vertical 값을 조금씩
+변경하며 확인합니다.</p>
+<h3 class="subhead">2) 문구가 배경 때문에 잘 안 보이는 경우</h3>
+<p>문구 색상을 흰색 또는 검정색으로 변경합니다.</p>
+<p>배경이 복잡하다면 어두운 오버레이가 있는 이미지를 사용하거나, 문구가
+들어갈 부분이 비어 있는 이미지를 선택합니다.</p>
+<h3 class="subhead">3) 버튼이 너무 작게 보이는 경우</h3>
+<p>Button의 Font size와 Padding 값을 조정합니다.</p>
+<p>버튼은 고객이 클릭할 수 있어야 하므로 너무 작게 만들지 않는 것이
+좋습니다.</p>
+<h3 class="subhead">4) 모바일에서 문구가 깨지는 경우</h3>
+<p>모바일 화면에서 Font size를 줄이고, 문구를 짧게 수정합니다.</p>
+<p>히어로 배너 문구는 PC보다 모바일에서 더 짧고 간결해야 합니다.</p>
+<h3 class="subhead">5) 버튼 클릭이 안 되는 경우</h3>
+<p>Button link가 정상적으로 입력되어 있는지 확인합니다.</p>
+<p>예를 들어 Vitamin 컬렉션으로 이동하려면 아래처럼 입력합니다.</p>
+<p>/collections/vitamin</p>
+<div class="step"><span class="step-badge">STEP 32</span><span class="step-title">마무리</span></div>
+<p>히어로 배너는 쇼핑몰 첫인상을 결정하는 중요한 영역입니다.</p>
+<p>배경 이미지, 문구, 버튼이 자연스럽게 어우러져야 고객이 스토어를
+신뢰하고 상품 페이지로 이동할 가능성이 높아집니다.</p>
+<p>작업 후에는 반드시 PC 화면과 모바일 화면을 모두 확인하고, 버튼
+링크까지 테스트한 뒤 최종 저장합니다.</p>
+<div class="callout quiz"><div class="callout-label">✓ 확인 문제</div><ol class="quiz-list"><li>히어로 배너는 어떤 도구(앱)로 제작하나요?</li><li>배경 이미지를 넣은 뒤 조정하는 항목 두 가지는
+무엇인가요?</li><li>배너 안에 문구를 넣으려면 어떤 요소들을
+추가하나요?</li></ol></div>
+</section>
+<section class="doc-section" id="category">
+<div class="sec-head"><span class="sec-num">11</span><h2 class="sec-title">카테고리 바로가기</h2></div>
+<p>최종 업데이트 시간: 2026년 7월 6일 오후 12:59</p>
+<p>본 매뉴얼은 Shopify 관리자 화면과 테마 편집기, PageFly를 활용하여
+쇼핑몰 메인 또는 별도 페이지에 카테고리 바로가기 영역을 구성하는 방법을
+안내합니다.</p>
+<p>카테고리 바로가기는 고객이 원하는 상품군으로 빠르게 이동할 수 있도록
+도와주는 메뉴형 콘텐츠입니다.</p>
+<p>이번 예시에서는 `Vitamin`, `Vitamin B`, `Vitamin C`, `Gut Health`
+등의 카테고리를 이미지 카드 또는 버튼 형태로 구성하고, 각 카테고리
+페이지 또는 상품 리스트 페이지로 연결하는 방식으로 진행합니다.</p>
+<div class="step"><span class="step-badge">STEP 1</span><span class="step-title">작업 전 상품 및 컬렉션 확인</span></div>
+<p>카테고리 바로가기를 만들기 전, 연결할 상품과 컬렉션이 먼저 준비되어
+있어야 합니다.</p>
+<p>Shopify 관리자 화면에서 제품 > 컬렉션 또는 제품 목록 으로 이동하여 상품이 정상적으로 등록되어
+있는지 확인합니다.</p>
+<p>상품 상태가 활성 으로 되어 있어야 하며, 각 상품은
+연결할 컬렉션에 포함되어 있어야 합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image157.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 2</span><span class="step-title">카테고리 바로가기용 페이지 생성</span></div>
+<h3 class="subhead">2-1. 페이지 추가 화면 확인</h3>
+<p>Shopify 관리자 화면에서 온라인 스토어 > 페이지 로
+이동합니다.</p>
+<p>페이지가 없는 경우 페이지 추가 버튼을 클릭하여 새
+페이지를 생성합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image152.jpg" alt=""></figure>
+<h3 class="subhead">2-2. 페이지 제목 입력</h3>
+<p>페이지 제목에는 예시처럼 `Vitamin Collections List`를 입력합니다.</p>
+<p>해당 페이지는 고객이 카테고리 목록을 확인하고 원하는 컬렉션으로
+이동할 수 있는 카테고리 바로가기 페이지로 사용됩니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image110.jpg" alt=""></figure>
+<h3 class="subhead">2-3. 공개 상태 확인</h3>
+<p>오른쪽의 공개 상태 가 공개 로
+설정되어 있는지 확인합니다.</p>
+<p>숨김 상태로 되어 있으면 고객이 해당 페이지를 볼 수 없으므로 반드시
+공개 상태로 설정해야 합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image116.jpg" alt=""></figure>
+<h3 class="subhead">2-4. 템플릿 확인</h3>
+<p>처음 페이지를 생성할 때는 템플릿이 기본 페이지 로
+설정되어 있어도 괜찮습니다.</p>
+<p>이후 테마 편집기에서 별도 템플릿을 생성한 뒤 해당 페이지에 다시
+연결합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image117.jpg" alt=""></figure>
+<h3 class="subhead">2-5. 검색 엔진 목록 확인</h3>
+<p>페이지 하단의 검색 엔진 목록 에서는 고객에게 노출될
+페이지 제목, 설명, URL 정보를 확인할 수 있습니다.</p>
+<p>필요한 경우 검색 엔진 목록을 수정하여 페이지가 더 깔끔하게 보이도록
+설정합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image127.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 3</span><span class="step-title">테마 편집기에서 카테고리 바로가기 템플릿</span></div>
+<h3 class="subhead">3-1. 테마 사용자 지정 클릭</h3>
+<p>온라인 스토어 > 테마 로 이동한 뒤, 현재 사용 중인
+테마의 사용자 지정 버튼을 클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image197.jpg" alt=""></figure>
+<h3 class="subhead">3-2. 새 템플릿 이름 입력</h3>
+<p>상단의 페이지 또는 템플릿 선택 영역에서 새 템플릿을 생성합니다.</p>
+<p>템플릿 이름은 예시처럼 `Vitamin Collection` 또는
+`vitamin-collections-list`처럼 구분하기 쉬운 이름으로 입력합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image200.jpg" alt=""></figure>
+<h3 class="subhead">3-3. 템플릿 생성 클릭</h3>
+<p>기준은 기본 페이지 로 설정한 뒤 템플릿
+생성 버튼을 클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image199.jpg" alt=""></figure>
+<h3 class="subhead">3-4. 새 템플릿 화면 확인</h3>
+<p>템플릿이 생성되면 기본 페이지 형태의 화면이 표시됩니다.</p>
+<p>이제 해당 템플릿 안에 카테고리 바로가기 영역을 구성합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image201.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 4</span><span class="step-title">컬렉션 목록 섹션 추가</span></div>
+<h3 class="subhead">4-1. 섹션 추가 클릭</h3>
+<p>왼쪽 메뉴에서 섹션 추가 를 클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image223.jpg" alt=""></figure>
+<h3 class="subhead">4-2. 컬렉션 목록 초기 상태 확인</h3>
+<p>컬렉션 목록 섹션을 추가하면 기본 컬렉션 카드 영역이 생성됩니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image215.jpg" alt=""></figure>
+<h3 class="subhead">4-3. 상단 컬렉션 카드 반영 확인</h3>
+<p>첫 번째 컬렉션 목록에는 대표 카테고리를 연결합니다.</p>
+<p>예시 기준으로 `Vitamin`, `Vitamin B`, `Vitamin C` 컬렉션을
+넣습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image239.jpg" alt=""></figure>
+<h3 class="subhead">4-4. 컬렉션 목록 설정값 확인</h3>
+<p>오른쪽 설정 영역에서 제목, 이미지 비율, 열 개수, 색상 배경, 패딩 등을
+확인합니다.</p>
+<p>PC 기준으로는 3열 또는 4열 구성이 보기 좋고, 모바일에서는 1열 또는
+2열로 정상 표시되는지 확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image248.jpg" alt=""></figure>
+<h3 class="subhead">4-5. 추가 컬렉션 목록 섹션 확인</h3>
+<p>필요한 경우 아래에 컬렉션 목록 섹션을 한 번 더 추가합니다.</p>
+<p>예시처럼 `장 건강`, `신제품` 등 별도 카테고리 묶음을 추가할 수
+있습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image238.jpg" alt=""></figure>
+<h3 class="subhead">4-6. 장 건강 컬렉션 추가 확인</h3>
+<p>추가한 컬렉션이 페이지 하단에 정상적으로 노출되는지 확인합니다.</p>
+<p>예시에서는 `Probiotics`, `New Products`와 같은 하위 카테고리를
+추가했습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image250.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 5</span><span class="step-title">페이지와 템플릿 연결</span></div>
+<h3 class="subhead">5-1. 생성된 페이지 확인</h3>
+<p>다시 온라인 스토어 > 페이지 로 이동하여 `Vitamin
+Collections List` 페이지가 생성되어 있는지 확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image232.jpg" alt=""></figure>
+<h3 class="subhead">5-2. 페이지 템플릿 연결 확인</h3>
+<p>페이지 수정 화면에서 오른쪽 템플릿 항목을 확인합니다.</p>
+<p>방금 만든 카테고리 바로가기 템플릿을 선택하여 페이지와
+연결합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image231.jpg" alt=""></figure>
+<h3 class="subhead">5-3. 컬렉션 목록 미리보기 확인</h3>
+<p>미리보기 화면에서 컬렉션 카드가 정상적으로 노출되는지 확인합니다.</p>
+<p>이미지와 컬렉션 이름이 올바르게 보이는지 확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image242.jpg" alt=""></figure>
+<h3 class="subhead">5-4. 테마 편집기 최종 확인</h3>
+<p>테마 편집기에서도 카테고리 카드와 오른쪽 설정값이 정상적으로 반영되어
+있는지 확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image228.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 6</span><span class="step-title">PageFly로 카테고리 바로가기 영역 구성</span></div>
+<p>기본 Shopify 컬렉션 목록만으로 디자인이 부족한 경우 PageFly를
+사용하여 이미지형 카테고리 바로가기 영역을 직접 구성할 수 있습니다.</p>
+<h3 class="subhead">6-1. Add Row 클릭</h3>
+<p>PageFly 편집 화면에서 원하는 위치에 Add row 를
+클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image241.jpg" alt=""></figure>
+<h3 class="subhead">6-2. 4열 Row 확인</h3>
+<p>카테고리 4개를 한 줄로 보여주기 위해 4열 Row 구조를 만듭니다.</p>
+<p>각 열에는 이미지, 텍스트, 버튼을 넣을 수 있습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image226.jpg" alt=""></figure>
+<h3 class="subhead">6-3. 이미지 삽입 확인</h3>
+<p>각 열에 이미지 요소를 추가한 뒤 카테고리에 맞는 이미지를
+넣습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image188.jpg" alt=""></figure>
+<h3 class="subhead">6-4. 이미지 선택 확인</h3>
+<p>잘못된 이미지가 들어갔거나 이미지를 변경해야 하는 경우, 해당 이미지
+영역을 클릭한 뒤 오른쪽 설정에서 다시 선택합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image171.jpg" alt=""></figure>
+<h3 class="subhead">6-5. Heading 추가</h3>
+<p>카테고리 영역 위에 제목이 필요하다면 왼쪽 요소 메뉴에서 Heading 을 추가합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image175.jpg" alt=""></figure>
+<h3 class="subhead">6-6. 텍스트 입력</h3>
+<p>각 이미지 아래에는 `바로가기`, `Vitamin`, `Gut Health` 등 사용자가
+이해하기 쉬운 문구를 입력합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image186.jpg" alt=""></figure>
+<h3 class="subhead">6-7. Button 추가</h3>
+<p>클릭 유도를 더 명확하게 하고 싶다면 왼쪽 요소 메뉴에서 Button 을 추가합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image180.jpg" alt=""></figure>
+<h3 class="subhead">6-8. 버튼 문구 입력</h3>
+<p>버튼 문구는 `바로가기`, `컬렉션 보기`, `상품 보기`처럼 목적에 맞게
+수정합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image195.jpg" alt=""></figure>
+<h3 class="subhead">6-9. 버튼 배치 확인</h3>
+<p>각 카테고리 이미지 아래에 버튼이 일정한 간격으로 배치되었는지
+확인합니다.</p>
+<p>버튼 위치가 어긋나 있으면 Row 또는 Column 간격을 조정합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image168.jpg" alt=""></figure>
+<h3 class="subhead">6-10. 버튼 링크 연결 후 저장</h3>
+<p>오른쪽 설정의 Button link 영역에 연결할 URL을
+입력합니다.</p>
+<p>예시 링크는 아래와 같이 사용할 수 있습니다.</p>
+<p>`/collections/vitamin`</p>
+<p>`/collections/vitamin-b`</p>
+<p>`/collections/vitamin-c`</p>
+<p>`/collections/gut-health`</p>
+<p>`/pages/vitamin-products-list`</p>
+<p>링크 연결이 끝나면 오른쪽 상단 Save 를
+클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image194.jpg" alt=""></figure>
+<h3 class="subhead">6-11. PageFly 카테고리 바로가기 최종 확인</h3>
+<p>카테고리 이미지와 버튼이 한 줄로 정상 노출되는지 확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image178.jpg" alt=""></figure>
+<h3 class="subhead">6-12. 공개 페이지 바로가기 확인</h3>
+<p>실제 공개 페이지에서 이미지와 버튼이 정상적으로 보이는지
+확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image169.jpg" alt=""></figure>
+<h3 class="subhead">6-13. 저장 성공 확인</h3>
+<p>저장 후 `Page saved successfully` 메시지가 뜨는지 확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image210.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 7</span><span class="step-title">상품 리스트 페이지 연결</span></div>
+<p>카테고리 바로가기 버튼을 클릭했을 때 이동할 상품 리스트 페이지도 함께
+구성합니다.</p>
+<h3 class="subhead">7-1. 제품 리스트 페이지 편집 화면 확인</h3>
+<p>`Vitamin Products List`와 같이 상품 목록용 페이지를 생성합니다.</p>
+<p>페이지 제목과 공개 상태를 확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image214.jpg" alt=""></figure>
+<h3 class="subhead">7-2. Vitamin Products 템플릿 생성</h3>
+<p>테마 편집기 또는 PageFly에서 `Vitamin Products List`용 템플릿을
+생성합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image218.jpg" alt=""></figure>
+<h3 class="subhead">7-3. 제품 리스트 블록 삽입 확인</h3>
+<p>상품 목록 또는 컬렉션 상품 리스트 블록을 삽입합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image193.jpg" alt=""></figure>
+<h3 class="subhead">7-4. 컬렉션 선택 확인</h3>
+<p>오른쪽 설정에서 상품을 불러올 컬렉션을 선택합니다.</p>
+<p>예시에서는 `Vitamin` 컬렉션을 선택합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image202.jpg" alt=""></figure>
+<h3 class="subhead">7-5. 제품 개수와 카드 레이아웃 확인</h3>
+<p>상품 개수는 예시처럼 12개로 설정하고, PC 기준 한 줄에 4개가 보이도록
+카드 레이아웃을 설정합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image207.jpg" alt=""></figure>
+<h3 class="subhead">7-6. 모바일 화면 확인</h3>
+<p>상단의 모바일 아이콘을 클릭하여 모바일 화면에서도 상품 카드가
+정상적으로 보이는지 확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image196.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 8</span><span class="step-title">최종 확인</span></div>
+<h3 class="subhead">8-1. 최종 카테고리 카드 확인</h3>
+<p>상단 메뉴 또는 바로가기 버튼을 클릭했을 때 `Vitamin Collections List`
+페이지가 정상적으로 열리는지 확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image190.jpg" alt=""></figure>
+<h3 class="subhead">8-2. 최종 상품 리스트 페이지 확인</h3>
+<p>카테고리 또는 버튼 클릭 후 상품 리스트 페이지로 정상 이동되는지
+확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image192.jpg" alt=""></figure>
+<h3 class="subhead">8-3. 장 건강 컬렉션 페이지 확인</h3>
+<p>`Gut Health`처럼 세부 컬렉션으로 이동했을 때 해당 컬렉션 상품만
+정상적으로 노출되는지 확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image213.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 9</span><span class="step-title">최종 체크리스트</span></div>
+<p>작업 완료 후 아래 항목을 마지막으로 확인합니다.</p>
+<ul class="bullets"><li>상품이 활성화되어 있는지 확인합니다.</li><li>상품이 연결할 컬렉션에 정상 포함되어 있는지
+확인합니다.</li><li>카테고리 바로가기 페이지가 공개 상태인지
+확인합니다.</li><li>페이지에 올바른 템플릿이 연결되어 있는지
+확인합니다.</li><li>컬렉션 카드 이미지와 제목이 정확하게 보이는지
+확인합니다.</li><li>버튼 또는 이미지 클릭 시 올바른 컬렉션 또는
+페이지로 이동되는지 확인합니다.</li><li>PC 화면과 모바일 화면을 모두 확인합니다.</li><li>저장 또는 게시 완료 메시지가 뜨는지
+확인합니다.</li></ul>
+<div class="callout quiz"><div class="callout-label">✓ 확인 문제</div><ol class="quiz-list"><li>카테고리 바로가기를 만들기 전에 먼저 확인해야
+하는 것은 무엇인가요?</li><li>바로가기용 ‘페이지’와 ‘템플릿’은 각각 어디서
+만드나요?</li><li>컬렉션 목록을 보여주려면 어떤 섹션을
+추가하나요?</li></ol></div>
+</section>
+<section class="doc-section" id="featured">
+<div class="sec-head"><span class="sec-num">12</span><h2 class="sec-title">추천 상품</h2></div>
+<p>최종 업데이트 시간: 2026년 7월 1일 오후 4:44</p>
+<p>> 본 매뉴얼은 상품 상세 페이지 또는 홈 페이지 하단에 노출되는 추천상품 / Other Products / New Products 영역을
+수정하는 방법입니다.</p>
+<p>></p>
+<p>></p>
+<p>> 화면에 따라 PageFly, Pagetify, EComposer, Sparkle, Shopify 기본
+편집기처럼 이름이 다르게 보일 수 있지만, 수정 기준은 동일합니다.</p>
+<p>></p>
+<div class="step"><span class="step-badge">STEP 1</span><span class="step-title">컬렉션 목록에서 New Products 선택하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image141.jpg" alt=""></figure>
+<p>Shopify 관리자 화면에서 제품 > 컬렉션 으로 이동한
+뒤, 추천상품 영역에 연결할 New Products 컬렉션을
+선택합니다. 상품 수가 표시되는 컬렉션을 기준으로 선택해야 페이지에서
+상품이 정상적으로 불러와집니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>컬렉션명이 비슷하게 여러 개 있을 경우 상품 수가
+있는 항목을 우선 확인합니다.</li><li>이미지처럼 선택 영역을 클릭해 컬렉션 상세 화면으로
+들어갑니다.</li></ul><div class="step"><span class="step-badge">STEP 2</span><span class="step-title">PageFly 상품 페이지 템플릿 열기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image132.jpg" alt=""></figure>
+<p>PageFly Dashboard에서 Product Pages 메뉴를 열고
+작업할 상품 페이지 템플릿을 클릭합니다. 예시 화면에서는 `test` 템플릿을
+선택합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>수정하려는 페이지가 Saved 상태인지 확인합니다.</li><li>다른 템플릿을 수정하면 실제 상품 상세 화면에
+반영되지 않을 수 있습니다.</li></ul><div class="step"><span class="step-badge">STEP 3</span><span class="step-title">New Products 영역 최종 위치 확인하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image130.jpg" alt=""></figure>
+<p>상품 페이지 안에서 New Products 섹션이 어디에
+배치되어 있는지 먼저 확인합니다. 상단 배너 아래에 제목, 상품 이미지,
+상품명, 가격, Add to cart 버튼이 한 줄로 정렬되어 있어야 합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>이미지 기준으로 빨간 박스 안이 추천상품
+섹션입니다.</li><li>상품 카드가 4개씩 한 줄로 보이면 기본 구조는
+정상입니다.</li></ul><div class="step"><span class="step-badge">STEP 4</span><span class="step-title">New Products 컬렉션 설정 패널 열기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image138.jpg" alt=""></figure>
+<p>New Products 영역 또는 Collection 요소를 선택한 뒤, 오른쪽 설정
+패널에서 컬렉션 관련 옵션을 확인합니다. 여기서 상품 개수, 한 줄 노출
+개수, 간격을 수정합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>오른쪽 패널이 Collection으로 표시되어야
+합니다.</li><li>다른 요소가 선택되어 있으면 상품 개수 옵션이
+보이지 않습니다.</li></ul><div class="step"><span class="step-badge">STEP 5</span><span class="step-title">상품 개수와 컬럼 간격 조정하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image105.jpg" alt=""></figure>
+<p>Collection 설정에서 Product number , Columns
+per row , Column gap 값을 조정합니다. 이미지
+기준으로 상품을 더 많이 보여줄 때는 Product number를 7로 늘리고, 한 줄은
+4개 기준으로 맞춥니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>권장값: Product number 4~7</li><li>권장값: Columns per row 4</li><li>권장값: Column gap 12~50px</li><li>너무 넓어 보이면 Column gap을 줄이고, 답답해
+보이면 늘립니다.</li></ul><div class="step"><span class="step-badge">STEP 6</span><span class="step-title">Other Products 제목 수정하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image120.jpg" alt=""></figure>
+<p>추천상품 영역 제목을 클릭해 Other Products. 문구를
+수정합니다. 제목은 섹션을 구분하는 역할이므로 상품 카드보다 더 크고
+진하게 보이도록 설정합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>권장 크기: 30px 이상</li><li>권장 두께: Semi Bold 또는 Bold</li><li>정렬: 왼쪽 또는 가운데 중 페이지 디자인에 맞춰
+선택</li></ul><div class="step"><span class="step-badge">STEP 7</span><span class="step-title">추천상품 버튼 요소 선택하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image128.jpg" alt=""></figure>
+<p>상품 카드 하단의 Add to cart 버튼을 클릭합니다.
+버튼을 선택하면 아래쪽 또는 오른쪽 패널에 Cart button 설정이
+표시됩니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>버튼 전체 박스가 선택되어야 합니다.</li><li>텍스트만 선택되면 버튼 색상이나 여백 설정이 나오지
+않을 수 있습니다.</li></ul><div class="step"><span class="step-badge">STEP 8</span><span class="step-title">추천상품 카드 전체 영역 선택하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image112.jpg" alt=""></figure>
+<p>상품 이미지부터 상품명, 가격, 버튼까지 포함된 상품 카드 영역을
+선택합니다. 카드 전체를 잡아야 상품 간격과 정렬을 한 번에 확인할 수
+있습니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>첫 번째 상품 카드 기준으로 선택 후 전체 카드에
+동일하게 적용되는지 확인합니다.</li><li>카드별 이미지 크기가 다르면 전체 레이아웃이 흔들릴
+수 있습니다.</li></ul><div class="step"><span class="step-badge">STEP 9</span><span class="step-title">Add to cart 버튼 옵션 수정하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image100.jpg" alt=""></figure>
+<p>오른쪽 설정 패널에서 버튼 문구와 상태 문구를 수정합니다. Button
+text는 `Add to cart` 또는 한국어 페이지라면 `장바구니에 추가`로
+설정합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>Sold out text: Sold out 또는 품절</li><li>Adding text: Adding... 또는 담는 중...</li><li>Added text: Thank you! 또는 장바구니에 추가됨</li><li>Redirect to는 필요 없으면 None으로 둡니다.</li></ul><div class="step"><span class="step-badge">STEP 10</span><span class="step-title">버튼 색상 검정으로 맞추기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image133.jpg" alt=""></figure>
+<p>Cart button의 색상 설정에서 버튼 배경을 검정으로 맞춥니다. 이미지
+기준으로 Button color는 #000000 , 텍스트는 흰색 계열로
+설정하면 전체 페이지와 가장 깔끔하게 어울립니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>Button color: #000000</li><li>Text color: #FFFFFF</li><li>강조 버튼은 검정 배경 + 흰 글씨 조합을 기본으로
+사용합니다.</li></ul><div class="step"><span class="step-badge">STEP 11</span><span class="step-title">Other Products 재고 문구 선택하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image167.jpg" alt=""></figure>
+<p>상품 카드 안의 재고 카운트다운 문구 영역을 선택합니다. 예시
+화면에서는 `HURRY! ONLY 30 LEFT`처럼 구매 긴급감을 주는 문구가
+표시됩니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>재고 문구가 너무 튀면 상품명보다 시선이 먼저 갈 수
+있으니 크기는 작게 유지합니다.</li><li>빨간 라벨은 포인트용으로만 사용합니다.</li></ul><div class="step"><span class="step-badge">STEP 12</span><span class="step-title">재고 수량 0 상태 확인하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image155.jpg" alt=""></figure>
+<p>Stock countdown 설정에서 수량을 0으로 입력하면 품절 상태 문구가
+표시될 수 있습니다. 품절 표시가 필요한 경우에는 0으로 테스트해 화면을
+확인합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>Stock quantity: 0</li><li>품절 표시 문구가 자연스럽게 보이는지
+확인합니다.</li><li>실제 판매용 페이지에서는 상품 상태에 맞게 수량을
+설정합니다.</li></ul><div class="step"><span class="step-badge">STEP 13</span><span class="step-title">컬렉션 상품 개수와 간격 재확인하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image164.jpg" alt=""></figure>
+<p>Collection 설정에서 추천상품의 노출 개수와 카드 간격을 다시
+확인합니다. 기본 추천상품 영역은 한 줄 4개가 가장 안정적으로
+보입니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>Product number: 4</li><li>Columns per row: 4</li><li>Column gap: 12px</li><li>상품이 너무 붙어 보이면 20~30px까지
+조정합니다.</li></ul><div class="step"><span class="step-badge">STEP 14</span><span class="step-title">상품명 제목 요소 선택하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image159.jpg" alt=""></figure>
+<p>상품 카드의 제목 텍스트를 선택합니다. 긴 상품명은 두 줄까지만
+보이도록 설정해야 카드 높이가 일정하게 유지됩니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>선택 요소가 (P) Title 또는 Title로 표시되는지
+확인합니다.</li><li>상품명은 왼쪽 정렬 또는 가운데 정렬 중 디자인에
+맞게 선택합니다.</li></ul><div class="step"><span class="step-badge">STEP 15</span><span class="step-title">상품명 글자 크기 조정하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image165.jpg" alt=""></figure>
+<p>상품명은 너무 크면 카드가 복잡해 보이고, 너무 작으면 가독성이
+떨어집니다. 이미지처럼 제목이 강조되어 보이는 경우 16~18px 사이로
+조정합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>권장 크기: 16px</li><li>Line height: 1.5</li><li>Letter spacing: 0~1px</li><li>Line clamp: 2줄</li></ul><div class="step"><span class="step-badge">STEP 16</span><span class="step-title">장바구니 버튼 여백 수정하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image140.jpg" alt=""></figure>
+<p>버튼이 상품 카드 안에서 너무 붙어 있거나 떠 보이지 않도록 여백을
+조정합니다. 버튼 상단에는 상품 가격과 분리되는 정도의 여백을 줍니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>Padding: 상하 12px, 좌우 24px 기준</li><li>Margin top: 10px 기준</li><li>버튼이 카드 너비를 넘지 않도록 확인합니다.</li></ul><div class="step"><span class="step-badge">STEP 17</span><span class="step-title">컬렉션 레이아웃 세부값 수정하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image151.jpg" alt=""></figure>
+<p>Collection 요소를 선택한 뒤 오른쪽 Options에서 상품 개수와 컬럼 수를
+맞춥니다. 데스크톱 기준 4개가 가장 안정적입니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>Product number: 4</li><li>Columns per row: 4</li><li>Column gap: 12px</li><li>태블릿/모바일 화면은 필요 시 2개 또는 1개로
+줄입니다.</li></ul><div class="step"><span class="step-badge">STEP 18</span><span class="step-title">상품명 타이포그래피 선택하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image145.jpg" alt=""></figure>
+<p>상품명 텍스트의 Font, Font size, Line height를 확인합니다. 이미지처럼
+상품명이 길게 보이는 경우 줄 수 제한을 걸어 카드 높이를 맞춥니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>Font: 기본값 또는 페이지 전체 폰트와 동일</li><li>Font size: 16px 권장</li><li>Line height: 1.5</li><li>Line clamp: 2</li></ul><div class="step"><span class="step-badge">STEP 19</span><span class="step-title">상품명 글자 크기 최종 수정하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image139.jpg" alt=""></figure>
+<p>상품명이 한 줄에 너무 길게 보이면 글자 크기를 줄이고 Line clamp를 2로
+설정합니다. 카드 간 높이 차이가 줄어들어 상품 리스트가 깔끔해집니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>Font size: 16px</li><li>Letter spacing: 1px 이하</li><li>Word spacing: 0</li><li>상품명이 잘려도 핵심 키워드가 보이는지
+확인합니다.</li></ul><div class="step"><span class="step-badge">STEP 20</span><span class="step-title">장바구니 버튼 간격 다시 맞추기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image136.jpg" alt=""></figure>
+<p>상품 카드 하단 버튼의 간격과 정렬을 다시 확인합니다. 버튼들이 한 줄에
+비슷한 위치로 정렬되어야 완성도가 높아 보입니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>버튼 정렬: Center 권장</li><li>버튼 너비: 내용 맞춤 또는 동일 너비</li><li>상품 가격과 버튼 사이 간격을 일정하게
+맞춥니다.</li></ul><div class="step"><span class="step-badge">STEP 21</span><span class="step-title">추천상품 영역 전체 선택하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image82.jpg" alt=""></figure>
+<p>추천상품 섹션 전체를 선택해 상단 제목부터 상품 카드, 버튼까지 한 번에
+확인합니다. 이 단계는 최종 레이아웃 검수용입니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>빨간 박스 안에 제목과 상품 카드가 모두 포함되어
+있는지 확인합니다.</li><li>섹션이 다른 영역과 너무 붙어 있으면 위아래 여백을
+추가합니다.</li></ul><div class="step"><span class="step-badge">STEP 22</span><span class="step-title">버튼 스타일 세부 수정하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image69.jpg" alt=""></figure>
+<p>버튼 스타일에서 배경색, 글자색, 테두리, 모서리 값을 수정합니다.
+페이지 분위기가 깔끔한 경우 검정 버튼을 기본으로 사용합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>Background color: #000000 또는 진한 회색</li><li>Text color: #FFFFFF</li><li>Border radius: 4px~20px</li><li>Border width: 0~1px</li></ul><div class="step"><span class="step-badge">STEP 23</span><span class="step-title">상품 상세 추천상품 카드 선택하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image67.jpg" alt=""></figure>
+<p>상품 상세 페이지 하단 추천상품 카드가 정상적으로 선택되는지
+확인합니다. 카드 안에는 이미지, 상품명, 가격, 버튼이 순서대로 보여야
+합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>상품 상세 페이지와 홈 페이지의 추천상품 영역은
+다를 수 있습니다.</li><li>수정하려는 영역이 상품 상세 페이지 하단인지 꼭
+확인합니다.</li></ul><div class="step"><span class="step-badge">STEP 24</span><span class="step-title">이미지 로딩 및 표시 설정 수정하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image87.jpg" alt=""></figure>
+<p>상품 이미지 설정에서 Load type, Image optimization, Browser caching을
+확인합니다. 이미지가 늦게 뜨거나 깨져 보이면 이 영역을 먼저
+확인합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>Load type: Lazy to Product 또는 기본값</li><li>Image optimization: Standard</li><li>Image display width: 100%</li><li>Browser caching은 켜두는 것을 권장합니다.</li></ul><div class="step"><span class="step-badge">STEP 25</span><span class="step-title">컬렉션 미리보기로 반영 확인하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image70.jpg" alt=""></figure>
+<p>설정 후 미리보기 화면에서 추천상품 영역이 실제로 어떻게 보이는지
+확인합니다. 제목, 상품 이미지, 상품명, 가격, 버튼이 모두 균형 있게
+보여야 합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>저장 전 미리보기로 먼저 확인합니다.</li><li>버튼 위치가 어긋나 있으면 카드 높이나 버튼 여백을
+다시 조정합니다.</li></ul><div class="step"><span class="step-badge">STEP 26</span><span class="step-title">구분선 요소 선택하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image47.jpg" alt=""></figure>
+<p>추천상품 영역 위아래에 구분선이 있는 경우 Separator 요소를
+선택합니다. 구분선은 섹션 사이를 분리해주는 역할입니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>구분선이 너무 진하면 페이지가 답답해 보일 수
+있습니다.</li><li>상품 영역과 다음 영역 사이 간격을 조절할 때 함께
+수정합니다.</li></ul><div class="step"><span class="step-badge">STEP 27</span><span class="step-title">구분선 설정 수정하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image51.jpg" alt=""></figure>
+<p>Separator 설정에서 선 스타일, 두께, 색상, 위아래 여백을 수정합니다.
+이미지 기준으로 얇은 실선과 연한 회색을 사용하면 깔끔합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>구분선 스타일: 실선</li><li>구분선 두께: 1px</li><li>구분선 색상: #DDDDDD</li><li>상단 여백: 20px</li><li>하단 여백: 20px</li></ul><div class="step"><span class="step-badge">STEP 28</span><span class="step-title">컬렉션 세부 설정 수정하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image62.jpg" alt=""></figure>
+<p>Collection 설정에서 연결할 컬렉션, 정렬 방식, 노출 개수, 상품 가격
+표시 여부를 확인합니다. 추천상품 영역은 보통 `Other Products` 컬렉션을
+연결합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>Collection: Other Products</li><li>Limit: 4</li><li>Offset: 0</li><li>Show product price: ON</li><li>Image ratio: Adapt to image</li></ul><div class="step"><span class="step-badge">STEP 29</span><span class="step-title">상품 상세 Product details 영역 선택하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image61.jpg" alt=""></figure>
+<p>상품 상세 페이지의 Product details 영역을 선택합니다. 상품 이미지가
+왼쪽, 상품명과 가격·옵션·버튼이 오른쪽에 배치되어 있는지 확인합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>Image position: Left 권장</li><li>Image size: Large</li><li>Image ratio: Adapt to image</li><li>Show quantity selector는 필요 시 ON</li></ul><div class="step"><span class="step-badge">STEP 30</span><span class="step-title">상품 상세 페이지 최종 확인하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image36.jpg" alt=""></figure>
+<p>실제 상품 상세 화면에서 이미지와 상품명이 정상적으로 보이는지
+확인합니다. 제목이 너무 길면 줄바꿈이 많아지므로 글자 크기 또는 영역
+너비를 조정합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>상품명 가독성 확인</li><li>가격 위치 확인</li><li>장바구니 버튼과 바로 구매 버튼 정렬 확인</li><li>모바일에서도 버튼이 깨지지 않는지 확인</li></ul><div class="step"><span class="step-badge">STEP 31</span><span class="step-title">하단 컬렉션 영역 클릭하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image95.jpg" alt=""></figure>
+<p>추천상품 하단 컬렉션 영역을 클릭해 수정할 요소를 선택합니다. 이
+단계에서는 전체 컬렉션이 아닌 버튼 또는 하단 요소를 잘못 선택하지 않도록
+주의합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>선택 라벨이 Collection인지 확인합니다.</li><li>하단의 파란 경로 표시에서 현재 선택 요소를
+확인합니다.</li></ul><div class="step"><span class="step-badge">STEP 32</span><span class="step-title">View Product 버튼 수정하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image113.jpg" alt=""></figure>
+<p>`View Product` 버튼을 선택해 상품 상세 페이지로 이동하는 보조 버튼
+스타일을 수정합니다. 메인 버튼보다 약간 낮은 강조도로 디자인합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>Button text: View Product 또는 상품 보기</li><li>Background: 검정 또는 진회색</li><li>Text color: 흰색</li><li>Add to cart 버튼과 간격을 일정하게 맞춥니다.</li></ul><div class="step"><span class="step-badge">STEP 33</span><span class="step-title">상품 이미지 요소 선택하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image93.jpg" alt=""></figure>
+<p>상품 카드 또는 상품 상세 영역의 이미지 요소를 선택합니다. 이미지 설정
+패널에서 이미지 비율과 크기를 조정합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>Image shape: Square 또는 Adapt to image</li><li>Image ratio: 1:1 또는 상품 원본 비율</li><li>이미지가 잘리지 않고 상품이 중앙에 보이는지
+확인합니다.</li></ul><div class="step"><span class="step-badge">STEP 34</span><span class="step-title">Cart Number 버튼 상태 확인하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image99.jpg" alt=""></figure>
+<p>장바구니 버튼 안에 카트 번호 또는 아이콘이 함께 표시되는 경우 버튼
+영역이 어긋나지 않도록 조정합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>아이콘 위치: 텍스트 오른쪽 권장</li><li>버튼 패딩: 10px 기준</li><li>버튼 안 텍스트가 중앙에 오는지 확인합니다.</li></ul><div class="step"><span class="step-badge">STEP 35</span><span class="step-title">Off Cart Button 여백 수정하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image107.jpg" alt=""></figure>
+<p>Off Cart button 또는 비슷한 버튼 요소가 보이면 Padding과 Margin 값을
+맞춥니다. 카드 안에서 버튼이 위아래로 흔들리지 않도록 여백을
+통일합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>Padding: 15px 기준</li><li>Margin: 10px 기준</li><li>다른 카드 버튼과 높이가 비슷한지 확인합니다.</li></ul><div class="step"><span class="step-badge">STEP 36</span><span class="step-title">Add to cart 버튼 테두리 수정하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image96.jpg" alt=""></figure>
+<p>버튼 테두리와 배경색을 조정합니다. 연한 테두리 버튼을 사용할 경우
+배경은 흰색, 테두리는 연회색으로 설정하면 깔끔합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>Border width: 0~1px</li><li>Border color: #E5E5E5</li><li>Border style: Solid</li><li>Space between items: 20px 기준</li></ul><div class="step"><span class="step-badge">STEP 37</span><span class="step-title">상품 카드 이미지 영역 선택하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image109.jpg" alt=""></figure>
+<p>상품 카드 전체 또는 이미지 영역을 선택해 카드 안 이미지 크기를
+확인합니다. 이미지가 카드 크기에 비해 너무 크거나 작으면 상품명 위치까지
+밀릴 수 있습니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>상품 이미지가 중앙에 위치하는지 확인합니다.</li><li>카드마다 이미지 높이가 비슷해야 리스트가
+안정적으로 보입니다.</li></ul><div class="step"><span class="step-badge">STEP 38</span><span class="step-title">장바구니 버튼 스타일 최종 수정하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image73.jpg" alt=""></figure>
+<p>장바구니 버튼의 색상, 배경, 테두리, 모서리 값을 마지막으로
+점검합니다. 버튼 디자인은 전체 상품 카드에서 가장 눈에 띄는 요소이므로
+통일감이 중요합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>Background color: 검정 또는 브랜드 컬러</li><li>Button text color: 흰색</li><li>Border radius: 둥근 모서리 권장</li><li>버튼 너비는 카드별로 일정하게 보이도록
+맞춥니다.</li></ul><div class="step"><span class="step-badge">STEP 39</span><span class="step-title">Other Products 제목 클릭하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image81.jpg" alt=""></figure>
+<p>Other Products 제목을 클릭해 제목 문구와 스타일을 최종 수정합니다.
+추천상품 섹션이 다른 상품 리스트와 구분되도록 제목은 크고 진하게
+설정합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>문구 예시: Other Products.</li><li>대체 문구: Recommended Products / You may also
+like</li><li>영문 스토어라면 영문 제목을 유지합니다.</li></ul><div class="step"><span class="step-badge">STEP 40</span><span class="step-title">상품 상세페이지 최종 확인하기</span></div>
+<figure class="shot"><img loading="lazy" src="images/image84.jpg" alt=""></figure>
+<p>마지막으로 실제 상품 상세 페이지에서 추천상품과 상품 정보가
+자연스럽게 이어지는지 확인합니다. 이미지, 상품명, 가격, 장바구니 버튼,
+추천상품 영역까지 모두 확인한 뒤 저장합니다.</p>
+<h3 class="subhead">설정 및 확인 포인트</h3>
+<ul class="bullets"><li>상품명 줄바꿈 확인</li><li>이미지 크기 확인</li><li>장바구니 버튼 클릭 가능 여부 확인</li><li>모바일 화면에서도 깨지지 않는지 최종 확인</li></ul>
+<div class="callout quiz"><div class="callout-label">✓ 확인 문제</div><ol class="quiz-list"><li>추천상품 영역은 어떤 템플릿에서 편집하나요?</li><li>상품 카드에서 조정하는 요소(버튼 색상·재고 문구
+등)에는 무엇이 있나요?</li><li>상품 개수와 컬럼 간격은 왜 확인·조정해야
+하나요?</li></ol></div>
+</section>
+<section class="doc-section" id="productlist">
+<div class="sec-head"><span class="sec-num">13</span><h2 class="sec-title">제품 리스트</h2></div>
+<p>최종 업데이트 시간: 2026년 7월 1일 오후 4:37</p>
+<p>본 매뉴얼은 Shopify 스토어 홈 화면에 신상품 영역을 제작하는
+방법 을 안내합니다.</p>
+<p>Shopify에서 New Products 컬렉션 을 먼저 생성한 뒤,
+PageFly에서 해당 컬렉션을 불러와 홈 화면에 노출하는 방식으로
+진행합니다.</p>
+<p>신상품 영역은 고객이 스토어에 접속했을 때 새로 등록된 상품을
+빠르게 확인할 수 있도록 도와주는 구간 입니다.</p>
+<p>상품 이미지, 상품명, 가격, 장바구니 버튼이 한눈에 보이도록 구성하는
+것이 중요합니다.</p>
+<div class="step"><span class="step-badge">STEP 1</span><span class="step-title">작업 목표</span></div>
+<p>이번 작업에서는 아래 내용을 진행합니다.</p>
+<ul class="bullets"><li>Shopify에서 New Products 컬렉션
+생성</li><li>스마트 컬렉션 조건 설정</li><li>PageFly 홈 페이지에 신상품 영역 추가</li><li>New Products 컬렉션 연결</li><li>상품 개수 및 정렬 설정</li><li>상품 이미지 크기 조정</li><li>상품명 폰트 설정</li><li>장바구니 버튼 색상 설정</li><li>저장 후 실제 화면에서 정상 노출 확인</li></ul><div class="step"><span class="step-badge">STEP 2</span><span class="step-title">Shopify 제품 메뉴 접속</span></div>
+<p>Shopify 관리자 화면에서 왼쪽 메뉴의 제품 을
+클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image17.jpg" alt=""></figure>
+<p>제품 메뉴에서는 스토어에 등록된 상품과 컬렉션을 관리할 수
+있습니다.</p>
+<p>신상품 영역을 만들기 위해서는 먼저 신상품만 모아주는
+컬렉션 을 생성해야 합니다.</p>
+<div class="step"><span class="step-badge">STEP 3</span><span class="step-title">컬렉션 메뉴 클릭</span></div>
+<p>제품 메뉴 아래에 있는 컬렉션 을 클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image29.jpg" alt=""></figure>
+<p>컬렉션은 상품을 특정 기준에 따라 묶어주는 기능입니다.</p>
+<p>예를 들어 신상품, 추천상품, 베스트상품, 카테고리별
+상품 등을 따로 묶어서 쇼핑몰에 노출할 수 있습니다.</p>
+<div class="step"><span class="step-badge">STEP 4</span><span class="step-title">새 컬렉션 생성 화면 확인</span></div>
+<p>컬렉션 화면에서 새 컬렉션을 생성합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image27.jpg" alt=""></figure>
+<p>컬렉션을 만들 때는 고객에게 보여질 제목과, 상품을 어떤 기준으로
+모을지 설정해야 합니다.</p>
+<p>이번에는 신상품 영역에 사용할 컬렉션이므로 제목은 New
+Products 로 설정합니다.</p>
+<div class="step"><span class="step-badge">STEP 5</span><span class="step-title">컬렉션 제목 입력</span></div>
+<p>컬렉션 제목 입력란에 New Products 를 입력합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image20.jpg" alt=""></figure>
+<p>제목은 고객이 볼 수도 있고, PageFly에서 컬렉션을 연결할 때 구분하는
+이름으로도 사용됩니다.</p>
+<p>신상품 영역을 만들 때는 New Products 또는 신상품 처럼 직관적인 이름을 사용하는 것이 좋습니다.</p>
+<div class="step"><span class="step-badge">STEP 6</span><span class="step-title">컬렉션 유형 설정</span></div>
+<p>컬렉션 유형에서 스마트 를 선택합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image30.jpg" alt=""></figure>
+<p>스마트 컬렉션은 조건에 맞는 상품을 자동으로 모아주는 방식입니다.</p>
+<p>수동 컬렉션은 상품을 하나씩 직접 넣어야 하지만, 스마트 컬렉션은
+조건만 맞으면 상품이 자동으로 추가됩니다.</p>
+<div class="step"><span class="step-badge">STEP 7</span><span class="step-title">신상품 조건 설정</span></div>
+<p>조건 영역에서 아래와 같이 설정합니다.</p>
+<p>제품이 다음에 일치해야 합니다: 모든 조건</p>
+<p>조건 기준: 제목</p>
+<p>조건 방식: 다음을 포함</p>
+<p>입력값: new</p>
+<figure class="shot"><img loading="lazy" src="images/image18.jpg" alt=""></figure>
+<p>이렇게 설정하면 상품 제목에 new 가 포함된 상품이
+자동으로 New Products 컬렉션 에 들어갑니다.</p>
+<p>예를 들어 상품명에 new, New, NEW 등이 포함되어
+있으면 신상품 컬렉션에 노출될 수 있습니다.</p>
+<h3 class="subhead">주의사항</h3>
+<p>상품 제목에 new가 들어가지 않으면 해당 상품은 신상품 컬렉션에
+자동으로 들어가지 않습니다.</p>
+<p>신상품으로 노출하고 싶은 상품은 상품명에 new가 포함되어 있는지
+확인합니다.</p>
+<div class="step"><span class="step-badge">STEP 8</span><span class="step-title">컬렉션 저장</span></div>
+<p>조건 입력이 끝났다면 저장 버튼을 클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image8.jpg" alt=""></figure>
+<p>저장하지 않으면 컬렉션이 생성되지 않으므로 조건 설정 후 반드시
+저장합니다.</p>
+<div class="step"><span class="step-badge">STEP 9</span><span class="step-title">New Products 생성 확인</span></div>
+<p>상단에 New Products가 생성되었다는 안내 문구 가
+표시되는지 확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image12.jpg" alt=""></figure>
+<p>초록색 안내 문구가 표시되면 컬렉션 생성이 완료된 상태입니다.</p>
+<p>이제 PageFly에서 이 컬렉션을 불러와 홈 화면에 연결할 수 있습니다.</p>
+<div class="step"><span class="step-badge">STEP 10</span><span class="step-title">PageFly 편집 화면 접속</span></div>
+<p>PageFly Editor 화면으로 이동합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image5.jpg" alt=""></figure>
+<p>홈 페이지 편집 화면에서 기존 히어로 배너 또는 기존 상품 영역 아래에
+신상품 영역을 추가합니다.</p>
+<p>고객이 자연스럽게 아래로 내려가면서 상품을 확인할 수 있도록 배치하는
+것이 좋습니다.</p>
+<div class="step"><span class="step-badge">STEP 11</span><span class="step-title">신상품 영역을 넣을 위치 확인</span></div>
+<p>기존 상품 영역 아래쪽 또는 원하는 위치의 빈 공간을 확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image3.jpg" alt=""></figure>
+<p>신상품 영역은 보통 히어로 배너 아래 또는 추천상품 영역 아래 에 배치합니다.</p>
+<p>너무 아래쪽에 배치하면 고객이 보기 전에 이탈할 수 있으므로 홈 화면
+중간 이상에 배치하는 것이 좋습니다.</p>
+<div class="step"><span class="step-badge">STEP 12</span><span class="step-title">Row 추가 위치 클릭</span></div>
+<p>상품 영역 아래쪽의 Drag element here 영역을
+클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image34.jpg" alt=""></figure>
+<p>이 영역은 새로운 요소를 넣을 수 있는 자리입니다.</p>
+<p>여기에 컬렉션 또는 슬라이더 같은 요소를 추가할 수 있습니다.</p>
+<div class="step"><span class="step-badge">STEP 13</span><span class="step-title">Add section 클릭</span></div>
+<p>빈 영역에 표시되는 Add section 버튼을
+클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image46.jpg" alt=""></figure>
+<p>Add section은 페이지 안에 새로운 구역을 만드는 버튼입니다.</p>
+<p>신상품 영역을 기존 영역과 분리해서 관리하려면 새로운 섹션으로
+추가하는 것이 좋습니다.</p>
+<div class="step"><span class="step-badge">STEP 14</span><span class="step-title">Slider 영역 확인</span></div>
+<p>추가된 Slider 또는 영역이 정상적으로 생성되었는지 확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image44.jpg" alt=""></figure>
+<p>슬라이더를 사용하는 경우 이미지가 자동으로 넘어가는 영역을 만들 수
+있습니다.</p>
+<p>신상품 영역 위쪽에 분위기용 이미지 슬라이드를 넣거나, 기존 배너와
+연결해서 사용할 수 있습니다.</p>
+<div class="step"><span class="step-badge">STEP 15</span><span class="step-title">Slider 안 이미지 클릭</span></div>
+<p>슬라이더 안에 있는 이미지를 클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image49.jpg" alt=""></figure>
+<p>이미지를 클릭하면 오른쪽 설정 패널에서 이미지 크기, 링크, 정렬 등을
+수정할 수 있습니다.</p>
+<div class="step"><span class="step-badge">STEP 16</span><span class="step-title">이미지 선택 상태 확인</span></div>
+<p>이미지 요소가 선택된 상태인지 확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image32.jpg" alt=""></figure>
+<p>선택된 요소는 화면에 테두리 또는 Image 표시가
+나타납니다.</p>
+<p>설정을 수정하기 전에는 반드시 원하는 이미지가 선택되어 있는지
+확인해야 합니다.</p>
+<div class="step"><span class="step-badge">STEP 17</span><span class="step-title">이미지 Pick 버튼 클릭</span></div>
+<p>오른쪽 설정 패널에서 Pick 버튼을 클릭하여 이미지를
+선택하거나 변경합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image28.jpg" alt=""></figure>
+<p>이미지를 변경할 때는 스토어 분위기와 맞는 이미지를 사용하는 것이
+좋습니다.</p>
+<p>신상품 영역과 연결되는 이미지라면 제품군과 어울리는 분위기의 이미지를
+선택합니다.</p>
+<div class="step"><span class="step-badge">STEP 18</span><span class="step-title">첫 번째 이미지 크기 조정</span></div>
+<p>이미지를 선택한 상태에서 Dimension 값을
+조정합니다.</p>
+<h3 class="subhead">예시 설정값</h3>
+<p>Width: 55%</p>
+<p>Height: 560px</p>
+<figure class="shot"><img loading="lazy" src="images/image58.jpg" alt=""></figure>
+<p>Alignment: Center</p>
+<p>이미지가 너무 크게 보이면 Width 값을 줄이고, 너무 작으면 Width 값을
+키워줍니다.</p>
+<p>이미지 높이가 부족하면 화면에서 잘려 보일 수 있으므로 Height 값도
+함께 확인합니다.</p>
+<div class="step"><span class="step-badge">STEP 19</span><span class="step-title">이미지 적용 상태 확인</span></div>
+<p>이미지가 슬라이더 안에 정상적으로 들어갔는지 확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image41.jpg" alt=""></figure>
+<p>이미지가 가운데 정렬되어 있고, 좌우 여백이 너무 어색하지 않으면
+정상입니다.</p>
+<p>이미지 비율이 맞지 않으면 Width와 Height 값을 다시 조정합니다.</p>
+<div class="step"><span class="step-badge">STEP 20</span><span class="step-title">두 번째 이미지 선택</span></div>
+<p>다른 슬라이드 이미지도 클릭하여 선택합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image38.jpg" alt=""></figure>
+<p>슬라이더에 여러 이미지가 들어가는 경우 각 이미지 크기가 다르면 화면
+전환 시 어색하게 보일 수 있습니다.</p>
+<p>각 슬라이드 이미지를 하나씩 선택해서 크기를 맞춰주는 것이
+좋습니다.</p>
+<div class="step"><span class="step-badge">STEP 21</span><span class="step-title">두 번째 이미지 크기 조정</span></div>
+<p>두 번째 이미지도 Dimension 값을 조정합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image19.jpg" alt=""></figure>
+<h3 class="subhead">예시 설정값</h3>
+<p>Width: 81%</p>
+<p>Height: 560px</p>
+<p>Alignment: Center</p>
+<p>이미지마다 원본 비율이 다를 수 있으므로 동일한 값이 항상 정답은
+아닙니다.</p>
+<p>화면에서 자연스럽게 보이는 값을 기준으로 조정합니다.</p>
+<div class="step"><span class="step-badge">STEP 22</span><span class="step-title">Slider 설정 선택</span></div>
+<p>Slider 영역을 선택합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image304.jpg" alt=""></figure>
+<p>Slider 전체를 선택하면 이미지 개별 설정이 아니라 슬라이더 전체 설정을
+수정할 수 있습니다.</p>
+<p>슬라이드 속도, 자동 재생, 화살표, 점 표시 등을 설정할 수
+있습니다.</p>
+<div class="step"><span class="step-badge">STEP 23</span><span class="step-title">Columns per page 설정</span></div>
+<p>오른쪽 설정 패널에서 Columns per page 값을 1 로 설정합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image317.jpg" alt=""></figure>
+<p>Columns per page는 한 화면에 몇 개의 슬라이드를 보여줄지 정하는
+설정입니다.</p>
+<p>이미지 하나를 크게 보여주려면 1 로 설정하는 것이
+좋습니다.</p>
+<h3 class="subhead">추천 설정</h3>
+<p>Columns per page: 1</p>
+<p>Columns slide per move: 1</p>
+<div class="step"><span class="step-badge">STEP 24</span><span class="step-title">Slide speed 설정</span></div>
+<p>Slide speed 값을 조정합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image289.jpg" alt=""></figure>
+<h3 class="subhead">추천 설정값</h3>
+<p>Slide speed: 800 ~ 1500</p>
+<p>값이 너무 낮으면 슬라이드가 빠르게 넘어가 어색할 수 있고, 너무 높으면
+전환이 느리게 느껴질 수 있습니다.</p>
+<p>일반적으로 800~1500 사이에서 자연스럽게 보이는 값으로 설정합니다.</p>
+<div class="step"><span class="step-badge">STEP 25</span><span class="step-title">슬라이더 최종 확인</span></div>
+<p>슬라이더 이미지가 정상적으로 보이는지 확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image303.jpg" alt=""></figure>
+<h3 class="subhead">확인할 부분</h3>
+<ul class="bullets"><li>이미지가 중앙에 배치되었는지</li><li>이미지 크기가 너무 작거나 크지 않은지</li><li>좌우 화살표가 정상적으로 보이는지</li><li>하단 점 표시가 정상적으로 보이는지</li></ul><div class="step"><span class="step-badge">STEP 26</span><span class="step-title">New Products 제목 클릭</span></div>
+<p>신상품 영역의 제목인 New Products 를 클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image306.jpg" alt=""></figure>
+<p>제목은 고객에게 어떤 상품 영역인지 알려주는 역할을 합니다.</p>
+<p>신상품 영역이라면 New Products 또는 신상품 으로 설정하면 됩니다.</p>
+<div class="step"><span class="step-badge">STEP 27</span><span class="step-title">제목 문구 확인 및 수정</span></div>
+<p>제목 문구를 New Products 로 수정합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image295.jpg" alt=""></figure>
+<p>영문 쇼핑몰이라면 New Products 를 사용하고, 한국어
+쇼핑몰이라면 신상품 또는 새로 들어온
+상품 처럼 변경할 수 있습니다.</p>
+<h3 class="subhead">예시 문구</h3>
+<ul class="bullets"><li>New Products</li><li>신상품</li><li>새로 들어온 상품</li><li>이번 주 신상품</li></ul><div class="step"><span class="step-badge">STEP 28</span><span class="step-title">Collection 요소 선택</span></div>
+<p>상품 리스트 영역의 Collection 요소를 클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image312.jpg" alt=""></figure>
+<p>Collection 요소는 Shopify 컬렉션에 들어있는 상품을 PageFly 화면에
+불러오는 역할을 합니다.</p>
+<p>신상품을 보여주려면 앞에서 만든 New Products
+컬렉션 을 연결해야 합니다.</p>
+<div class="step"><span class="step-badge">STEP 29</span><span class="step-title">New Products 컬렉션 연결</span></div>
+<p>오른쪽 설정 패널에서 Pick a collection 을 클릭한 뒤 New Products 컬렉션 을 선택합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image332.jpg" alt=""></figure>
+<p>컬렉션이 연결되면 해당 컬렉션 안에 있는 상품들이 자동으로 화면에
+표시됩니다.</p>
+<p>상품이 보이지 않는다면 New Products 컬렉션 안에 조건에 맞는 상품이
+있는지 확인합니다.</p>
+<div class="step"><span class="step-badge">STEP 30</span><span class="step-title">Product number 수정</span></div>
+<p>Collection 설정에서 Product number 값을
+조정합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image297.jpg" alt=""></figure>
+<p>Product number는 화면에 노출할 상품 개수를 정하는 설정입니다.</p>
+<h3 class="subhead">추천 설정</h3>
+<p>Product number: 4</p>
+<p>Columns per row: 4</p>
+<p>Column gap: 12px ~ 50px</p>
+<p>4개 상품을 한 줄로 보여주면 화면이 깔끔하게 정리됩니다.</p>
+<p>상품을 더 많이 보여주고 싶다면 Product number를 7처럼 늘릴 수 있지만,
+화면이 복잡해질 수 있으므로 미리보기로 확인해야 합니다.</p>
+<div class="step"><span class="step-badge">STEP 31</span><span class="step-title">Collection 전체 영역 확인</span></div>
+<p>Collection 영역 전체를 선택하여 상품들이 정상적으로 배치되었는지
+확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image293.jpg" alt=""></figure>
+<p>상품 이미지, 상품명, 가격, 장바구니 버튼이 한 영역 안에 잘 정렬되어
+있어야 합니다.</p>
+<p>상품 간격이 너무 넓거나 좁으면 Column gap 값을
+조정합니다.</p>
+<div class="step"><span class="step-badge">STEP 32</span><span class="step-title">상품 이미지 선택</span></div>
+<p>상품 이미지 영역을 클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image278.jpg" alt=""></figure>
+<p>상품 이미지 크기는 신상품 영역의 전체 디자인에 큰 영향을 줍니다.</p>
+<p>이미지가 너무 크면 상품명이 아래로 밀리고, 너무 작으면 상품의 매력이
+잘 보이지 않을 수 있습니다.</p>
+<div class="step"><span class="step-badge">STEP 33</span><span class="step-title">상품 이미지 크기 수정</span></div>
+<p>오른쪽 설정 패널에서 상품 이미지의 Dimension 값을
+조정합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image282.jpg" alt=""></figure>
+<h3 class="subhead">예시 설정값</h3>
+<p>Width: 85%</p>
+<p>Height: 360px</p>
+<p>Alignment: Center</p>
+<p>상품 이미지가 일정한 크기로 보이도록 맞춰줍니다.</p>
+<p>상품마다 이미지 비율이 다를 수 있으므로, 최종 화면에서 정렬이 깨지지
+않는지 확인합니다.</p>
+<div class="step"><span class="step-badge">STEP 34</span><span class="step-title">상품명 폰트 크기 수정</span></div>
+<p>상품명 영역을 클릭한 뒤 Font size 를 조정합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image268.jpg" alt=""></figure>
+<h3 class="subhead">추천 설정값</h3>
+<p>Font size: 16px</p>
+<p>Line height: 1.5</p>
+<p>Letter spacing: 1px</p>
+<p>Line clamp: 2 ~ 5</p>
+<p>상품명이 너무 길면 여러 줄로 내려가면서 카드 높이가 달라질 수
+있습니다.</p>
+<p>Line clamp 값을 사용하면 상품명이 일정 줄 수까지만 보이도록 정리할 수
+있습니다.</p>
+<div class="step"><span class="step-badge">STEP 35</span><span class="step-title">상품명 폰트 선택</span></div>
+<p>상품명 폰트 패밀리를 선택합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image273.jpg" alt=""></figure>
+<h3 class="subhead">예시 설정값</h3>
+<p>Font family: Teko</p>
+<p>Font size: 16px</p>
+<p>폰트는 스토어 분위기에 맞춰 선택합니다.</p>
+<p>Teko처럼 세로로 길고 깔끔한 폰트는 상품명이 정돈되어 보이는 장점이
+있습니다.</p>
+<p>단, 가독성이 떨어진다면 기본 폰트나 다른 깔끔한 폰트로 변경해도
+됩니다</p>
+<div class="step"><span class="step-badge">STEP 36</span><span class="step-title">최종 체크리스트</span></div>
+<p>신상품 영역 제작 후 아래 내용을 최종 확인합니다.</p>
+<ul class="bullets"><li>New Products 컬렉션이 생성되었는가?</li><li>컬렉션 조건에 new 가 정상
+입력되었는가?</li><li>PageFly에서 New Products 컬렉션 이
+연결되었는가?</li><li>상품 개수가 원하는 개수로 설정되었는가?</li><li>Columns per row가 자연스럽게 설정되었는가?</li><li>상품 이미지 크기가 일정하게 보이는가?</li><li>상품명이 너무 길게 나오지 않는가?</li><li>Add to cart 버튼이 잘 보이는가?</li><li>Save 또는 Publish가 완료되었는가?</li><li>Preview 또는 View live에서 최종 확인했는가?</li></ul><div class="step"><span class="step-badge">STEP 37</span><span class="step-title">자주 발생하는 문제</span></div>
+<h3 class="subhead">1) New Products 상품이 보이지 않는 경우</h3>
+<p>Shopify 컬렉션 조건을 다시 확인합니다.</p>
+<p>조건이 제목 / 다음을 포함 / new 로 되어 있어야
+합니다.</p>
+<p>또한 실제 상품 제목에 new가 포함되어 있어야 컬렉션에 자동으로
+들어갑니다.</p>
+<h3 class="subhead">2) 상품 이미지 크기가 서로 다르게 보이는 경우</h3>
+<p>상품 이미지 요소를 선택한 뒤 Width와 Height 값을 조정합니다.</p>
+<p>추천값은 Width 85%, Height 360px 입니다.</p>
+<p>상품 원본 이미지 비율이 많이 다르면 일부 상품은 다르게 보일 수
+있으므로 미리보기로 확인합니다.</p>
+<h3 class="subhead">3) 상품명이 너무 길게 나오는 경우</h3>
+<p>상품명 요소를 선택한 뒤 Font size를 줄이거나 Line clamp 값을
+조정합니다.</p>
+<p>상품명이 너무 길면 카드 높이가 달라져 전체 정렬이 깨질 수
+있습니다.</p>
+<h3 class="subhead">4) 상품 간격이 너무 넓은 경우</h3>
+<p>Collection 요소를 선택한 뒤 Column gap 값을 줄입니다.</p>
+<p>너무 좁으면 답답해 보이고, 너무 넓으면 상품이 흩어져 보이므로 12px~50px 사이에서 조정합니다.</p>
+<h3 class="subhead">5) Add to cart 버튼이 잘 안 보이는 경우</h3>
+<p>버튼 색상을 검정색으로 변경하고, 글씨 색상은 흰색으로 설정합니다.</p>
+<p>추천값은 Button color #000000, Text color
+#FFFFFF 입니다.</p>
+<h3 class="subhead">6) Preview가 열리지 않는 경우</h3>
+<p>브라우저 팝업 차단 안내를 확인합니다.</p>
+<p>팝업 차단 안내가 뜨면 완료를 클릭하거나 해당 사이트의 팝업을 허용한
+뒤 다시 Preview를 클릭합니다.</p>
+<div class="step"><span class="step-badge">STEP 38</span><span class="step-title">마무리</span></div>
+<p>신상품 영역은 고객에게 새로 등록된 상품을 빠르게 보여주는 중요한 홈
+화면 구성 요소입니다.</p>
+<p>컬렉션 조건을 잘 설정해두면 이후 상품 제목에 new 만
+포함해도 자동으로 신상품 영역에 노출할 수 있습니다.</p>
+<p>작업 후에는 반드시 PC 화면과 모바일 화면을 모두
+확인 하고, 상품 이미지, 상품명, 가격, 장바구니 버튼이 자연스럽게
+보이는지 점검합니다.</p>
+<p>최종 확인까지 완료되면 Save 또는 Publish 를 클릭하여
+작업을 마무리합니다.</p>
+<div class="callout quiz"><div class="callout-label">✓ 확인 문제</div><ol class="quiz-list"><li>신상품 영역을 만들려면 먼저 무엇을
+생성하나요?</li><li>컬렉션 유형과 신상품 조건은 어떻게
+설정하나요?</li><li>만든 컬렉션을 페이지에 넣을 때 어떤 편집기를
+사용하나요?</li></ol></div>
+</section>
+<section class="doc-section" id="brand">
+<div class="sec-head"><span class="sec-num">14</span><h2 class="sec-title">브랜드 정보</h2></div>
+<p>최종 업데이트 시간: 2026년 7월 2일 오후 6:50</p>
+<p>본 매뉴얼은 Shopify 온라인 스토어에서 브랜드 정보 / About Our
+Brand / Our Story 영역을 만드는 방법입니다.</p>
+<p>화면에 따라 PageFly, Pagetify, EComposer, Sparkle, Shopify 기본
+편집기처럼 이름이 다르게 보일 수 있지만, 수정 기준은
+동일합니다.</p>
+<h3 class="subhead">01단계. 브랜드 이미지 여백 조정하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image263.jpg" alt=""></figure>
+<p>브랜드 정보 섹션 안에서 좌측 이미지 요소를 선택 한
+뒤, 오른쪽 설정 패널의 Spacing 값을 수정 합니다.
+이미지가 너무 왼쪽이나 위쪽으로 붙어 보이면 Margin을 조정해 섹션 안에서
+안정적으로 보이게 맞춥니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>선택 요소가 Image로 표시되는지 확인 합니다.</li><li>권장 Margin: 상단 32px / 좌측 128px / 우측 128px /
+하단 32px</li><li>이미지가 텍스트 영역과 너무 붙지 않도록 좌우
+여백을 먼저 맞춥니다.</li></ul>
+<h3 class="subhead">02단계. 배너 상하 여백 수정하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image286.jpg" alt=""></figure>
+<p>브랜드 정보 배너 영역을 선택 한 뒤, 오른쪽 패널에서
+Padding 값을 조정합니다. 배너 안쪽 여백을 충분히 주면 이미지와 문구가
+답답하지 않고 고급스럽게 보입니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>선택 요소가 Banner로 표시되어야 합니다.</li><li>권장 Padding: 상단 270px / 좌우 0px / 하단
+270px</li><li>배너 높이가 너무 커지면 모바일에서 길어질 수
+있으므로 데스크톱 기준으로 먼저 확인 합니다.</li></ul>
+<h3 class="subhead">03단계. 소제목 NEW RELEASES 수정하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image262.jpg" alt=""></figure>
+<p>우측 텍스트 영역의 작은 소제목을 선택 해 브랜드
+분위기에 맞는 짧은 문구로 수정 합니다. 건강기능식품
+브랜드라면 운동감보다 신뢰감과 건강한 라이프스타일이 느껴지는 문구가
+좋습니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>추천 문구: NICE BODY / WELLNESS LIFE / HEALTHY
+DAILY</li><li>권장 Color: #FFFFFF</li><li>권장 Font size: 13px</li><li>Line height: 1.5 / Letter spacing: 1px</li></ul>
+<h3 class="subhead">04단계. 메인 제목 Enter text 수정하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image271.jpg" alt=""></figure>
+<p>기본으로 표시된 Enter text 영역을 클릭 해 메인
+타이틀을 수정 합니다. 브랜드 정보 섹션의 핵심 제목이므로
+가장 크고 진하게 설정합니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>추천 문구: ABOUT OUR BRAND</li><li>대체 문구: OUR STORY / BRAND STORY</li><li>권장 Tag: H3</li><li>권장 Font size: 40px / Line height: 1.2 / Letter
+spacing: 1px</li></ul>
+<h3 class="subhead">05단계. ChatGPT에 브랜드 정보 기본 요청하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image255.jpg" alt=""></figure>
+<p>ChatGPT 입력창에 브랜드 정보 섹션에 들어갈 제목, 짧은 설명, 이미지
+방향을 요청합니다. 처음 요청할 때는 스토어 주제와 원하는 분위기를 함께
+적어야 결과물이 더 자연스럽게 나옵니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>복붙 문구: 나는 쇼피파이 온라인 스토어를
+운영중이야. 이때 건강기능식품샵이고, 브랜드 정보에 대한 섹션을 만들고
+있어. 이때 내가 브랜드 정보에 들어갈 내용이랑 이미지를 생성해줘.</li><li>문구는 되도록 짧고 간결하게 요청합니다.</li><li>이미지는 건강함, 신뢰감, 남녀노소가 함께하는
+느낌으로 요청합니다.</li></ul>
+<h3 class="subhead">06단계. Shopify 페이지 생성 화면 확인하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image269.jpg" alt=""></figure>
+<p>Shopify 관리자 화면에서 온라인 스토어 > 페이지로 이동해 브랜드
+정보 페이지를 생성합니다. 제목은 Our Story로 입력하고 본문에는 브랜드
+소개 문구를 넣을 준비를 합니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>페이지 제목: Our Story</li><li>템플릿: 기본 페이지</li><li>처음에는 숨김 상태로 만들고 내용 확인 후 공개로 전환해도 됩니다.</li></ul>
+<h3 class="subhead">07단계. Pagetify에서 새 페이지 만들기</h3>
+<figure class="shot"><img loading="lazy" src="images/image222.jpg" alt=""></figure>
+<p>Pagetify의 Landing & Pages 메뉴에서 Create from a template or
+from scratch 버튼을 클릭 합니다. 브랜드 소개 페이지는
+About us 또는 Story 계열 템플릿을 사용하면 작업 시간이 줄어듭니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>Landing & Pages 메뉴를 선택 합니다.</li><li>무료 플랜이라면 사용 가능한 페이지 개수를 먼저 확인 합니다.</li><li>템플릿을 고를 때 이미지+텍스트가 나란히 있는
+구조를 선택 하면 좋습니다.</li></ul>
+<h3 class="subhead">08단계. 브랜드 정보 배너 영역 선택하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image225.jpg" alt=""></figure>
+<p>브랜드 정보 섹션 전체 배너 영역을 선택 합니다. 이
+단계에서는 이미지나 텍스트 한 개만 선택 하지 말고, 전체
+섹션 구조가 잡히는지 먼저 확인 합니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>빨간 박스 기준으로 브랜드 정보 섹션 전체가
+포함되는지 확인 합니다.</li><li>오른쪽 패널에서 Banner 또는 Row 설정이 보이는지 확인 합니다.</li><li>배너 전체를 잡아야 배경, 여백, 정렬을 한 번에 수정 할 수 있습니다.</li></ul>
+<h3 class="subhead">09단계. Our Story 페이지 본문 입력하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image237.jpg" alt=""></figure>
+<p>Shopify 페이지 콘텐츠 영역에 브랜드 소개 문구를 입력합니다. 페이지
+본문은 너무 길게 작성하지 말고, 브랜드가 어떤 가치를 추구하는지 짧게
+정리합니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>복붙 문구: 우리 브랜드는 더 건강한 일상을
+추구합니다. 자연에서 영감을 받은 원료와 신중한 기준으로 선별한 제품을
+통해 남녀노소 누구나 믿고 선택 할 수 있는 웰니스 경험을
+제공합니다.</li><li>본문은 2~3문장 정도로 짧게 작성합니다.</li><li>나중에 SEO 설명과 문구 톤이 비슷하게 이어지도록
+맞춥니다.</li></ul>
+<h3 class="subhead">10단계. OUR STORY 버튼 선택하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image229.jpg" alt=""></figure>
+<p>브랜드 정보 섹션 하단의 버튼을 선택 해 문구와 링크를 수정 합니다. 버튼은 브랜드 상세 페이지로 이동시키는
+역할이므로 명확한 문구를 사용합니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>버튼 문구: OUR STORY</li><li>대체 문구: READ MORE / ABOUT US</li><li>Button text color: #106469</li><li>Button color: #FFFFFF</li><li>Open link in new tab은 필요 없으면 OFF로
+둡니다.</li></ul>
+<h3 class="subhead">11단계. 브랜드 이미지 생성 결과 확인하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image209.jpg" alt=""></figure>
+<p>ChatGPT에서 생성된 브랜드 이미지를 확인 합니다.
+이미지가 건강기능식품 브랜드와 맞는 분위기인지, 가족·운동·웰니스 느낌이
+자연스럽게 보이는지 확인 합니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>이미지 방향: 건강한 가족 / 자연광 / 야외 활동 /
+웰니스</li><li>너무 광고 같거나 인위적인 이미지는 다시
+생성합니다.</li><li>섹션에 넣을 이미지는 가로형이 가장
+안정적입니다.</li></ul>
+<h3 class="subhead">12단계. 메인 타이틀 ABOUT OUR BRAND 반영하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image212.jpg" alt=""></figure>
+<p>메인 제목을 ABOUT OUR BRAND로 수정 하고 글자 크기와
+줄간격을 맞춥니다. 브랜드 정보 섹션에서는 이 제목이 가장 먼저 보여야
+하므로 굵고 선명하게 설정합니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>추천 문구: ABOUT OUR BRAND</li><li>권장 Color: #FFFFFF</li><li>권장 Font size: 40px</li><li>Line height: 1.2</li><li>텍스트가 두 줄로 나뉘어도 균형 있게 보이는지 확인 합니다.</li></ul>
+<h3 class="subhead">13단계. 브랜드 정보 생성 결과 확인하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image216.jpg" alt=""></figure>
+<p>생성된 브랜드 정보 섹션 결과물을 전체적으로 확인 합니다. 제목, 본문, 이미지가 한 화면에서 자연스럽게
+이어지는지 먼저 보고, 문구가 너무 길면 줄여서 다시 정리합니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>제목: ABOUT OUR BRAND</li><li>본문 예시: Our mission is to help people live
+healthier lives.</li><li>이미지와 텍스트의 분위기가 맞는지 확인 합니다.</li><li>건강함과 신뢰감이 같이 느껴져야 합니다.</li></ul>
+<h3 class="subhead">14단계. 행 레이아웃 비율 조정하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image220.jpg" alt=""></figure>
+<p>브랜드 섹션의 Row 레이아웃을 선택 해 이미지 영역과
+텍스트 영역의 비율을 조정합니다. 데스크톱에서는 이미지가 조금 더 넓고,
+텍스트가 오른쪽에 안정적으로 배치되는 구성이 좋습니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>권장 비율: 좌측 8 / 우측 4 또는 좌측 6 / 우측
+6</li><li>텍스트 영역이 너무 좁으면 제목 줄바꿈이 어색해질
+수 있습니다.</li><li>모바일에서는 1열로 쌓이는지 확인 합니다.</li></ul>
+<h3 class="subhead">15단계. ChatGPT에 브랜드 정보 다시 요청하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image217.jpg" alt=""></figure>
+<p>처음 결과가 마음에 들지 않으면 더 짧고 명확하게 다시 요청합니다. 이때
+브랜드 정보 섹션에 들어갈 내용과 이미지가 필요하다는 점을 다시
+적습니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>복붙 문구: 나는 쇼피파이 온라인 스토어를
+운영중이야. 이때 건강기능식품샵이고, 브랜드 정보에 대한 섹션을 만들고
+있어. 이때 내가 브랜드 정보에 들어갈 내용이랑 이미지를 생성해줘. 정보
+부탁.</li><li>간단 요청 후 결과가 너무 길면 추가로 줄여달라고
+요청합니다.</li><li>이미지 방향은 건강한 라이프스타일 중심으로
+유지합니다.</li></ul>
+<h3 class="subhead">16단계. ChatGPT에 상세 요청 입력하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image208.jpg" alt=""></figure>
+<p>브랜드 정보 문구를 더 실사용 가능하게 만들기 위해 제목, 내용, 이미지
+분위기를 구체적으로 요청합니다. 짧고 간결한 문구를 원한다고 적으면
+Shopify 섹션에 넣기 좋습니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>복붙 문구: 정보 부분에서는 제목, 내용 이렇게
+나오면 좋은데 되도록이면 짧고 간결하게 하면 좋을 거 같아. 이미지
+부분에서는 건강한 느낌이 나고 남녀노소 다 건강한 삶을 보여주는 그런 게
+좋을 거 같아.</li><li>제목과 본문을 분리해서 달라고 요청합니다.</li><li>이미지 설명도 함께 받으면 이미지 생성 프롬프트로
+재사용하기 좋습니다.</li></ul>
+<h3 class="subhead">17단계. 이미지 생성 중 화면 확인하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image256.jpg" alt=""></figure>
+<p>ChatGPT에서 이미지가 생성되는 동안 결과 영역을 확인 합니다. 이미지가 생성되면 바로 저장하거나, 필요한
+경우 이미지 부분만 따로 분리해서 사용합니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>생성 중에는 화면을 닫지 않습니다.</li><li>이미지 결과가 흐리거나 잘린 느낌이면 다시
+생성합니다.</li><li>최종 사용할 이미지는 파일명을 알아보기 쉽게
+바꿔둡니다.</li></ul>
+<h3 class="subhead">18단계. 라이브러리에서 About Us 섹션 삽입하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image258.jpg" alt=""></figure>
+<p>Pagetify 라이브러리에서 About Us 또는 Brand Story 계열 섹션을 선택 해 삽입합니다. 이미 완성된 레이아웃을 사용하면
+이미지와 텍스트 정렬을 빠르게 맞출 수 있습니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>카테고리: Content / About Us / Bakery 등</li><li>이미지+텍스트가 좌우로 나뉜 템플릿을 선택 합니다.</li><li>Insert 버튼을 눌러 현재 페이지에 섹션을
+추가합니다.</li></ul>
+<h3 class="subhead">19단계. 좌측 이미지 영역 선택하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image276.jpg" alt=""></figure>
+<p>삽입된 섹션에서 좌측 이미지 영역을 클릭 합니다.
+이미지 요소를 정확히 선택 해야 생성한 브랜드 이미지로
+교체할 수 있습니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>선택 라벨이 Image로 표시되는지 확인 합니다.</li><li>Row나 Banner가 선택 되면 이미지
+교체 버튼이 보이지 않을 수 있습니다.</li><li>이미지 크기가 너무 작으면 먼저 이미지 요소를 선택 한 뒤 Width 값을 확인 합니다.</li></ul>
+<h3 class="subhead">20단계. 초기 브랜드 섹션 배치 확인하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image265.jpg" alt=""></figure>
+<p>초기 삽입된 브랜드 정보 섹션의 전체 구성을 확인 합니다. 왼쪽 이미지, 오른쪽 컬러 배경, 제목, 본문,
+버튼이 균형 있게 배치되어야 합니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>좌측 이미지는 크게, 우측 정보 영역은 깔끔하게
+보이도록 맞춥니다.</li><li>텍스트 영역 배경은 청록색 계열처럼 건강한 느낌의
+색상이 잘 어울립니다.</li><li>버튼은 흰색 배경으로 두면 시선이 잘 갑니다.</li></ul>
+<h3 class="subhead">21단계. 브랜드 이미지 선택하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image246.jpg" alt=""></figure>
+<p>이미지 선택 창에서 생성한 브랜드 이미지를 선택 합니다. 기존 신발 이미지를 건강한 가족 또는 웰니스
+이미지로 교체해 브랜드 주제와 맞춥니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>사용할 이미지가 라이브러리에 업로드되어 있는지 확인 합니다.</li><li>이미지 선택 후 섹션에 바로
+반영되는지 확인 합니다.</li><li>건강기능식품 브랜드라면 가족, 운동, 자연광
+이미지가 적합합니다.</li></ul>
+<h3 class="subhead">22단계. 이미지 우측 여백 수정하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image245.jpg" alt=""></figure>
+<p>이미지를 교체한 뒤 오른쪽 여백과 상하 여백을 다시 조정합니다.
+이미지가 텍스트 박스와 너무 붙거나, 페이지 끝으로 밀리지 않도록 Margin
+값을 맞춥니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>권장 Margin: 상단 30px / 좌측 62px / 우측 50px /
+하단 30px</li><li>좌우 여백은 화면 너비에 따라 조금씩
+조정합니다.</li><li>이미지와 우측 텍스트 영역 사이 간격이 일정한지 확인 합니다.</li></ul>
+<h3 class="subhead">23단계. Our Story 페이지 생성 완료 확인하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image230.jpg" alt=""></figure>
+<p>Shopify 페이지가 정상적으로 생성되었는지 확인 합니다.
+상단에 생성 완료 메시지가 나오면 페이지 자체는 저장된 상태입니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>페이지명: Our Story</li><li>공개 상태를 확인 합니다.</li><li>온라인 스토어에서 보기 링크로 실제 페이지가
+열리는지 확인 합니다.</li></ul>
+<h3 class="subhead">24단계. SEO 홈페이지 제목 입력하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image244.jpg" alt=""></figure>
+<p>온라인 스토어 기본 설정에서 소셜 공유 이미지 및 SEO 영역의 홈페이지
+제목을 입력합니다. 검색 결과에서 가장 먼저 보이는 문구이므로 짧고
+명확해야 합니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>SEO 제목 예시: Wellness Shop</li><li>대체 예시: Healthy Life Store / Natural Wellness
+Shop</li><li>70자 이내로 작성합니다.</li><li>스토어 이름과 판매 카테고리가 같이 드러나면
+좋습니다.</li></ul>
+<h3 class="subhead">25단계. SEO 메타 설명 입력하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image240.jpg" alt=""></figure>
+<p>SEO 메타 설명에는 스토어의 핵심 장점과 판매 상품을 한두 문장으로
+입력합니다. 검색 결과에서 설명 문구로 보이기 때문에 너무 길지 않게
+작성합니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>복붙 문구: Discover premium health supplements
+designed for all ages. Our US-based store delivers natural, high-quality
+vitamins and wellness products directly to your door.</li><li>권장 길이: 120~160자 내외</li><li>건강기능식품, 자연 원료, 고품질, 배송 같은 핵심
+키워드를 포함합니다.</li></ul>
+<h3 class="subhead">26단계. ChatGPT에 추가 문구 요청하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image233.jpg" alt=""></figure>
+<p>브랜드 소개 문구가 부족하면 ChatGPT에 추가 문구를 요청합니다.
+운영하는 샵의 분위기와 고객층을 반영해 더 자연스럽게 다듬어달라고
+요청합니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>복붙 문구: 내가 운영하는 샵에 대해서도 반영해서 더
+자연스럽게 만들어줘. 브랜드 정보 섹션에 들어갈 짧은 소개 문구와 어울리는
+이미지 느낌으로 다시 정리해줘.</li><li>결과가 길면 1~2문장으로 줄여달라고 요청합니다.</li><li>섹션용 문구와 SEO용 문구를 따로 요청하면 사용하기
+편합니다.</li></ul>
+<h3 class="subhead">27단계. Google 메타 설명 예시 확인하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image198.jpg" alt=""></figure>
+<p>Google 검색 결과에서 제목과 메타 설명이 어떻게 보이는지 예시를 확인 합니다. 메타 설명은 사용자가 클릭 할지 판단하는 문구이므로 스토어 장점을 바로
+보여줘야 합니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>확인 포인트: 제목 아래 설명 문구가 자연스러운지 확인 합니다.</li><li>메타 설명은 너무 광고처럼 쓰기보다 신뢰감 있게
+작성합니다.</li><li>핵심 상품군과 혜택이 한 문장 안에 들어가면
+좋습니다.</li></ul>
+<h3 class="subhead">28단계. SEO 설정 저장하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image191.jpg" alt=""></figure>
+<p>SEO 제목과 메타 설명 입력이 끝나면 상단 저장 버튼을 클릭 합니다. 저장하지 않으면 검색 결과 미리보기와 실제
+스토어 설정에 반영되지 않습니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>저장 버튼을 클릭 합니다.</li><li>저장 후 미리보기 카드에 제목과 설명이 반영되는지 확인 합니다.</li><li>변경 사항 저장 알림이 사라졌는지 확인 합니다.</li></ul>
+<h3 class="subhead">29단계. 브랜드 소개 본문 수정하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image181.jpg" alt=""></figure>
+<p>브랜드 정보 섹션의 본문 문구를 최종 수정 합니다. 메인
+제목 아래에 들어가는 문구이므로 짧고 읽기 쉽게 작성해야 합니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>추천 문구: Our mission is to help people live
+healthier lives.</li><li>대체 문구: We create simple wellness products for
+healthier everyday routines.</li><li>권장 Color: #EEEEEE</li><li>권장 Font size: 24px</li><li>Line height: 1.5 / Letter spacing: 1px</li></ul>
+<h3 class="subhead">30단계. 좌측 최종 이미지 영역 확인하기</h3>
+<figure class="shot"><img loading="lazy" src="images/image179.jpg" alt=""></figure>
+<p>마지막으로 좌측 최종 이미지 영역을 선택 해 이미지
+크기와 높이를 확인 합니다. 이미지가 흐리거나 잘리지
+않고, 우측 텍스트 영역과 높이가 비슷하게 맞아야 합니다.</p>
+<p>설정 및 확인 포인트</p>
+<ul class="bullets"><li>권장 Width: 100%</li><li>Height: auto</li><li>Max height: 768px</li><li>이미지 모서리와 섹션 간격이 일정한지 확인 합니다.</li><li>데스크톱, 태블릿, 모바일 화면을 각각 확인 합니다.</li></ul>
+<div class="callout quiz"><div class="callout-label">✓ 확인 문제</div><ol class="quiz-list"><li>브랜드 정보 섹션을 넣는 목적은 무엇인가요?</li><li>브랜드 정보(About Us 등)는 어디에 배치·연결하면
+좋나요?</li><li>브랜드 정보가 구매 결정에 주는 영향은
+무엇인가요?</li></ol></div>
+</section>
+<section class="doc-section" id="blog">
+<div class="sec-head"><span class="sec-num">15</span><h2 class="sec-title">블로그 작성</h2></div>
+<div class="callout overview"><div class="callout-label">이 절 개요</div><p>블로그는 검색·AI 유입을 상품 상세페이지로 연결하는 채널입니다.
+여기서는 두 가지 방식으로 글을 만들고(Essential AI Blog · ChatGPT), 실제
+스토어에 반영하는 방법까지 다룹니다.</p></div>
+<h3 class="subhead">① 블로그 생성 — Essentail AI Blog</h3>
+<ul class="bullets"><li>상단 검색창 클릭</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image185.jpg" alt=""></figure>
+<ul class="bullets"><li>앱 클릭</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image177.jpg" alt=""></figure>
+<ul class="bullets"><li>Essential Ai Blog 입력</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image166.jpg" alt=""></figure>
+<ul class="bullets"><li>해당 앱 설치</li></ul>
+<p>※ 만약 이미 설치 됐다면 6번으로 이동해 주세요</p>
+<figure class="shot"><img loading="lazy" src="images/image174.jpg" alt=""></figure>
+<ul class="bullets"><li>설치 클릭</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image176.jpg" alt=""></figure>
+<ul class="bullets"><li>Create a blog Post 클릭</li></ul>
+<p>※ 이미 블로그가 작성되어 있다면 우측 상단에 “New Blog Post”를 클릭해
+주세요</p>
+<figure class="shot"><img loading="lazy" src="images/image182.jpg" alt=""></figure>
+<ul class="bullets"><li>생성 이후에 Chat Gpt 접속</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image203.jpg" alt=""></figure>
+<ul class="bullets"><li>아래와 같이 명령어 입력</li></ul>
+<p>※ 어떤 샵을 운영 중인지, 어떤 것을 원하는지, 여러가지 조건을 추가해서
+작성해 주세요.</p>
+<figure class="shot"><img loading="lazy" src="images/image206.jpg" alt=""></figure>
+<ul class="bullets"><li>이후 생성된 블로그 제목중에서 원하는 제목 하나
+복사</li></ul>
+<p>※ 본 메뉴얼은 2번째 제목을 선택했습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image205.jpg" alt=""></figure>
+<ul class="bullets"><li>쇼피파이로 다시 돌아온 후 Post topic에 붙여넣기
+진행</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image235.jpg" alt=""></figure>
+<ul class="bullets"><li>Tone에서 Professional</li><li>다른 리스트 내용 (유동적으로 선택하셔도
+됩니다)</li><li>Informal → 격식 없이 편안한 느낌</li><li>Professional → 전문적인 느낌</li><li>Persuasive → 설득력 있는 느낌</li><li>Informative → 정보 중심의 느낌</li><li>Humorous → 유머러스한 느낌</li><li>Friendly → 친근한 느낌</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image184.jpg" alt=""></figure>
+<ul class="bullets"><li>이후 GPT 접속 후 제목 붙여넣기 하여 아래 명령어
+입력</li></ul>
+<p>※ 제목 붙여넣기 이후 핵심 키워드 원하는 만큼 추출하기</p>
+<figure class="shot"><img loading="lazy" src="images/image204.jpg" alt=""></figure>
+<ul class="bullets"><li>이후 추출된 핵심 키워드 3개를 한개씩 복사 진행</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image247.jpg" alt=""></figure>
+<ul class="bullets"><li>Keywords 부분에 한개씩 붙여넣기 진행 후 “Add
+‘키워명’” 부분 클릭</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image187.jpg" alt=""></figure>
+<ul class="bullets"><li>다른 키워드도 동일하게 진행</li></ul>
+<p>※ 주의사항</p>
+<ul class="bullets"><li>체크 표시된 네모박스 클릭 시 키워드가
+지워집니다.</li></ul>
+<p>꼭 “add ‘키워드명’”부분을 클릭해 주세요.</p>
+<figure class="shot"><img loading="lazy" src="images/image183.jpg" alt=""></figure>
+<ul class="bullets"><li>Generate outline 클릭</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image211.jpg" alt=""></figure>
+<ul class="bullets"><li>생성된 블로그 확인 후 하단 “Generate blog
+post”클릭</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image144.jpg" alt=""></figure>
+<ul class="bullets"><li>블로그 생성 대기</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image137.jpg" alt=""></figure>
+<ul class="bullets"><li>Open blog post 클릭</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image143.jpg" alt=""></figure>
+<ul class="bullets"><li>블로그 생성 확인</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image134.jpg" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="images/image126.jpg" alt=""></figure>
+<ul class="bullets"><li>콘텐츠 → 블로그 게시물에서 생성된 블로그 확인</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image111.jpg" alt=""></figure>
+<h3 class="subhead">주의사항</h3>
+<p>Essential ai blog는 최대 3개만 무료로 사용하실 수 있습니다</p>
+<h3 class="subhead">추가 사항 (Chat GPT를 활용한 블로그 생성)</h3>
+<ul class="bullets"><li>outline 클릭 ( 16번으로 이동)</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image123.jpg" alt=""></figure>
+<ul class="bullets"><li>생성된 outline 복사</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image122.jpg" alt=""></figure>
+<ul class="bullets"><li>Chat GPT에 붙혀 넣기 후 “위 개요를 통해 블로그 글
+하나 영어로 만들어줘” 입력</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image118.jpg" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="images/image114.jpg" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="images/image156.jpg" alt=""></figure>
+<ul class="bullets"><li>GPT에서 생성된 블로그 글 복사</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image154.jpg" alt=""></figure>
+<ul class="bullets"><li>쇼피파이에 복사한 내용 붙혀넣기 ( 블로그 구현
+참고) 후 저장</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image170.jpg" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="images/image163.jpg" alt=""></figure>
+<h3 class="subhead">② 블로그 생성 — ChatGPT (GPT)</h3>
+<ul class="bullets"><li>콘텐츠 클릭</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image162.jpg" alt=""></figure>
+<ul class="bullets"><li>블로그 게시물 클릭</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image150.jpg" alt=""></figure>
+<ul class="bullets"><li>블로그 게시물 생성 클릭</li></ul>
+<p>※ 만약 이미 블로그가 있다면 우측 상단 ‘블로그 생성’ 클릭</p>
+<figure class="shot"><img loading="lazy" src="images/image173.jpg" alt=""></figure>
+<ul class="bullets"><li>생성 이후 Chat GPT 접속</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image149.jpg" alt=""></figure>
+<ul class="bullets"><li>아래와 같이 명령어 입력</li></ul>
+<p>※ 명령어는 자유롭게 작성하셔도 됩니다.</p>
+<p>단 어떤 샵을 운영할 것인지, 어떤 것을 원하는지,</p>
+<p>추가적인 조건에 대해서도 모두 상세하게 작성하시면 더 좋은 결과가
+나옵니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image148.jpg" alt=""></figure>
+<ul class="bullets"><li>이후 생성된 리스트 중에서 원하는 제목 선택</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image135.jpg" alt=""></figure>
+<ul class="bullets"><li>선택한 제목에 대해서 블로그 글 작성 요청</li></ul>
+<p>※ 추가적인 조건을 걸고 싶다면 추가적으로 작성해 주세요</p>
+<p>예: vitamin의 효능은 꼭 넣어줘</p>
+<figure class="shot"><img loading="lazy" src="images/image78.jpg" alt=""></figure>
+<ul class="bullets"><li>결과물이 나왔다면 복사 진행</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image108.jpg" alt=""></figure>
+<ul class="bullets"><li>블로그 제목 → 처음 정한 제목 붙여 넣기 / 블로그
+내용 → 제목 기반으로 작성된 블로그 글 넣기</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image83.jpg" alt=""></figure>
+<ul class="bullets"><li>이후 아래와 같이 이미지 생성 진행</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image65.jpg" alt=""></figure>
+<ul class="bullets"><li>생성된 이미지 다운로드</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image75.jpg" alt=""></figure>
+<ul class="bullets"><li>다시 쇼피파이 블로그 접속하여 이미지 추가 클릭</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image66.jpg" alt=""></figure>
+<ul class="bullets"><li>아래와 같이 이미지 선택하여 추가 진행</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image45.jpg" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="images/image50.jpg" alt=""></figure>
+<ul class="bullets"><li>이미지 로딩 완료 후 선택</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image63.jpg" alt=""></figure>
+<ul class="bullets"><li>공개 클릭 → 저장 클릭</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image48.jpg" alt=""></figure>
+<ul class="bullets"><li>이후 블로그 생성된 것 확인</li></ul>
+<p>※ 콘텐츠 → 블로그 게시물에서 확인 가능합니다</p>
+<figure class="shot"><img loading="lazy" src="images/image91.jpg" alt=""></figure>
+<h3 class="subhead">③ 블로그 구현</h3>
+<ul class="bullets"><li>온라인 스토어 클릭</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image119.jpg" alt=""></figure>
+<ul class="bullets"><li>사용자 지정 클릭</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image94.jpg" alt=""></figure>
+<ul class="bullets"><li>섹션 추가 클릭</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image97.jpg" alt=""></figure>
+<ul class="bullets"><li>블로그 게시물 클릭</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image101.jpg" alt=""></figure>
+<ul class="bullets"><li>선택 클릭</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image106.jpg" alt=""></figure>
+<ul class="bullets"><li>뉴스 클릭</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image102.jpg" alt=""></figure>
+<ul class="bullets"><li>생성된 블로그 확인.</li></ul>
+<p>블로그 제목은 “제목”부분에서 수정 가능합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image76.jpg" alt=""></figure>
+<div class="callout quiz"><div class="callout-label">✓ 확인 문제</div><ol class="quiz-list"><li>Essential AI Blog 방식과 ChatGPT 방식의 차이는
+무엇인가요?</li><li>블로그 글에서 상품 상세페이지로 연결하는 이유는
+무엇인가요?</li><li>작성한 블로그를 실제 스토어에 반영(구현)하려면
+어떤 단계를 거치나요?</li></ol></div>
+</section>
+<section class="doc-section" id="review">
+<div class="sec-head"><span class="sec-num">16</span><h2 class="sec-title">리뷰</h2></div>
+<p>최종 업데이트 시간: 2026년 7월 1일 오후 4:31</p>
+<p>본 매뉴얼은 Page Builder에서 리뷰 섹션을 만드는
+방법 입니다.</p>
+<p>시니어분들도 따라할 수 있도록 어디를 클릭하고, 무엇을
+입력하고, 어디를 확인해야 하는지 중심으로 정리했습니다.</p>
+<p>※ 리뷰 문구는 예시용으로 사용할 수 있으며, 실제 운영 시에는 실제 고객
+후기 또는 사용 허가를 받은 리뷰로 교체하는 것이 좋습니다.</p>
+<div class="step"><span class="step-badge">STEP 1</span><span class="step-title">리뷰 섹션 기본 개요</span></div>
+<p>리뷰 섹션은 고객 후기를 보여주는 영역입니다.</p>
+<p>상품을 구매하기 전 고객이 신뢰할 수 있도록 별점, 리뷰 제목,
+리뷰 내용, 작성자 이름 을 보기 좋게 배치합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image71.jpg" alt=""></figure>
+<p>리뷰 섹션은 보통 아래 요소로 구성됩니다.</p>
+<ul class="bullets"><li>리뷰 제목 : 예) Our Shop Review</li><li>리뷰 이미지 : 리뷰 카드 상단에 들어가는 대표
+이미지</li><li>별점 : 고객 만족도를 보여주는 요소</li><li>리뷰 한줄평 : 리뷰 내용을 짧게 요약한 문구</li><li>리뷰 본문 : 실제 후기처럼 보이는 상세 문장</li><li>작성자 이름 : Emily R. / Jason K. 처럼 자연스러운
+이름</li><li>슬라이더 기능 : 여러 리뷰를 넘겨볼 수 있는
+기능</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image21.jpg" alt=""></figure>
+<ul class="bullets"><li>리뷰 이미지는 너무 복잡하지 않은 이미지를 사용하는
+것이 좋습니다.</li><li>별점과 리뷰 제목은 고객이 가장 먼저 보는
+부분이므로 잘 보이게 배치합니다.</li><li>리뷰 카드 3개는 크기와 위치가 비슷해야 전체적으로
+깔끔해 보입니다.</li></ul>
+<p>※ 처음에는 완성된 리뷰 섹션의 구조를 먼저 확인한 뒤 작업을 시작하면
+이해하기 쉽습니다.</p>
+<div class="step"><span class="step-badge">STEP 2</span><span class="step-title">리뷰 문구 먼저 만들기</span></div>
+<p>리뷰 섹션을 만들기 전에 먼저 사용할 리뷰 문구를 준비합니다.</p>
+<p>ChatGPT를 활용하면 상품에 맞는 리뷰 예시를 빠르게 만들 수
+있습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image21.jpg" alt=""></figure>
+<h3 class="subhead">ChatGPT 입력 예시</h3>
+<p>쇼피파이에서 건강기능식품샵을 운영하고 있어.</p>
+<p>이때 리뷰를 예시용으로 만들 것인데, 가상의 인물 3명과 리뷰 평점
+5점대로 해서 리뷰를 만들어줘.</p>
+<p>필요한 건 별점, 한줄평, 리뷰 글, 사람 이름이야.</p>
+<figure class="shot"><img loading="lazy" src="images/image42.jpg" alt=""></figure>
+<h3 class="subhead">확인할 부분</h3>
+<ul class="bullets"><li>별점이 있는지 확인합니다.</li><li>한줄평이 있는지 확인합니다.</li><li>리뷰 본문이 너무 길지 않은지 확인합니다.</li><li>사람 이름이 자연스러운지 확인합니다.</li><li>리뷰 내용이 서로 너무 비슷하지 않은지
+확인합니다.</li></ul>
+<p>※ 리뷰가 너무 길면 “조금 더 짧게 줄여줘”라고 다시 요청하면
+됩니다.</p>
+<div class="step"><span class="step-badge">STEP 3</span><span class="step-title">리뷰 섹션 넣을 위치 정하기</span></div>
+<p>리뷰 섹션은 보통 상품 설명, 브랜드 소개, 혜택 안내가 끝난 아래쪽에
+넣습니다.</p>
+<p>너무 위에 넣으면 상품 설명 흐름이 끊길 수 있으므로 중간 또는 하단에
+배치하는 것이 좋습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image16.jpg" alt=""></figure>
+<p>어디에 넣으면 좋나요?</p>
+<ul class="bullets"><li>상품 설명이 끝난 아래쪽</li><li>브랜드 소개 섹션 아래</li><li>상세페이지 하단으로 내려가기 전</li><li>고객이 구매를 고민할 만한 위치</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image25.jpg" alt=""></figure>
+<h3 class="subhead">확인할 부분</h3>
+<ul class="bullets"><li>위쪽 섹션과 너무 붙어 있지 않은지 확인합니다.</li><li>아래쪽 섹션과 여백이 적당한지 확인합니다.</li><li>리뷰 섹션이 화면 가운데에 잘 맞는지
+확인합니다.</li></ul>
+<p>※ 리뷰 섹션은 고객 신뢰를 높이는 영역이므로 너무 작거나 구석에
+배치하지 않는 것이 좋습니다.</p>
+<div class="step"><span class="step-badge">STEP 4</span><span class="step-title">Add row로 작업 공간 만들기</span></div>
+<p>리뷰 섹션을 넣을 위치를 정했다면, 먼저 Add row 를
+눌러 작업 공간을 만듭니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image9.jpg" alt=""></figure>
+<h3 class="subhead">진행 순서</h3>
+<ul class="bullets"><li>리뷰를 넣고 싶은 위치로 이동합니다.</li><li>Add row 버튼을 클릭합니다.</li><li>새로운 Row가 생성되었는지 확인합니다.</li><li>Row가 원하는 위치에 들어갔는지 확인합니다.</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image1.jpg" alt=""></figure>
+<h3 class="subhead">확인할 부분</h3>
+<ul class="bullets"><li>빈 Row가 원하는 위치에 생겼는지 확인합니다.</li><li>기존 섹션 안에 잘 들어갔는지 확인합니다.</li><li>위치가 틀리면 드래그해서 원하는 위치로
+옮깁니다.</li></ul>
+<p>※ Row 위치가 틀리면 이후 작업이 전체적으로 어긋날 수 있으니 처음에 꼭
+확인합니다.</p>
+<div class="step"><span class="step-badge">STEP 5</span><span class="step-title">Slider 안에 Row 넣기</span></div>
+<p>리뷰를 넘겨볼 수 있게 만들려면 Slider 안에 Row가 들어가야
+합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image4.jpg" alt=""></figure>
+<h3 class="subhead">진행 순서</h3>
+<ul class="bullets"><li>Slider 영역을 선택합니다.</li><li>Slider 안쪽에 Row를 넣습니다.</li><li>Row가 Slider 안에 들어갔는지 확인합니다.</li><li>Slider를 클릭했을 때 리뷰 영역 전체가 선택되는지
+확인합니다.</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image10.jpg" alt=""></figure>
+<h3 class="subhead">설명</h3>
+<ul class="bullets"><li>Row가 Slider 밖에 있으면 화면에는 보여도 슬라이더
+기능이 적용되지 않을 수 있습니다.</li><li>Slider 안에 들어간 Row만 좌우로 넘길 수
+있습니다.</li><li>선택했을 때 표시되는 영역을 보고 Slider 안에
+들어갔는지 확인합니다.</li></ul>
+<p>※ 이 단계에서 가장 중요한 것은 Slider 안에 Row가 들어갔는지
+확인하는 것 입니다.</p>
+<div class="step"><span class="step-badge">STEP 6</span><span class="step-title">리뷰 카드 3열 만들기</span></div>
+<p>리뷰 3개를 한 줄에 보여주기 위해 Row를 3열 구조로 만듭니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image15.jpg" alt=""></figure>
+<h3 class="subhead">3열 구성</h3>
+<ul class="bullets"><li>첫 번째 리뷰 카드</li><li>두 번째 리뷰 카드</li><li>세 번째 리뷰 카드</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image11.jpg" alt=""></figure>
+<h3 class="subhead">확인할 부분</h3>
+<ul class="bullets"><li>카드가 한 줄에 3개로 나뉘었는지 확인합니다.</li><li>카드 간격이 일정한지 확인합니다.</li><li>좌우 여백이 너무 넓거나 좁지 않은지
+확인합니다.</li><li>세 카드의 크기가 비슷한지 확인합니다.</li></ul>
+<p>※ 하나의 카드만 크게 보이면 전체 디자인이 어색해지므로, 3개 카드
+크기를 최대한 맞춰줍니다.</p>
+<div class="step"><span class="step-badge">STEP 7</span><span class="step-title">슬라이더 설정 확인하기</span></div>
+<p>Slider를 클릭하면 오른쪽에 슬라이더 설정창이 나타납니다.</p>
+<p>여기에서 리뷰가 어떻게 넘어가는지 설정할 수 있습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image310.jpg" alt=""></figure>
+<h3 class="subhead">확인할 설정</h3>
+<ul class="bullets"><li>Columns</li><li>Columns per page</li><li>Columns slide per move</li><li>Slide speed</li><li>Swipe</li><li>Autoplay</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image71.jpg" alt=""></figure>
+<h3 class="subhead">추천 설정</h3>
+<ul class="bullets"><li>Columns : 3</li><li>Columns per page : 1</li><li>Columns slide per move : 1</li><li>Swipe : 필요 시 켜기</li><li>Autoplay : 처음에는 꺼두는 것을 추천</li></ul>
+<p>※ 자동으로 움직이는 리뷰보다 고객이 직접 넘겨보는 리뷰가 더
+안정적으로 보일 수 있습니다.</p>
+<div class="step"><span class="step-badge">STEP 8</span><span class="step-title">리뷰 이미지 준비하기</span></div>
+<p>리뷰 카드 상단에는 상품 분위기에 맞는 이미지를 넣습니다.</p>
+<p>이미지는 Pixabay 같은 무료 이미지 사이트에서 찾을 수 있습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image296.jpg" alt=""></figure>
+<h3 class="subhead">이미지 검색 예시</h3>
+<ul class="bullets"><li>건강식품 : vitamin, supplement, morning health</li><li>뷰티 제품 : skincare, beauty, clean skin</li><li>생활용품 : home, kitchen, organizer</li><li>반려동물 제품 : pet, dog, cat</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image294.jpg" alt=""></figure>
+<h3 class="subhead">이미지 선택 기준</h3>
+<ul class="bullets"><li>상품과 분위기가 맞는 이미지</li><li>너무 어둡지 않은 이미지</li><li>카드에 넣었을 때 잘리지 않는 이미지</li><li>리뷰 내용과 자연스럽게 어울리는 이미지</li></ul>
+<p>※ 이미지가 너무 복잡하면 리뷰 문구가 눈에 잘 들어오지 않을 수
+있습니다.</p>
+<div class="step"><span class="step-badge">STEP 9</span><span class="step-title">리뷰 이미지 넣기</span></div>
+<p>리뷰 카드 상단의 이미지 영역을 클릭한 뒤 준비한 이미지를
+넣습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image291.jpg" alt=""></figure>
+<h3 class="subhead">진행 순서</h3>
+<ul class="bullets"><li>리뷰 카드 상단 이미지 영역을 클릭합니다.</li><li>오른쪽 설정창에서 이미지 변경 또는 Pick 버튼을
+찾습니다.</li><li>사용할 이미지를 선택합니다.</li><li>이미지가 카드 안에 잘 들어갔는지 확인합니다.</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image285.jpg" alt=""></figure>
+<h3 class="subhead">확인할 부분</h3>
+<ul class="bullets"><li>이미지가 너무 크게 잘리지 않았는지 확인합니다.</li><li>이미지가 너무 작아 비어 보이지 않는지
+확인합니다.</li><li>카드 3개의 이미지 높이가 비슷한지 확인합니다.</li><li>상품 분위기와 잘 맞는지 확인합니다.</li></ul>
+<p>※ 이미지가 깨지거나 잘리면 이미지 크기 또는 높이를 조정합니다.</p>
+<div class="step"><span class="step-badge">STEP 10</span><span class="step-title">이미지 크롭 조정하기</span></div>
+<p>이미지를 넣었는데 중요한 부분이 잘렸다면 이미지 편집기에서 크롭을
+조정합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image281.jpg" alt=""></figure>
+<h3 class="subhead">크롭할 때 확인할 부분</h3>
+<ul class="bullets"><li>중요한 이미지 부분이 잘리지 않았는지
+확인합니다.</li><li>이미지 중심이 맞는지 확인합니다.</li><li>카드 안에서 보기 좋은 비율인지 확인합니다.</li><li>여백이 너무 많지 않은지 확인합니다.</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image299.jpg" alt=""></figure>
+<h3 class="subhead">설명</h3>
+<ul class="bullets"><li>제품 사진은 제품이 중심에 보이도록 맞춥니다.</li><li>인물 사진은 얼굴이나 손이 어색하게 잘리지 않게
+주의합니다.</li><li>배경 이미지는 텍스트와 겹치지 않도록
+조정합니다.</li></ul>
+<p>※ 이미지 편집 후에는 반드시 리뷰 카드 전체 화면에서 다시
+확인합니다.</p>
+<div class="step"><span class="step-badge">STEP 11</span><span class="step-title">별점 넣기</span></div>
+<p>이미지 아래쪽에 별점을 넣습니다.</p>
+<p>별점은 고객 만족도를 가장 빠르게 보여주는 요소입니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image287.jpg" alt=""></figure>
+<h3 class="subhead">입력 예시</h3>
+<p>★★★★★</p>
+<h3 class="subhead">진행 순서</h3>
+<ul class="bullets"><li>별점이 들어갈 텍스트 영역을 클릭합니다.</li><li>별 5개를 입력합니다.</li><li>가운데 정렬이 되어 있는지 확인합니다.</li><li>별점 크기가 너무 작지 않은지 확인합니다.</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image272.jpg" alt=""></figure>
+<h3 class="subhead">설명</h3>
+<ul class="bullets"><li>별점은 이미지 바로 아래에 배치하는 것이
+자연스럽습니다.</li><li>리뷰 카드 3개 모두 같은 위치에 넣는 것이
+좋습니다.</li><li>별점 크기는 제목보다 살짝 크게 보여도
+괜찮습니다.</li></ul>
+<p>※ 별점 위치가 카드마다 다르면 전체가 정돈되지 않아 보일 수
+있습니다.</p>
+<div class="step"><span class="step-badge">STEP 12</span><span class="step-title">리뷰 제목 넣기</span></div>
+<p>별점 아래에는 리뷰 제목을 넣습니다.</p>
+<p>리뷰 제목은 고객이 가장 먼저 읽는 문구이므로 짧고 명확하게
+작성합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image266.jpg" alt=""></figure>
+<h3 class="subhead">리뷰 제목 예시</h3>
+<p>"Perfect boost for my mornings!"</p>
+<p>"Clean ingredients and real results"</p>
+<p>"My whole family takes it now :)"</p>
+<figure class="shot"><img loading="lazy" src="images/image259.jpg" alt=""></figure>
+<h3 class="subhead">확인할 부분</h3>
+<ul class="bullets"><li>제목이 너무 길지 않은지 확인합니다.</li><li>제목이 두 줄 이상으로 길게 넘어가지 않는지
+확인합니다.</li><li>리뷰 본문과 내용이 자연스럽게 이어지는지
+확인합니다.</li><li>카드마다 제목 위치가 비슷한지 확인합니다.</li></ul>
+<p>※ 제목은 고객이 후기를 읽고 싶게 만드는 역할을 합니다.</p>
+<div class="step"><span class="step-badge">STEP 13</span><span class="step-title">리뷰 본문 넣기</span></div>
+<p>리뷰 제목 아래에는 실제 후기처럼 보이는 리뷰 본문을 입력합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image252.jpg" alt=""></figure>
+<h3 class="subhead">리뷰 본문 작성 기준</h3>
+<ul class="bullets"><li>너무 짧지 않게 작성합니다.</li><li>너무 길어서 카드가 깨지지 않게 작성합니다.</li><li>사용 전 불편함과 사용 후 변화를 자연스럽게
+넣습니다.</li><li>과장된 표현은 줄이고 실제 후기처럼 작성합니다.</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image254.jpg" alt=""></figure>
+<h3 class="subhead">설명</h3>
+<ul class="bullets"><li>본문이 길면 글씨가 작아져 읽기 어려울 수
+있습니다.</li><li>줄 간격이 너무 좁으면 답답해 보입니다.</li><li>카드 3개의 본문 길이가 너무 차이 나지 않게 맞추면
+좋습니다.</li></ul>
+<p>※ 시니어분들은 먼저 예시 문구를 복사해서 넣은 뒤, 필요한 부분만
+수정하면 됩니다.</p>
+<div class="step"><span class="step-badge">STEP 14</span><span class="step-title">작성자 이름 넣기</span></div>
+<p>리뷰 카드 하단에는 작성자 이름을 넣습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image249.jpg" alt=""></figure>
+<h3 class="subhead">작성자 이름 예시</h3>
+<ul class="bullets"><li>Emily R.</li><li>Jason K.</li><li>Sophia L.</li></ul>
+<h3 class="subhead">진행 순서</h3>
+<ul class="bullets"><li>리뷰 본문 아래쪽 텍스트 영역을 클릭합니다.</li><li>작성자 이름을 입력합니다.</li><li>가운데 정렬이 되어 있는지 확인합니다.</li><li>다른 카드와 위치가 맞는지 확인합니다.</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image257.jpg" alt=""></figure>
+<h3 class="subhead">설명</h3>
+<ul class="bullets"><li>이름은 실제 사람처럼 자연스럽게 보이도록
+작성합니다.</li><li>전체 이름보다는 이니셜을 섞어 쓰면 더
+자연스럽습니다.</li><li>카드마다 이름이 겹치지 않게 작성합니다.</li></ul>
+<p>※ 작성자 이름까지 들어가야 리뷰 카드가 완성된 느낌이 납니다.</p>
+<div class="step"><span class="step-badge">STEP 15</span><span class="step-title">두 번째, 세 번째 리뷰 카드 수정하기</span></div>
+<p>첫 번째 리뷰 카드가 완성되면 같은 방식으로 두 번째, 세 번째 카드도
+수정합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image253.jpg" alt=""></figure>
+<h3 class="subhead">수정할 내용</h3>
+<ul class="bullets"><li>이미지</li><li>별점</li><li>리뷰 제목</li><li>리뷰 본문</li><li>작성자 이름</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image260.jpg" alt=""></figure>
+<h3 class="subhead">설명</h3>
+<ul class="bullets"><li>첫 번째 카드를 기준으로 나머지 카드도 같은 구조로
+맞춥니다.</li><li>이미지 높이, 별점 위치, 제목 위치, 본문 위치를
+비슷하게 맞춥니다.</li><li>카드마다 리뷰 내용은 서로 다르게 작성하는 것이
+좋습니다.</li></ul>
+<p>※ 예를 들어 첫 번째는 에너지, 두 번째는 성분, 세 번째는 가족 사용
+후기로 나누면 자연스럽습니다.</p>
+<div class="step"><span class="step-badge">STEP 16</span><span class="step-title">리뷰 카드 전체 정렬 확인하기</span></div>
+<p>리뷰 카드 3개를 모두 수정한 뒤에는 전체 정렬을 확인합니다.</p>
+<h3 class="subhead">확인할 부분</h3>
+<ul class="bullets"><li>카드 3개가 한 줄에 잘 들어갔는지 확인합니다.</li><li>이미지 높이가 비슷한지 확인합니다.</li><li>별점 위치가 같은지 확인합니다.</li><li>제목과 본문이 한쪽으로 밀리지 않았는지
+확인합니다.</li><li>작성자 이름 위치가 비슷한지 확인합니다.</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image251.jpg" alt=""></figure>
+<h3 class="subhead">설명</h3>
+<ul class="bullets"><li>카드 하나만 아래로 길게 내려가면 전체 디자인이
+깨져 보입니다.</li><li>텍스트가 너무 길면 줄이거나 글자 크기를
+조정합니다.</li><li>세 카드가 같은 높이로 보이면 가장 깔끔합니다.</li></ul>
+<p>※ 전체 정렬은 고객이 봤을 때 신뢰감 있는 디자인인지 판단하는 중요한
+단계입니다.</p>
+<div class="step"><span class="step-badge">STEP 17</span><span class="step-title">슬라이더 점과 화살표 확인하기</span></div>
+<p>리뷰 섹션이 슬라이더로 만들어졌다면 하단 점과 좌우 화살표가 보이는지
+확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image270.jpg" alt=""></figure>
+<h3 class="subhead">확인할 부분</h3>
+<ul class="bullets"><li>하단 점이 보이는지 확인합니다.</li><li>왼쪽 화살표가 보이는지 확인합니다.</li><li>오른쪽 화살표가 보이는지 확인합니다.</li><li>클릭했을 때 리뷰가 넘어가는지 확인합니다.</li></ul>
+<figure class="shot"><img loading="lazy" src="images/image283.jpg" alt=""></figure>
+<h3 class="subhead">설명</h3>
+<ul class="bullets"><li>하단 점은 현재 몇 번째 슬라이드인지 보여주는
+표시입니다.</li><li>좌우 화살표는 고객이 리뷰를 넘겨볼 때
+사용합니다.</li><li>점이나 화살표가 너무 멀리 떨어져 있으면 위치를
+조정합니다.</li></ul>
+<p>※ 슬라이더 기능이 제대로 되는지 반드시 직접 눌러서 확인합니다.</p>
+<div class="step"><span class="step-badge">STEP 18</span><span class="step-title">모바일 화면 확인하기</span></div>
+<p>PC 화면에서 예쁘게 보여도 모바일에서 깨질 수 있습니다.</p>
+<p>저장 전 모바일 화면도 꼭 확인합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image267.jpg" alt=""></figure>
+<h3 class="subhead">모바일에서 확인할 부분</h3>
+<ul class="bullets"><li>리뷰 카드가 너무 작게 보이지 않는지
+확인합니다.</li><li>텍스트가 잘리지 않는지 확인합니다.</li><li>이미지가 이상하게 확대되지 않았는지
+확인합니다.</li><li>슬라이더가 정상적으로 넘어가는지 확인합니다.</li><li>카드 간격이 너무 좁지 않은지 확인합니다.</li></ul>
+<h3 class="subhead">설명</h3>
+<ul class="bullets"><li>고객은 모바일로 쇼핑몰을 보는 경우가 많습니다.</li><li>PC보다 모바일 화면 확인이 더 중요할 수
+있습니다.</li><li>모바일에서 깨지면 오른쪽 설정창에서 모바일
+레이아웃을 조정합니다.</li></ul>
+<p>※ 모바일에서 읽기 어려우면 실제 고객도 리뷰를 잘 보지 않을 가능성이
+높습니다.</p>
+<div class="step"><span class="step-badge">STEP 19</span><span class="step-title">저장하기</span></div>
+<p>모든 수정이 끝났다면 반드시 저장합니다</p>
+<h3 class="subhead">저장 전 확인할 부분</h3>
+<ul class="bullets"><li>리뷰 제목이 잘 보이는지 확인합니다.</li><li>이미지가 모두 들어갔는지 확인합니다.</li><li>별점이 들어갔는지 확인합니다.</li><li>리뷰 본문이 잘리지 않는지 확인합니다.</li><li>작성자 이름이 들어갔는지 확인합니다.</li><li>슬라이더 점과 화살표가 보이는지 확인합니다.</li><li>모바일에서도 깨지지 않는지 확인합니다.</li></ul>
+<h3 class="subhead">저장 방법</h3>
+<ul class="bullets"><li>오른쪽 상단의 Save 버튼을
+클릭합니다.</li><li>저장 완료 표시가 나오는지 확인합니다.</li><li>가능하면 View live 로 실제 화면도
+확인합니다.</li></ul>
+<p>※ 저장하지 않으면 작업한 내용이 반영되지 않을 수 있습니다.</p>
+<h3 class="subhead">리뷰 문구 예시</h3>
+<p>아래 문구는 리뷰 카드에 바로 넣을 수 있는 예시입니다.</p>
+<h3 class="subhead">리뷰 1</h3>
+<p>★★★★★</p>
+<p>"Perfect boost for my mornings!"</p>
+<p>I used to feel sluggish every morning no matter what I did. But since
+I started taking this supplement, I feel lighter and more energized
+throughout the day. It’s super convenient to take before work, and I’ve
+noticed better focus and digestion. Definitely buying again!</p>
+<ul class="bullets"><li>Emily R. -</li></ul>
+<h3 class="subhead">리뷰 2</h3>
+<p>★★★★★</p>
+<p>"Clean ingredients and real results"</p>
+<p>I always check the ingredient list before buying supplements, and
+this one impressed me. Everything is clearly listed and high quality.
+After taking it consistently for two weeks, my skin looks clearer and I
+feel less tired. I’ve already recommended it to my friends!</p>
+<ul class="bullets"><li>Jason K. -</li></ul>
+<h3 class="subhead">리뷰 3</h3>
+<p>★★★★★</p>
+<p>"My whole family takes it now :)"</p>
+<p>I originally bought it just for myself, but after seeing the results,
+my husband and even my parents started taking it too. My mom says her
+digestion has improved, and my husband feels more energetic these days.
+This is now a must-have for our family’s health!</p>
+<ul class="bullets"><li>Sophia L. -</li></ul>
+<h3 class="subhead">최종 체크리스트</h3>
+<ul class="bullets"><li>리뷰 섹션을 넣을 위치를 정했나요?</li><li>Add row를 눌러 작업 공간을 만들었나요?</li><li>Slider 안에 Row가 들어갔나요?</li><li>리뷰 카드가 3열로 구성되었나요?</li><li>리뷰 이미지가 들어갔나요?</li><li>별점이 들어갔나요?</li><li>리뷰 제목을 수정했나요?</li><li>리뷰 본문을 수정했나요?</li><li>작성자 이름을 입력했나요?</li><li>카드 3개의 크기와 간격이 비슷한가요?</li><li>하단 점이 보이나요?</li><li>좌우 화살표가 보이나요?</li><li>모바일 화면에서도 깨지지 않나요?</li><li>Save 버튼을 눌러 저장했나요?</li></ul>
+<div class="callout quiz"><div class="callout-label">✓ 확인 문제</div><ol class="quiz-list"><li>리뷰 문구는 먼저 무엇으로 만드나요?</li><li>리뷰 섹션은 어디에 배치하면 좋나요?</li><li>리뷰가 초기 스토어 신뢰에 중요한 이유는
+무엇인가요?</li></ol></div>
+</section>
+<section class="doc-section" id="footer">
+<div class="sec-head"><span class="sec-num">17</span><h2 class="sec-title">푸터 및 정책</h2></div>
+<div class="soon-box">이 챕터는 <b>준비 중</b>입니다. 자료가 업데이트되면 이 자리에 채워집니다.</div>
+</section>
+<section class="doc-section" id="popup">
+<div class="sec-head"><span class="sec-num">18</span><h2 class="sec-title">팝업창 & 쿠키 설정</h2></div>
+<p>최종 업데이트 시간: 2026년 6월 24일 오후 4:23</p>
+<div class="callout overview"><div class="callout-label">이 절 개요</div><p>본 매뉴얼은 Shopify 스토어에 쿠키 배너(Cookie
+Banner) 를 추가하는 방법을 안내하기 위해 제작되었습니다.</p><p>쿠키 배너는 고객이 스토어에 접속했을 때 쿠키 사용 안내 문구를
+표시하는 영역입니다.</p><p>기본 테마에 쿠키 배너 기능이 없는 경우, Section Store 앱을 활용하여
+무료 쿠키 배너 섹션을 추가할 수 있습니다.</p><p>본 매뉴얼에서는 Shopify 앱스토어에서 Section Store 앱을 설치하고,
+무료 Cookie Banner 섹션을 가져온 뒤, 테마 편집기에서 쿠키 배너를
+추가하고 확인하는 과정까지 순서대로 안내합니다.</p></div>
+<div class="step"><span class="step-badge">STEP 1</span><span class="step-title">Shopify 검색창 클릭하기</span></div>
+<p>먼저 Shopify 관리자 페이지에 접속합니다.</p>
+<p>상단에 있는 검색창을 클릭합니다.</p>
+<p>이 검색창을 통해 앱이나 메뉴를 빠르게 검색할 수 있습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image275.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 2</span><span class="step-title">Section Store 검색하기</span></div>
+<p>검색창에 section store 를 입력한 뒤 Enter를
+누릅니다.</p>
+<p>검색 결과에서 Section Store 앱 또는 Shopify App Store 검색 결과로
+이동합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image290.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 3</span><span class="step-title">Section Store 앱 설치하기</span></div>
+<p>Shopify App Store에서 Section Store: Theme Sections 앱 화면으로 이동합니다.</p>
+<p>앱 상세 화면에서 설치 버튼을 클릭합니다.</p>
+<p>Section Store는 Shopify 테마에 다양한 섹션을 추가할 수 있는
+앱입니다.</p>
+<p>쿠키 배너도 해당 앱에서 제공하는 무료 섹션을 사용하여 추가할 수
+있습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image261.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 4</span><span class="step-title">앱 설치 승인하기</span></div>
+<p>앱 설치 확인 창이 나타나면 앱에서 요구하는 권한을 확인합니다.</p>
+<p>확인 후 우측 하단의 설치 버튼을 클릭합니다.</p>
+<p>설치를 완료하면 Shopify 관리자 페이지 안에 Section Store 앱이
+추가됩니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image274.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 5</span><span class="step-title">Explore Sections 메뉴 클릭하기</span></div>
+<p>앱 설치가 완료되면 왼쪽 메뉴에 Section Store 가
+추가됩니다.</p>
+<p>Section Store 메뉴 아래에서 Explore Sections 를
+클릭합니다.</p>
+<p>이 메뉴에서는 Section Store에서 제공하는 다양한 섹션을 확인할 수
+있습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image280.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 6</span><span class="step-title">Free 카테고리 선택하기</span></div>
+<p>Explore Sections 화면으로 이동하면 여러 섹션 카테고리가
+표시됩니다.</p>
+<p>무료로 사용할 수 있는 섹션만 보기 위해 상단 카테고리에서 Free 를 클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image277.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 7</span><span class="step-title">Cookie Banner 선택하기</span></div>
+<p>Free 카테고리 안에서 Cookie banner 섹션을
+찾습니다.</p>
+<p>Cookie banner 카드를 클릭하여 상세 페이지로 이동합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image279.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 8</span><span class="step-title">무료 섹션 가져오기</span></div>
+<p>Cookie banner 상세 화면으로 이동하면 우측에 Get free
+section 버튼이 표시됩니다.</p>
+<p>Get free section 버튼을 클릭하여 해당 섹션을 내
+Section Store 목록에 추가합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image264.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 9</span><span class="step-title">테마에 추가하기</span></div>
+<p>Cookie banner 섹션을 가져온 뒤, My sections 목록에서 Cookie banner
+항목을 확인합니다.</p>
+<p>우측의 Add to theme 버튼을 클릭합니다.</p>
+<p>이 버튼은 가져온 섹션을 실제 Shopify 테마에 연결하는 단계입니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image236.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 10</span><span class="step-title">적용할 테마 선택하기</span></div>
+<p>Add to theme 버튼을 클릭하면 적용할 테마 목록이 나타납니다.</p>
+<p>현재 운영 중인 테마인 Default (Live) 를
+선택합니다.</p>
+<p>Live 테마를 선택해야 현재 고객이 보는 스토어에 쿠키 배너를 적용할 수
+있습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image219.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 11</span><span class="step-title">테마 편집기 이동하기</span></div>
+<p>쿠키 배너 섹션을 테마에 추가한 뒤, 실제 화면에 배치하기 위해 테마
+편집기로 이동합니다.</p>
+<p>왼쪽 메뉴에서 온라인 스토어 옆의 편집 아이콘을
+클릭합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image243.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 12</span><span class="step-title">섹션 추가 클릭하기</span></div>
+<p>테마 편집기 화면으로 이동하면 왼쪽에 현재 페이지 구조가
+표시됩니다.</p>
+<p>쿠키 배너를 추가할 위치에서 섹션 추가 버튼을
+클릭합니다.</p>
+<p>일반적으로 쿠키 배너는 고객 화면 하단에 표시되는 형태가 많기 때문에,
+페이지 구조를 확인한 뒤 적절한 위치에 추가합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image227.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 13</span><span class="step-title">SS - Cookie Banner 선택하기</span></div>
+<p>섹션 추가 목록이 열리면 검색 또는 목록에서 SS - Cookie
+Banner 를 선택합니다.</p>
+<p>SS는 Section Store에서 추가한 섹션을 의미합니다.</p>
+<p>해당 항목을 클릭하면 쿠키 배너 섹션이 현재 테마 페이지에
+추가됩니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image224.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 14</span><span class="step-title">쿠키 배너 내용 수정하기</span></div>
+<p>쿠키 배너 섹션을 추가하면 왼쪽 설정 패널에서 문구, 색상, 크기, 여백
+등을 수정할 수 있습니다.</p>
+<p>기본 문구를 그대로 사용해도 되지만, 스토어 분위기나 안내 방식에 맞게
+문구를 수정할 수 있습니다.</p>
+<p>예시 문구는 아래와 같습니다.</p>
+<p>“We use cookies to ensure the best possible user experience. Please
+agree to our cookies policy by clicking ‘Accept’.”</p>
+<p>문구를 수정할 때는 고객이 이해하기 쉬운 표현을 사용하는 것이
+좋습니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image221.jpg" alt=""></figure>
+<div class="step"><span class="step-badge">STEP 15</span><span class="step-title">쿠키 배너 적용 확인하기</span></div>
+<p>설정이 완료되면 우측 미리보기 화면에서 쿠키 배너가 정상적으로
+표시되는지 확인합니다.</p>
+<p>화면에 쿠키 배너가 보이고, Accept / Decline 버튼이 정상적으로
+표시되면 추가가 완료된 것입니다.</p>
+<p>마지막으로 테마 편집기 상단의 저장 버튼을 눌러 변경
+사항을 저장합니다.</p>
+<figure class="shot"><img loading="lazy" src="images/image234.jpg" alt=""></figure>
+<h3 class="subhead">쿠키 배너 설정 시 주의사항</h3>
+<p>쿠키 배너는 고객에게 쿠키 사용 여부를 안내하는 영역입니다.</p>
+<p>스토어 운영 국가에 따라 쿠키 안내 문구나 동의 방식이 달라질 수
+있으므로, 실제 운영 시에는 스토어 운영 기준에 맞게 문구를 확인해야
+합니다.</p>
+<p>또한 앱 설치 화면에서 추가 요금이 발생할 수 있다는 안내가 표시될 수
+있으므로, 무료 섹션을 사용할 때도 앱 요금제와 섹션 가격을 반드시 확인한
+뒤 진행해야 합니다.</p>
+<h3 class="subhead">최종 확인 체크리스트</h3>
+<p>쿠키 배너 설정이 끝난 뒤 아래 내용을 확인합니다.</p>
+<ul class="bullets"><li>Section Store 앱을 설치했는지 확인</li><li>Explore Sections 메뉴에 접속했는지 확인</li><li>Free 카테고리에서 Cookie banner를 선택했는지
+확인</li><li>Get free section 버튼을 클릭했는지 확인</li><li>Add to theme 버튼을 클릭했는지 확인</li><li>Default (Live) 테마를 선택했는지 확인</li><li>테마 편집기에서 SS - Cookie Banner 섹션을
+추가했는지 확인</li><li>쿠키 배너 문구와 디자인을 수정했는지 확인</li><li>미리보기 화면에서 쿠키 배너가 정상적으로 보이는지
+확인</li><li>마지막으로 저장 버튼을 클릭했는지 확인</li></ul>
+<p>위 항목이 모두 완료되었다면 Shopify 쿠키 배너 설정은 정상적으로
+완료된 것입니다.</p>
+<div class="callout quiz"><div class="callout-label">✓ 확인 문제</div><ol class="quiz-list"><li>쿠키 배너는 어떤 앱으로 가져오나요?</li><li>무료 섹션(Cookie Banner)을 테마에 추가하는 과정은
+어떻게 되나요?</li><li>쿠키 배너가 필요한 이유(개인정보·동의)는
+무엇인가요?</li></ol></div>
+</section>
+    <div class="footer">SHOPIFY 실무 교재 · 3단원 스토어 초기 작업 &nbsp;|&nbsp; 준비 중 챕터는 자료 업데이트 후 채워집니다.</div>
+  </main>
+</div>
+<script>
+// scroll-spy: highlight current nav item
+const links=[...document.querySelectorAll('.nav-item')];
+const map={};links.forEach(l=>{const id=l.getAttribute('href').slice(1);const el=document.getElementById(id);if(el)map[id]=l;});
+const obs=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){links.forEach(l=>l.classList.remove('active'));if(map[e.target.id])map[e.target.id].classList.add('active');}});},{rootMargin:'-10% 0px -80% 0px',threshold:0});
+Object.keys(map).forEach(id=>{const el=document.getElementById(id);if(el)obs.observe(el);});
+links.forEach(l=>l.addEventListener('click',()=>document.body.classList.remove('nav-open')));
+</script>
+</body>
+</html>
