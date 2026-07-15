@@ -9,7 +9,8 @@
       brand: { title: '발주 &amp; 광고<br>설정 훈련', sub: '사용자 영역' },
       base: '',            // 사용자 페이지는 루트 기준
       items: [
-        { key: 'home',     ico: '🏠', label: '메인',            href: 'index.html' },
+        { key: 'hub',      ico: '🧭', label: '메뉴 선택',        href: 'home.html' },
+        { key: 'home',     ico: '🏠', label: '훈련 메인',        href: 'index.html' },
         { key: 'myinfo',   ico: '🧾', label: '내 스토어 정보',    href: 'my-info.html' },
         { key: 'basic',    ico: '⚙️', label: '기본 설정 연습하기', href: 'basic-settings.html' },
         { key: 'ad',       ico: '📢', label: '광고 설정하기',      href: 'ad-settings.html' },
