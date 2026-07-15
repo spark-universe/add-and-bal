@@ -28,9 +28,24 @@
           </div>
           <div class="field" style="grid-column:1/-1;">
             <label>과제 설명</label>
-            <textarea id="fDesc" rows="4" placeholder="수강생이 해야 할 내용을 적어주세요."
+            <textarea id="fDesc" rows="3" placeholder="수강생이 해야 할 내용을 적어주세요."
               style="width:100%;padding:11px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:0.88rem;resize:vertical;"></textarea>
           </div>
+
+          <div class="field" style="grid-column:1/-1;">
+            <label>매뉴얼 링크</label>
+            <textarea id="fManual" rows="5" placeholder="[Shopify 신상품 영역 제작 매뉴얼]
+https://www.notion.so/...
+[카테고리 바로가기 생성 매뉴얼]
+https://www.notion.so/..."
+              style="width:100%;padding:11px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:0.85rem;resize:vertical;"></textarea>
+            <div class="field-hint">
+              <b>[제목]</b> 을 한 줄, 그 아래 줄에 링크를 붙여넣으세요. 여러 개를 이어서 붙여도 됩니다.
+              (또는 <b>제목 | 링크</b> 형식도 인식합니다.)
+            </div>
+            <div id="manualPreview" class="ch-mn__list" style="margin-top:6px;"></div>
+          </div>
+
           <div class="field">
             <label>분류</label>
             <input type="text" id="fCategory" list="catList" placeholder="예: 기본 설정">
@@ -41,12 +56,12 @@
             <input type="number" id="fPoints" min="0" step="1" placeholder="10">
           </div>
           <div class="field">
-            <label>시작일</label>
-            <input type="date" id="fOpen">
+            <label>시작일시</label>
+            <input type="datetime-local" id="fOpen">
           </div>
           <div class="field">
-            <label>마감일</label>
-            <input type="date" id="fDue">
+            <label>마감일시</label>
+            <input type="datetime-local" id="fDue">
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">

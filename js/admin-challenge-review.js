@@ -75,6 +75,10 @@
           '<div style="background:#f6f7f9;border-radius:8px;padding:12px 14px;white-space:pre-wrap;' +
             'line-height:1.6;font-size:0.88rem;min-height:60px;">' +
             esc(s.content || '(내용 없음)') + '</div>' +
+          (s.file_name
+            ? '<div class="ch-file" style="margin-top:10px;">📎 <a href="#" id="rvFile">' +
+              esc(s.file_name) + '</a></div>'
+            : '') +
 
           '<div class="prod-form" style="margin-top:16px;">' +
             '<div class="field">' +
@@ -108,6 +112,15 @@
 
     box.addEventListener('click', function (e) {
       if (e.target === box || e.target.closest('[data-close]')) box.remove();
+    });
+
+    // 첨부 파일: 비공개 버킷이므로 임시 서명 URL 을 만들어 연다
+    var fileLink = box.querySelector('#rvFile');
+    if (fileLink) fileLink.addEventListener('click', async function (e) {
+      e.preventDefault();
+      var r = await sb.storage.from('submissions').createSignedUrl(s.file_path, 300);
+      if (r.error || !r.data) { alert('파일을 열 수 없습니다: ' + (r.error && r.error.message)); return; }
+      window.open(r.data.signedUrl, '_blank');
     });
 
     box.querySelector('#rvSave').addEventListener('click', async function () {

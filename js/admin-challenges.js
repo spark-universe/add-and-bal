@@ -12,6 +12,7 @@
   var els = {
     title: document.getElementById('fTitle'),
     desc: document.getElementById('fDesc'),
+    manual: document.getElementById('fManual'),
     category: document.getElementById('fCategory'),
     points: document.getElementById('fPoints'),
     open: document.getElementById('fOpen'),
@@ -30,21 +31,75 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
     });
   }
-  function fmtDate(iso) { return iso ? iso.slice(0, 10).replace(/-/g, '.') : '-'; }
+  function fmtDate(iso) {
+    if (!iso) return '-';
+    var d = new Date(iso);
+    var h = d.getHours(), ampm = h >= 12 ? '오후' : '오전', h12 = h % 12 || 12;
+    return (d.getMonth() + 1) + '.' + d.getDate() + ' ' + ampm + ' ' + h12 + '시' +
+      (d.getMinutes() ? ' ' + d.getMinutes() + '분' : '');
+  }
+
+  // datetime-local 값(로컬시간)을 저장용 ISO로, 반대로도 변환
+  function localToISO(v) { return v ? new Date(v).toISOString() : null; }
+  function isoToLocal(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    var off = d.getTimezoneOffset() * 60000;
+    return new Date(d - off).toISOString().slice(0, 16);
+  }
+
+  /* 매뉴얼 붙여넣기 파싱:
+     "[제목]\n링크"  또는  "제목 | 링크"  형식을 {title, url} 목록으로 */
+  function parseManual(text) {
+    var out = [];
+    var lines = text.split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
+    var pendingTitle = null;
+
+    lines.forEach(function (line) {
+      var pipe = line.split('|');
+      if (pipe.length >= 2 && /https?:\/\//.test(pipe[1])) {   // 제목 | 링크
+        out.push({ title: pipe[0].trim(), url: pipe.slice(1).join('|').trim() });
+        pendingTitle = null;
+        return;
+      }
+      var m = line.match(/^\[(.+)\]$/);         // [제목]
+      if (m) { pendingTitle = m[1].trim(); return; }
+      if (/^https?:\/\//.test(line)) {          // 링크 줄
+        out.push({ title: pendingTitle || line, url: line });
+        pendingTitle = null;
+      }
+    });
+    return out;
+  }
+
+  function renderManualPreview() {
+    var items = parseManual(els.manual.value);
+    var box = document.getElementById('manualPreview');
+    box.innerHTML = items.length
+      ? items.map(function (m, i) {
+          return '<div class="ch-mn"><span class="ch-mn__n">' + (i + 1) + '</span>' +
+            '<span class="ch-mn__t">' + esc(m.title) + '</span>' +
+            '<a class="ch-mn__u" href="' + esc(m.url) + '" target="_blank">링크 ↗</a></div>';
+        }).join('')
+      : '';
+  }
 
   function readForm() {
     return {
       title: els.title.value.trim(),
       description: els.desc.value.trim() || null,
+      manual: parseManual(els.manual.value),
       category: els.category.value.trim() || null,
       points: parseInt(els.points.value, 10) || 0,
-      open_at: els.open.value || null,
-      due_at: els.due.value || null,
+      open_at: localToISO(els.open.value),
+      due_at: localToISO(els.due.value),
     };
   }
   function clearForm() {
     editingId = null;
-    els.title.value = els.desc.value = els.category.value = els.points.value = els.open.value = els.due.value = '';
+    els.title.value = els.desc.value = els.manual.value = els.category.value =
+      els.points.value = els.open.value = els.due.value = '';
+    renderManualPreview();
     els.formTitle.textContent = '과제 등록';
     els.saveBtn.textContent = '등록하기';
     els.cancelEdit.hidden = true;
@@ -53,10 +108,14 @@
     editingId = c.id;
     els.title.value = c.title || '';
     els.desc.value = c.description || '';
+    els.manual.value = (c.manual || []).map(function (m) {
+      return '[' + m.title + ']\n' + m.url;
+    }).join('\n');
+    renderManualPreview();
     els.category.value = c.category || '';
     els.points.value = c.points != null ? c.points : '';
-    els.open.value = c.open_at || '';
-    els.due.value = c.due_at || '';
+    els.open.value = isoToLocal(c.open_at);
+    els.due.value = isoToLocal(c.due_at);
     els.formTitle.textContent = '과제 수정 — ' + c.title;
     els.saveBtn.textContent = '수정 저장';
     els.cancelEdit.hidden = false;
@@ -135,6 +194,7 @@
   });
 
   els.cancelEdit.addEventListener('click', clearForm);
+  els.manual.addEventListener('input', renderManualPreview);
 
   els.body.addEventListener('click', async function (e) {
     var btn = e.target.closest('button[data-act]');

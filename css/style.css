@@ -43,6 +43,30 @@ a { color: inherit; text-decoration: none; }
 .ch-review.ok { background: #eaf7ef; border: 1px solid #b7e3c8; color: #1a6b3c; }
 .ch-review.no { background: #fff1f1; border: 1px solid #f3aeae; color: #a32626; }
 
+/* 매뉴얼 링크 목록 */
+.ch-mn__list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 4px; }
+.ch-mn {
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px;
+  background: #fff; text-decoration: none; color: var(--text);
+}
+.ch-mn:hover { border-color: var(--primary); background: var(--primary-soft); }
+.ch-mn__n {
+  width: 22px; height: 22px; border-radius: 6px; background: #eef1f5;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; font-weight: 700; color: var(--muted); flex-shrink: 0;
+}
+.ch-mn__t { flex: 1; font-size: 0.85rem; font-weight: 600; }
+.ch-mn__u { font-size: 0.78rem; color: var(--primary); font-weight: 700; white-space: nowrap; }
+
+/* 별도 제출란 */
+.ch-submit {
+  margin-top: 18px; border-top: 2px solid var(--border); padding-top: 16px;
+}
+.ch-submit__title { font-weight: 800; font-size: 0.92rem; margin-bottom: 12px; }
+.ch-file { font-size: 0.82rem; color: var(--muted); margin-top: 8px; }
+.ch-file a { color: var(--primary); }
+
 /* 달력 */
 .cal {
   display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px;

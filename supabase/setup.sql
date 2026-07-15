@@ -89,13 +89,18 @@ create table if not exists public.challenges (
   id bigint generated always as identity primary key,
   title text not null,
   description text,                 -- 과제 설명
+  manual jsonb default '[]'::jsonb, -- 매뉴얼 링크 목록 [{title, url}]
   category text,                    -- 분류 (예: 기본 설정 / 광고 / 발주 ...)
   points int default 0,             -- 배점
-  open_at date,                     -- 시작일 (일정 보기에 표시)
-  due_at date,                      -- 마감일
+  open_at timestamptz,              -- 시작일시 (일정 보기에 표시)
+  due_at timestamptz,               -- 마감일시
   active boolean default true,      -- 끄면 수강생에게 안 보임
   created_at timestamptz default now()
 );
+-- (이전 버전 스키마를 이미 실행했다면 아래가 컬럼/타입을 맞춰줌)
+alter table public.challenges add column if not exists manual jsonb default '[]'::jsonb;
+alter table public.challenges alter column open_at type timestamptz using open_at::timestamptz;
+alter table public.challenges alter column due_at  type timestamptz using due_at::timestamptz;
 create index if not exists challenges_due_idx on public.challenges (due_at);
 
 -- 수강생의 과제 제출 (과제 1개당 1건)

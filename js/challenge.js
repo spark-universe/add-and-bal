@@ -17,12 +17,21 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
     });
   }
-  function fmtDate(iso) { return iso ? iso.slice(0, 10).replace(/-/g, '.') : '-'; }
+  function fmtDate(iso) {
+    if (!iso) return '-';
+    var d = new Date(iso);
+    var h = d.getHours(), ampm = h >= 12 ? '오후' : '오전', h12 = h % 12 || 12;
+    return (d.getMonth() + 1) + '.' + d.getDate() + ' ' + ampm + ' ' + h12 + '시' +
+      (d.getMinutes() ? ' ' + d.getMinutes() + '분' : '');
+  }
   function todayISO() { return new Date().toISOString().slice(0, 10); }
+  // 마감까지 남은 일수 (지났으면 음수). 시간까지 반영해 마감 순간 이후면 지난 것으로 본다
   function daysLeft(due) {
     if (!due) return null;
-    return Math.round((new Date(due + 'T00:00:00') - new Date(todayISO() + 'T00:00:00')) / 86400000);
+    var ms = new Date(due) - new Date();
+    return Math.floor(ms / 86400000);
   }
+  function isOver(due) { return due ? (new Date(due) - new Date() < 0) : false; }
 
   // 과제 + 내 제출을 합쳐서 가져온다
   async function fetchData() {
@@ -39,8 +48,7 @@
 
   function statusTag(c) {
     if (!c.sub) {
-      var d = daysLeft(c.due_at);
-      if (d != null && d < 0) return '<span class="tag tag--no">기한 지남</span>';
+      if (isOver(c.due_at)) return '<span class="tag tag--no">기한 지남</span>';
       return '<span class="tag tag--wait">미제출</span>';
     }
     if (c.sub.review_status === 'pass') return '<span class="tag tag--ok">통과</span>';
@@ -173,7 +181,7 @@
     for (var day = 1; day <= days; day++) {
       var isToday = (todayISO() === iso(calYear, calMonth, day));
       var evs = (byDay[day] || []).map(function (c) {
-        var cls = c.sub ? 'done' : (daysLeft(c.due_at) < 0 ? 'over' : 'todo');
+        var cls = c.sub ? 'done' : (isOver(c.due_at) ? 'over' : 'todo');
         return '<span class="cal__ev ' + cls + '" data-id="' + c.id + '">' + esc(c.title) + '</span>';
       }).join('');
       cells.push('<div class="cal__cell' + (isToday ? ' is-today' : '') + '">' +
@@ -238,12 +246,28 @@
 
   function openDetail(c) {
     var d = daysLeft(c.due_at);
-    var overdue = d != null && d < 0 && !c.sub;
+    var overdue = isOver(c.due_at) && !c.sub;
+    var manual = c.manual || [];
+
+    var manualHtml = manual.length
+      ? '<div class="od-card__sub" style="margin-top:0;">📖 매뉴얼</div>' +
+        '<div class="ch-mn__list">' +
+          manual.map(function (m, i) {
+            return '<a class="ch-mn" href="' + esc(m.url) + '" target="_blank">' +
+              '<span class="ch-mn__n">' + (i + 1) + '</span>' +
+              '<span class="ch-mn__t">' + esc(m.title) + '</span>' +
+              '<span class="ch-mn__u">링크 ↗</span></a>';
+          }).join('') +
+        '</div>'
+      : '';
+
+    var already = c.sub && c.sub.file_name
+      ? '<div class="ch-file">📎 첨부: ' + esc(c.sub.file_name) + '</div>' : '';
 
     var box = document.createElement('div');
     box.className = 'modal-overlay is-open';
     box.innerHTML =
-      '<div class="modal-card" style="max-width:560px;">' +
+      '<div class="modal-card" style="max-width:600px;">' +
         '<div class="modal-card__head">' +
           '<h3>' + esc(c.title) + '</h3>' +
           '<button class="modal-close" data-close>×</button>' +
@@ -255,11 +279,15 @@
             (c.due_at ? '<span class="ord-chip">마감 ' + fmtDate(c.due_at) +
               (d != null && d >= 0 ? ' (D-' + d + ')' : '') + '</span>' : '') +
           '</div>' +
-          '<p style="white-space:pre-wrap;line-height:1.7;font-size:0.9rem;margin:14px 0;">' +
-            esc(c.description || '과제 설명이 없습니다.') + '</p>' +
+          (c.description
+            ? '<p style="white-space:pre-wrap;line-height:1.7;font-size:0.9rem;margin:14px 0;">' +
+              esc(c.description) + '</p>'
+            : '') +
+
+          manualHtml +
 
           (c.sub && c.sub.review_status !== 'pending'
-            ? '<div class="ch-review ' + (c.sub.review_status === 'pass' ? 'ok' : 'no') + '">' +
+            ? '<div class="ch-review ' + (c.sub.review_status === 'pass' ? 'ok' : 'no') + '" style="margin-top:16px;">' +
                 (c.sub.review_status === 'pass' ? '✅ 검수 통과' : '❌ 미통과') +
                 (c.sub.score != null ? ' · ' + c.sub.score + '점' : '') +
                 (c.sub.review_reason ? '<div style="margin-top:6px;font-weight:400;">' +
@@ -267,15 +295,25 @@
               '</div>'
             : '') +
 
-          '<div class="field" style="margin-top:16px;">' +
-            '<label>제출 내용 (메모 · 링크)</label>' +
-            '<textarea id="chContent" rows="4" placeholder="과제 결과 링크나 설명을 입력하세요."' +
-              (overdue ? ' disabled' : '') + ' style="width:100%;padding:11px;border:1px solid var(--border);' +
-              'border-radius:8px;font-family:inherit;font-size:0.88rem;resize:vertical;">' +
-              esc(c.sub ? c.sub.content || '' : '') + '</textarea>' +
+          // ===== 별도 제출란 =====
+          '<div class="ch-submit">' +
+            '<div class="ch-submit__title">📤 과제 제출' +
+              (c.sub ? ' <span class="tag tag--wait">제출됨</span>' : '') + '</div>' +
+            '<div class="field">' +
+              '<label>제출 내용 (메모 · 링크)</label>' +
+              '<textarea id="chContent" rows="3" placeholder="과제 결과 링크나 설명을 입력하세요."' +
+                (overdue ? ' disabled' : '') + ' style="width:100%;padding:11px;border:1px solid var(--border);' +
+                'border-radius:8px;font-family:inherit;font-size:0.88rem;resize:vertical;">' +
+                esc(c.sub ? c.sub.content || '' : '') + '</textarea>' +
+            '</div>' +
+            '<div class="field">' +
+              '<label>파일 첨부 (선택)</label>' +
+              '<input type="file" id="chFile"' + (overdue ? ' disabled' : '') + '>' +
+              already +
+            '</div>' +
+            (overdue ? '<div class="adv-warn danger">마감이 지나 제출할 수 없습니다.</div>' : '') +
+            '<div id="chErr" style="color:var(--danger);font-size:0.82rem;"></div>' +
           '</div>' +
-          (overdue ? '<div class="adv-warn danger" style="margin-top:4px;">마감이 지나 제출할 수 없습니다.</div>' : '') +
-          '<div id="chErr" style="color:var(--danger);font-size:0.82rem;margin-top:8px;"></div>' +
         '</div>' +
         '<div class="modal-card__foot">' +
           '<button class="btn-sm" data-close>닫기</button>' +
@@ -293,21 +331,42 @@
     var btn = box.querySelector('#chSubmit');
     if (btn) btn.addEventListener('click', async function () {
       var content = box.querySelector('#chContent').value.trim();
-      if (!content) { box.querySelector('#chErr').textContent = '제출 내용을 입력하세요.'; return; }
-      btn.disabled = true;
+      var file = box.querySelector('#chFile').files[0];
+      var errEl = box.querySelector('#chErr');
+      if (!content && !file) { errEl.textContent = '제출 내용이나 파일 중 하나는 입력하세요.'; return; }
 
-      var res = await sb.from('challenge_submissions').upsert({
+      btn.disabled = true;
+      errEl.textContent = '';
+
+      var row = {
         challenge_id: c.id,
         user_id: user.id,
-        content: content,
+        content: content || null,
         status: 'submitted',
         review_status: 'pending',
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'challenge_id,user_id' });
+      };
+
+      // 파일 첨부: 경로 첫 폴더가 본인 uid 여야 스토리지 정책을 통과한다
+      if (file) {
+        btn.textContent = '업로드 중...';
+        var path = user.id + '/challenge/' + c.id + '/' + Date.now() + '_' + file.name;
+        var up = await sb.storage.from('submissions').upload(path, file, { upsert: true });
+        if (up.error) {
+          btn.disabled = false; btn.textContent = '제출하기';
+          errEl.textContent = '파일 업로드 실패: ' + up.error.message;
+          return;
+        }
+        row.file_path = path;
+        row.file_name = file.name;
+      }
+
+      var res = await sb.from('challenge_submissions')
+        .upsert(row, { onConflict: 'challenge_id,user_id' });
 
       if (res.error) {
-        btn.disabled = false;
-        box.querySelector('#chErr').textContent = '제출 실패: ' + res.error.message;
+        btn.disabled = false; btn.textContent = '제출하기';
+        errEl.textContent = '제출 실패: ' + res.error.message;
         return;
       }
       box.remove();
