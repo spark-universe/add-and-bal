@@ -54,23 +54,23 @@
   /* ----- 팝업(기수 선택) ----- */
   function renderCoList() {
     var q = (els.coSearch.value || '').trim().toLowerCase();
-    var list = cohortsList.filter(function (c) {
+    var others = cohortsList.filter(function (c) { return c.id !== cohort; });  // 현재 기수는 항상 포함되므로 제외
+    var list = others.filter(function (c) {
       if (!q) return true;
       return (c.label || '').toLowerCase().indexOf(q) !== -1 ||
              (c.enroll_date || '').toLowerCase().indexOf(q) !== -1;
     });
+    var emptyMsg = others.length ? '검색 결과가 없습니다.' : '다른 기수가 없습니다.';
     els.coList.innerHTML = list.length ? list.map(function (c) {
-      var isCur = c.id === cohort;
-      var checked = isCur || tmpSel[c.id];
+      var checked = !!tmpSel[c.id];
       return '<label style="display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid #f0f2f6;cursor:pointer;font-size:0.9rem;">' +
-        '<input type="checkbox" class="co-cb" value="' + c.id + '"' + (checked ? ' checked' : '') + (isCur ? ' disabled' : '') + '>' +
+        '<input type="checkbox" class="co-cb" value="' + c.id + '"' + (checked ? ' checked' : '') + '>' +
         '<b>' + esc(c.label) + '</b>' +
         (c.enroll_date ? '<span style="color:var(--muted);">· ' + esc(c.enroll_date) + '</span>' : '') +
-        (isCur ? '<span style="margin-left:auto;font-size:0.72rem;color:var(--primary);">지금 기수</span>' : '') +
       '</label>';
-    }).join('') : '<div style="padding:24px;text-align:center;color:var(--muted);font-size:0.85rem;">검색 결과가 없습니다.</div>';
+    }).join('') : '<div style="padding:24px;text-align:center;color:var(--muted);font-size:0.85rem;">' + emptyMsg + '</div>';
     var n = Object.keys(tmpSel).length; if (!tmpSel[cohort]) n++;
-    els.coCount.textContent = '선택 ' + n + '개 기수';
+    els.coCount.textContent = '지금 기수 포함 ' + n + '개';
   }
   function openCoModal() {
     tmpSel = {}; Object.keys(selected).forEach(function (k) { tmpSel[k] = true; });
@@ -91,7 +91,7 @@
     var id = Number(cb.value);
     if (cb.checked) tmpSel[id] = true; else delete tmpSel[id];
     var n = Object.keys(tmpSel).length; if (!tmpSel[cohort]) n++;
-    els.coCount.textContent = '선택 ' + n + '개 기수';
+    els.coCount.textContent = '지금 기수 포함 ' + n + '개';
   });
   els.coAll.addEventListener('click', function () {
     // 현재 검색결과에 보이는 기수만 전체 선택
