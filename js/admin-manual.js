@@ -10,40 +10,105 @@
   var catalog = [];        // manual_chapters (slug, title, sort)
   var chapters = [];       // 카탈로그 + 현재 기수 오버라이드 병합 (slug, title, sort, status, publish_at)
 
+  var selected = {};       // 함께 적용할 기수 id 집합 (항상 현재 기수 포함)
+  var tmpSel = {};         // 팝업 편집용 임시 집합
+
   var els = {
     sel: document.getElementById('cohortSel'),
-    apply: document.getElementById('applyCohorts'),
-    applyAll: document.getElementById('applyAll'),
-    applyNone: document.getElementById('applyNone'),
-    applyCount: document.getElementById('applyCount'),
     body: document.getElementById('mcBody'),
     count: document.getElementById('mcCount'),
     saved: document.getElementById('saved'),
     saveBtn: document.getElementById('saveAll'),
+    summary: document.getElementById('applySummary'),
+    coOpen: document.getElementById('coOpen'),
+    coModal: document.getElementById('coModal'),
+    coClose: document.getElementById('coClose'),
+    coSearch: document.getElementById('coSearch'),
+    coAll: document.getElementById('coAll'),
+    coNone: document.getElementById('coNone'),
+    coCount: document.getElementById('coCount'),
+    coList: document.getElementById('coList'),
+    coApply: document.getElementById('coApply'),
   };
 
-  // "함께 적용할 기수" 체크박스 — 지금 보는 기수는 항상 포함(체크·비활성)
-  function renderApplyCohorts() {
-    els.apply.innerHTML = cohortsList.map(function (c) {
+  function cohortLabel(id) {
+    var c = cohortsList.find(function (x) { return x.id === id; });
+    if (!c) return id + '기';
+    return c.label + (c.enroll_date ? ' (' + c.enroll_date + ')' : '');
+  }
+
+  // 선택 요약 (버튼 옆)
+  function updateSummary() {
+    var ids = Object.keys(selected).map(Number).sort(function (a, b) { return a - b; });
+    if (ids.length <= 1) { els.summary.textContent = '지금 기수만 적용'; return; }
+    var names = ids.slice(0, 2).map(cohortLabel).join(', ');
+    els.summary.textContent = '선택 ' + ids.length + '개: ' + names + (ids.length > 2 ? ' 외 ' + (ids.length - 2) + '개' : '');
+  }
+
+  // 현재 기수만 선택 상태로 초기화
+  function resetSelection() {
+    selected = {}; selected[cohort] = true;
+    updateSummary();
+  }
+
+  /* ----- 팝업(기수 선택) ----- */
+  function renderCoList() {
+    var q = (els.coSearch.value || '').trim().toLowerCase();
+    var list = cohortsList.filter(function (c) {
+      if (!q) return true;
+      return (c.label || '').toLowerCase().indexOf(q) !== -1 ||
+             (c.enroll_date || '').toLowerCase().indexOf(q) !== -1;
+    });
+    els.coList.innerHTML = list.length ? list.map(function (c) {
       var isCur = c.id === cohort;
-      return '<label style="font-size:0.85rem;display:inline-flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;">' +
-        '<input type="checkbox" class="apply-co" value="' + c.id + '"' + (isCur ? ' checked disabled' : '') + '> ' +
-        esc(c.label) + (c.enroll_date ? ' (' + esc(c.enroll_date) + ')' : '') + '</label>';
-    }).join('');
-    updateApplyCount();
+      var checked = isCur || tmpSel[c.id];
+      return '<label style="display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid #f0f2f6;cursor:pointer;font-size:0.9rem;">' +
+        '<input type="checkbox" class="co-cb" value="' + c.id + '"' + (checked ? ' checked' : '') + (isCur ? ' disabled' : '') + '>' +
+        '<b>' + esc(c.label) + '</b>' +
+        (c.enroll_date ? '<span style="color:var(--muted);">· ' + esc(c.enroll_date) + '</span>' : '') +
+        (isCur ? '<span style="margin-left:auto;font-size:0.72rem;color:var(--primary);">지금 기수</span>' : '') +
+      '</label>';
+    }).join('') : '<div style="padding:24px;text-align:center;color:var(--muted);font-size:0.85rem;">검색 결과가 없습니다.</div>';
+    var n = Object.keys(tmpSel).length; if (!tmpSel[cohort]) n++;
+    els.coCount.textContent = '선택 ' + n + '개 기수';
   }
-  function updateApplyCount() {
-    var n = els.apply.querySelectorAll('.apply-co:checked').length;  // 비활성(현재 기수) 포함
-    els.applyCount.textContent = '선택 ' + n + '개 기수';
+  function openCoModal() {
+    tmpSel = {}; Object.keys(selected).forEach(function (k) { tmpSel[k] = true; });
+    tmpSel[cohort] = true;
+    els.coSearch.value = '';
+    renderCoList();
+    els.coModal.classList.add('is-open');
+    els.coSearch.focus();
   }
-  els.apply.addEventListener('change', updateApplyCount);
-  els.applyAll.addEventListener('click', function () {
-    els.apply.querySelectorAll('.apply-co:not(:disabled)').forEach(function (cb) { cb.checked = true; });
-    updateApplyCount();
+  function closeCoModal() { els.coModal.classList.remove('is-open'); }
+
+  els.coOpen.addEventListener('click', openCoModal);
+  els.coClose.addEventListener('click', closeCoModal);
+  els.coModal.addEventListener('click', function (e) { if (e.target === els.coModal) closeCoModal(); });
+  els.coSearch.addEventListener('input', renderCoList);
+  els.coList.addEventListener('change', function (e) {
+    var cb = e.target.closest('.co-cb'); if (!cb) return;
+    var id = Number(cb.value);
+    if (cb.checked) tmpSel[id] = true; else delete tmpSel[id];
+    var n = Object.keys(tmpSel).length; if (!tmpSel[cohort]) n++;
+    els.coCount.textContent = '선택 ' + n + '개 기수';
   });
-  els.applyNone.addEventListener('click', function () {
-    els.apply.querySelectorAll('.apply-co:not(:disabled)').forEach(function (cb) { cb.checked = false; });
-    updateApplyCount();
+  els.coAll.addEventListener('click', function () {
+    // 현재 검색결과에 보이는 기수만 전체 선택
+    els.coList.querySelectorAll('.co-cb').forEach(function (cb) { tmpSel[Number(cb.value)] = true; });
+    renderCoList();
+  });
+  els.coNone.addEventListener('click', function () {
+    els.coList.querySelectorAll('.co-cb').forEach(function (cb) {
+      var id = Number(cb.value); if (id !== cohort) delete tmpSel[id];
+    });
+    renderCoList();
+  });
+  els.coApply.addEventListener('click', function () {
+    selected = {}; Object.keys(tmpSel).forEach(function (k) { selected[Number(k)] = true; });
+    selected[cohort] = true;
+    updateSummary();
+    closeCoModal();
   });
 
   function esc(s) {
@@ -143,12 +208,9 @@
     }
     if (!jobs.length) return;
 
-    // 적용 대상 기수 (지금 보는 기수 + 체크한 기수)
-    var targets = [cohort];
-    els.apply.querySelectorAll('.apply-co:checked').forEach(function (cb) {
-      var id = Number(cb.value);
-      if (targets.indexOf(id) === -1) targets.push(id);
-    });
+    // 적용 대상 기수 (팝업에서 선택한 기수 + 지금 보는 기수)
+    var targets = Object.keys(selected).map(Number);
+    if (targets.indexOf(cohort) === -1) targets.push(cohort);
     if (targets.length > 1) {
       var names = targets.map(function (t) {
         var c = cohortsList.find(function (x) { return x.id === t; });
@@ -202,7 +264,7 @@
     }).join('');
     if (!cohortsList.some(function (c) { return c.id === cohort; })) cohort = cohortsList[0].id;
     els.sel.value = String(cohort);
-    renderApplyCohorts();
+    resetSelection();
   }
 
   async function load() {
@@ -223,7 +285,7 @@
 
   els.sel.addEventListener('change', function () {
     cohort = parseInt(this.value, 10) || 1;
-    renderApplyCohorts();
+    resetSelection();
     loadSchedule();
   });
 
