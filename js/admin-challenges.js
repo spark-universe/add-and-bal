@@ -24,7 +24,16 @@
     cancelEdit: document.getElementById('cancelEdit'),
     groups: document.getElementById('chGroups'),
     count: document.getElementById('chCount'),
-    cohorts: document.getElementById('fCohorts'),
+    regOpen: document.getElementById('regCoOpen'),
+    regSummary: document.getElementById('regCoSummary'),
+    regModal: document.getElementById('regCoModal'),
+    regClose: document.getElementById('regCoClose'),
+    regSearch: document.getElementById('regCoSearch'),
+    regAll: document.getElementById('regCoAll'),
+    regNone: document.getElementById('regCoNone'),
+    regCount: document.getElementById('regCoCount'),
+    regList: document.getElementById('regCoList'),
+    regApply: document.getElementById('regCoApply'),
   };
 
   function manualTitle(slug) {
@@ -32,19 +41,77 @@
     return m ? m.title : slug;
   }
 
-  // '등록할 기수' 체크박스 (여러 기수 동시 등록). 수정 시엔 해당 기수만·비활성
-  function fillCohortChecks(checkedIds, disabled) {
-    els.cohorts.innerHTML = cohortList.map(function (c) {
-      var on = checkedIds.indexOf(c.id) !== -1;
-      return '<label style="font-size:0.86rem;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;">' +
-        '<input type="checkbox" class="fco" value="' + c.id + '"' + (on ? ' checked' : '') + (disabled ? ' disabled' : '') + '> ' +
-        esc(c.label) + (c.enroll_date ? ' (' + esc(c.enroll_date) + ')' : '') + '</label>';
-    }).join('');
+  /* ----- '등록할 기수' 선택 (검색 팝업) ----- */
+  var regSel = {};     // 등록 대상 기수 id 집합
+  var tmpReg = {};     // 팝업 편집용
+  var regLocked = false;   // 수정 모드면 잠금(기수 변경 불가)
+
+  function cohortLabel(id) {
+    var c = cohortList.find(function (x) { return x.id === id; });
+    if (!c) return (id === 0 ? '미분류' : id + '기');
+    return c.label + (c.enroll_date ? ' (' + c.enroll_date + ')' : '');
   }
-  function getCheckedCohorts() {
-    return Array.prototype.slice.call(els.cohorts.querySelectorAll('.fco:checked'))
-      .map(function (cb) { return Number(cb.value); });
+  function getCheckedCohorts() { return Object.keys(regSel).map(Number); }
+  function updateRegSummary() {
+    var ids = getCheckedCohorts().sort(function (a, b) { return a - b; });
+    els.regOpen.disabled = regLocked;
+    if (regLocked) { els.regSummary.textContent = cohortLabel(ids[0]) + ' (수정 중, 변경 불가)'; return; }
+    if (!ids.length) { els.regSummary.innerHTML = '<span style="color:var(--danger);">선택된 기수 없음</span>'; return; }
+    var names = ids.slice(0, 3).map(cohortLabel).join(', ');
+    els.regSummary.textContent = '선택 ' + ids.length + '개: ' + names + (ids.length > 3 ? ' 외 ' + (ids.length - 3) + '개' : '');
   }
+  function setRegSelection(ids, locked) {
+    regSel = {}; ids.forEach(function (i) { regSel[i] = true; });
+    regLocked = !!locked;
+    updateRegSummary();
+  }
+
+  function renderRegList() {
+    var q = (els.regSearch.value || '').trim().toLowerCase();
+    var list = cohortList.filter(function (c) {
+      if (!q) return true;
+      return (c.label || '').toLowerCase().indexOf(q) !== -1 ||
+             (c.enroll_date || '').toLowerCase().indexOf(q) !== -1;
+    });
+    els.regList.innerHTML = list.length ? list.map(function (c) {
+      return '<label style="display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid #f0f2f6;cursor:pointer;font-size:0.9rem;">' +
+        '<input type="checkbox" class="reg-cb" value="' + c.id + '"' + (tmpReg[c.id] ? ' checked' : '') + '>' +
+        '<b>' + esc(c.label) + '</b>' + (c.enroll_date ? '<span style="color:var(--muted);">· ' + esc(c.enroll_date) + '</span>' : '') +
+      '</label>';
+    }).join('') : '<div style="padding:24px;text-align:center;color:var(--muted);font-size:0.85rem;">검색 결과가 없습니다.</div>';
+    els.regCount.textContent = '선택 ' + Object.keys(tmpReg).length + '개 기수';
+  }
+  els.regOpen.addEventListener('click', function () {
+    if (regLocked) return;
+    tmpReg = {}; Object.keys(regSel).forEach(function (k) { tmpReg[k] = true; });
+    els.regSearch.value = '';
+    renderRegList();
+    els.regModal.classList.add('is-open');
+    els.regSearch.focus();
+  });
+  function closeRegModal() { els.regModal.classList.remove('is-open'); }
+  els.regClose.addEventListener('click', closeRegModal);
+  els.regModal.addEventListener('click', function (e) { if (e.target === els.regModal) closeRegModal(); });
+  els.regSearch.addEventListener('input', renderRegList);
+  els.regList.addEventListener('change', function (e) {
+    var cb = e.target.closest('.reg-cb'); if (!cb) return;
+    var id = Number(cb.value);
+    if (cb.checked) tmpReg[id] = true; else delete tmpReg[id];
+    els.regCount.textContent = '선택 ' + Object.keys(tmpReg).length + '개 기수';
+  });
+  els.regAll.addEventListener('click', function () {
+    els.regList.querySelectorAll('.reg-cb').forEach(function (cb) { tmpReg[Number(cb.value)] = true; });
+    renderRegList();
+  });
+  els.regNone.addEventListener('click', function () {
+    els.regList.querySelectorAll('.reg-cb').forEach(function (cb) { delete tmpReg[Number(cb.value)]; });
+    renderRegList();
+  });
+  els.regApply.addEventListener('click', function () {
+    regSel = {}; Object.keys(tmpReg).forEach(function (k) { regSel[Number(k)] = true; });
+    updateRegSummary();
+    closeRegModal();
+  });
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
@@ -81,7 +148,7 @@
     editingId = null;
     els.title.value = els.desc.value = els.open.value = els.due.value = '';
     els.manual.value = '';
-    fillCohortChecks([cohort], false);   // 기본: 지금 보는 기수 체크
+    setRegSelection([cohort], false);    // 기본: 지금 보는 기수
     els.formTitle.textContent = '숙제 등록';
     els.saveBtn.textContent = '등록하기';
     els.cancelEdit.hidden = true;
@@ -93,7 +160,7 @@
     els.manual.value = c.manual_slug || '';
     els.open.value = isoToLocal(c.open_at);
     els.due.value = isoToLocal(c.due_at);
-    fillCohortChecks([c.cohort], true);  // 수정 시엔 그 기수만·변경 불가
+    setRegSelection([c.cohort], true);   // 수정 시엔 그 기수만·변경 불가
     els.formTitle.textContent = '숙제 수정 — ' + c.title;
     els.saveBtn.textContent = '수정 저장';
     els.cancelEdit.hidden = false;
