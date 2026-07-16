@@ -223,8 +223,8 @@
 
     els.saveBtn.disabled = true;
     var res = editingId
-      ? await sb.from('challenges').update(row).eq('id', editingId)
-      : await sb.from('challenges').insert(row);
+      ? await sb.from('challenges').update(row).eq('id', editingId)   // 수정 시 공개상태는 유지
+      : await sb.from('challenges').insert(Object.assign({ active: false }, row));  // 새 숙제는 비공개
     els.saveBtn.disabled = false;
 
     if (res.error) { alert('저장 실패: ' + res.error.message); return; }

@@ -174,11 +174,12 @@ create table if not exists public.challenges (
   cohort int default 1,             -- 기수 (해당 기수 수강생에게만 보임)
   open_at timestamptz,              -- 공개/시작 시각 (기수별 공개에 사용)
   due_at timestamptz,               -- 마감일시
-  active boolean default true,      -- 끄면 수강생에게 안 보임
+  active boolean default false,     -- 기본 비공개. 끄면 수강생에게 안 보임
   created_at timestamptz default now()
 );
 -- (이전 버전 스키마를 이미 실행했다면 아래가 컬럼/타입을 맞춰줌)
 alter table public.challenges add column if not exists cohort int default 1;
+alter table public.challenges alter column active set default false;   -- 기본 비공개
 alter table public.challenges add column if not exists manual_slug text;
 update public.challenges set cohort = 1 where cohort is null;
 alter table public.challenges alter column open_at type timestamptz using open_at::timestamptz;
@@ -258,6 +259,29 @@ drop trigger if exists trg_protect_profile on public.profiles;
 create trigger trg_protect_profile
   before update on public.profiles
   for each row execute function public.protect_profile_fields();
+
+-- ---------- 3-2. 기수 생성 시 숙제 자동 복사 (비공개 상태) ----------
+--  가장 낮은 기수(1기 등)의 숙제를 새 기수로 복제한다. 복제본은 비공개(active=false).
+create or replace function public.seed_cohort_homework()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+declare tmpl int;
+begin
+  select min(cohort) into tmpl from public.challenges;
+  if tmpl is not null and tmpl <> new.id then
+    insert into public.challenges (title, description, manual_slug, cohort, due_at, active)
+    select title, description, manual_slug, new.id, due_at, false
+    from public.challenges where cohort = tmpl;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists trg_seed_cohort_homework on public.cohorts;
+create trigger trg_seed_cohort_homework
+  after insert on public.cohorts
+  for each row execute function public.seed_cohort_homework();
 
 -- ---------- 4. RLS (행 수준 보안) ----------
 alter table public.profiles    enable row level security;
