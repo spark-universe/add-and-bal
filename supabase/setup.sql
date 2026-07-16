@@ -6,7 +6,7 @@
 -- ---------- 1. 테이블 ----------
 create table if not exists public.profiles (
   id uuid primary key references auth.users on delete cascade,
-  name text,0
+  name text,
   phone text,
   email text,
   role text default 'student',      -- 'student' | 'admin'
