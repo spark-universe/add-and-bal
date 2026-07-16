@@ -193,6 +193,23 @@
     refreshDirty();
   });
 
+  // 전체 챕터 일괄 상태 변경 (저장은 [모두 저장]으로)
+  var bulkStatus = document.getElementById('bulkStatus');
+  var bulkWhen = document.getElementById('bulkWhen');
+  var bulkApply = document.getElementById('bulkApply');
+  bulkStatus.addEventListener('change', function () { bulkWhen.disabled = this.value !== 'scheduled'; });
+  bulkApply.addEventListener('click', function () {
+    var st = bulkStatus.value;
+    if (st === 'scheduled' && !bulkWhen.value) { alert('예약이면 공개일시를 지정하세요.'); return; }
+    els.body.querySelectorAll('tr[data-slug]').forEach(function (tr) {
+      tr.querySelector('.mc-status').value = st;
+      var when = tr.querySelector('.mc-when');
+      when.disabled = st !== 'scheduled';
+      if (st === 'scheduled') when.value = bulkWhen.value;
+    });
+    refreshDirty();
+  });
+
   els.saveBtn.addEventListener('click', async function () {
     var jobs = [];
     var trs = Array.prototype.slice.call(els.body.querySelectorAll('tr[data-slug]'));

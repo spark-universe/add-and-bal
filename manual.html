@@ -2632,6 +2632,36 @@ links.forEach(l=>l.addEventListener('click',()=>document.body.classList.remove('
       }
       if (!any) p.style.display = 'none';
     });
+
+    // 전부 안 보이면 안내 문구 (전체 숨김 / 전체 예약)
+    var visibleSecs = Array.prototype.slice.call(document.querySelectorAll('.doc-section'))
+      .filter(function (s) { return s.style.display !== 'none'; });
+    if (visibleSecs.length === 0) {
+      var earliest = null;
+      res.data.forEach(function (c) {
+        if (c.status === 'scheduled' && c.publish_at) {
+          var t = new Date(c.publish_at).getTime();
+          if (t > now && (earliest === null || t < earliest)) earliest = t;
+        }
+      });
+      var msg;
+      if (earliest !== null) {
+        var dd = new Date(earliest);
+        msg = '이 매뉴얼은 <b>' + dd.getFullYear() + '년 ' + (dd.getMonth() + 1) + '월 ' + dd.getDate() + '일</b>에 공개될 예정입니다.';
+      } else {
+        msg = '이 매뉴얼은 아직 공개 전입니다. 곧 공개될 예정이에요.';
+      }
+      var doc = document.querySelector('.manual-doc');
+      if (doc) {
+        doc.innerHTML =
+          '<div style="min-height:78vh;display:flex;align-items:center;justify-content:center;padding:40px;">' +
+            '<div style="text-align:center;max-width:440px;">' +
+              '<div style="font-size:46px;margin-bottom:14px;">📘</div>' +
+              '<div style="font-size:1.2rem;font-weight:800;color:#1c2024;margin-bottom:10px;">스토어 초기작업 매뉴얼</div>' +
+              '<div style="color:#6b7280;font-size:1rem;line-height:1.65;">' + msg + '</div>' +
+            '</div></div>';
+      }
+    }
   } catch (e) {}
 })();
 </script>

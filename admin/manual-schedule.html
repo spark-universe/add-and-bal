@@ -35,9 +35,18 @@
     </div>
 
     <div class="panel">
-      <div class="panel__head">
+      <div class="panel__head" style="flex-wrap:wrap;gap:10px;">
         <span>챕터 <span id="mcCount" style="color:var(--muted);font-weight:600;"></span></span>
-        <span style="display:flex;align-items:center;gap:10px;">
+        <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:0.8rem;color:var(--muted);">전체 챕터</span>
+          <select id="bulkStatus" style="padding:6px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;">
+            <option value="public">공개</option>
+            <option value="hidden">숨김</option>
+            <option value="scheduled">예약</option>
+          </select>
+          <input type="datetime-local" id="bulkWhen" disabled style="padding:6px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;">
+          <button class="btn-sm" id="bulkApply" type="button">일괄 적용</button>
+          <span style="width:1px;height:20px;background:var(--border);"></span>
           <span class="form-saved" id="saved" hidden>저장되었습니다</span>
           <button class="btn-primary" id="saveAll" disabled>모두 저장</button>
         </span>
