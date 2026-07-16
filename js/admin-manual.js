@@ -264,7 +264,12 @@
     }).join('');
     if (!cohortsList.some(function (c) { return c.id === cohort; })) cohort = cohortsList[0].id;
     els.sel.value = String(cohort);
+    updatePreviewLink();
     resetSelection();
+  }
+  function updatePreviewLink() {
+    var link = document.getElementById('previewLink');
+    if (link) link.href = '../manual.html?cohort=' + cohort;
   }
 
   async function load() {
@@ -285,6 +290,7 @@
 
   els.sel.addEventListener('change', function () {
     cohort = parseInt(this.value, 10) || 1;
+    updatePreviewLink();
     resetSelection();
     loadSchedule();
   });

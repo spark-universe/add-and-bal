@@ -2598,8 +2598,11 @@ links.forEach(l=>l.addEventListener('click',()=>document.body.classList.remove('
     if (!ses.data.session) return;
     var prof = await sb.from('profiles').select('role, cohort').eq('id', ses.data.session.user.id).single();
     var p = (prof && prof.data) || {};
-    if (p.role === 'admin') return;   // 어드민은 전체 보기
-    var res = await sb.from('cohort_manual').select('slug,status,publish_at').eq('cohort', p.cohort || 1);
+    // 어드민이 ?cohort=N 으로 열면 그 기수처럼 미리보기. 지정 없으면 어드민은 전체 보기
+    var previewCohort = new URLSearchParams(location.search).get('cohort');
+    if (p.role === 'admin' && !previewCohort) return;
+    var viewCohort = (p.role === 'admin' && previewCohort) ? Number(previewCohort) : (p.cohort || 1);
+    var res = await sb.from('cohort_manual').select('slug,status,publish_at').eq('cohort', viewCohort);
     if (res.error || !res.data) return;
     var now = Date.now();
     res.data.forEach(function (c) {
