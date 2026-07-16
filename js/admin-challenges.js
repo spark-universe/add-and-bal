@@ -24,11 +24,26 @@
     cancelEdit: document.getElementById('cancelEdit'),
     groups: document.getElementById('chGroups'),
     count: document.getElementById('chCount'),
+    cohorts: document.getElementById('fCohorts'),
   };
 
   function manualTitle(slug) {
     var m = manualChapters.find(function (x) { return x.slug === slug; });
     return m ? m.title : slug;
+  }
+
+  // '등록할 기수' 체크박스 (여러 기수 동시 등록). 수정 시엔 해당 기수만·비활성
+  function fillCohortChecks(checkedIds, disabled) {
+    els.cohorts.innerHTML = cohortList.map(function (c) {
+      var on = checkedIds.indexOf(c.id) !== -1;
+      return '<label style="font-size:0.86rem;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;">' +
+        '<input type="checkbox" class="fco" value="' + c.id + '"' + (on ? ' checked' : '') + (disabled ? ' disabled' : '') + '> ' +
+        esc(c.label) + (c.enroll_date ? ' (' + esc(c.enroll_date) + ')' : '') + '</label>';
+    }).join('');
+  }
+  function getCheckedCohorts() {
+    return Array.prototype.slice.call(els.cohorts.querySelectorAll('.fco:checked'))
+      .map(function (cb) { return Number(cb.value); });
   }
 
   function esc(s) {
@@ -58,7 +73,6 @@
       title: els.title.value.trim(),
       description: els.desc.value.trim() || null,
       manual_slug: els.manual.value || null,
-      cohort: cohort,                    // 지금 선택된 기수로 등록
       open_at: localToISO(els.open.value),
       due_at: localToISO(els.due.value),
     };
@@ -67,6 +81,7 @@
     editingId = null;
     els.title.value = els.desc.value = els.open.value = els.due.value = '';
     els.manual.value = '';
+    fillCohortChecks([cohort], false);   // 기본: 지금 보는 기수 체크
     els.formTitle.textContent = '숙제 등록';
     els.saveBtn.textContent = '등록하기';
     els.cancelEdit.hidden = true;
@@ -78,6 +93,7 @@
     els.manual.value = c.manual_slug || '';
     els.open.value = isoToLocal(c.open_at);
     els.due.value = isoToLocal(c.due_at);
+    fillCohortChecks([c.cohort], true);  // 수정 시엔 그 기수만·변경 불가
     els.formTitle.textContent = '숙제 수정 — ' + c.title;
     els.saveBtn.textContent = '수정 저장';
     els.cancelEdit.hidden = false;
@@ -221,10 +237,21 @@
       alert('마감일이 시작일보다 빠릅니다.'); return;
     }
 
-    els.saveBtn.disabled = true;
-    var res = editingId
-      ? await sb.from('challenges').update(row).eq('id', editingId)   // 수정 시 공개상태는 유지
-      : await sb.from('challenges').insert(Object.assign({ active: false }, row));  // 새 숙제는 비공개
+    var res;
+    if (editingId) {
+      // 수정: 그 숙제만 (기수·공개상태 유지)
+      els.saveBtn.disabled = true;
+      res = await sb.from('challenges').update(row).eq('id', editingId);
+    } else {
+      // 등록: 선택한 기수마다 생성 (비공개)
+      var targets = getCheckedCohorts();
+      if (!targets.length) { alert('등록할 기수를 하나 이상 선택하세요.'); return; }
+      var rows = targets.map(function (cid) {
+        return Object.assign({ active: false, cohort: cid }, row);
+      });
+      els.saveBtn.disabled = true;
+      res = await sb.from('challenges').insert(rows);
+    }
     els.saveBtn.disabled = false;
 
     if (res.error) { alert('저장 실패: ' + res.error.message); return; }
@@ -295,6 +322,7 @@
     if (!admin) return;
     await loadCohorts();
     await loadManualChapters();
+    clearForm();          // 기수 체크박스 초기화
     await load();
   })();
 })();
