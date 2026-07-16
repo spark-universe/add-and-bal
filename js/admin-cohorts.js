@@ -47,7 +47,7 @@
         '<td><button class="btn-sm" data-act="toggle" data-id="' + c.id + '">' +
           (c.active ? '노출중' : '숨김') + '</button></td>' +
         '<td>' +
-          '<a class="btn-link" href="challenge-visibility.html?cohort=' + c.id + '">챌린지 공개</a> ' +
+          '<a class="btn-link" href="manual-schedule.html?cohort=' + c.id + '">매뉴얼 공개</a> ' +
           '<button class="btn-link" data-act="rename" data-id="' + c.id + '">이름 변경</button> ' +
           '<button class="btn-link danger" data-act="del" data-id="' + c.id + '">삭제</button>' +
         '</td>' +

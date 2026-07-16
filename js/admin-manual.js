@@ -275,6 +275,9 @@
   async function loadCohorts() {
     var co = await sb.from('cohorts').select('*').order('id');
     cohortsList = (co.data && co.data.length) ? co.data : [{ id: 1, label: '1기' }];
+    // URL ?cohort= 로 초기 선택 (기수 관리에서 넘어올 때)
+    var q = new URLSearchParams(location.search).get('cohort');
+    if (q && cohortsList.some(function (c) { return c.id === Number(q); })) cohort = Number(q);
     els.sel.innerHTML = cohortsList.map(function (c) {
       return '<option value="' + c.id + '">' + esc(c.label) +
         (c.enroll_date ? ' · ' + esc(c.enroll_date) : '') + '</option>';
