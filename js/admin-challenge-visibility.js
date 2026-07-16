@@ -81,45 +81,69 @@
     }).join('');
   }
 
-  // 상태/날짜를 바꾸면 즉시 저장 (별도 저장 버튼 없음)
-  async function saveRow(tr) {
-    var id = Number(tr.dataset.id);
+  // 여러 행을 고친 뒤 [모두 저장]으로 한꺼번에 저장
+  var saveBtn = document.getElementById('saveAll');
+
+  // 각 행이 로드된 값과 달라졌는지
+  function rowDirty(tr) {
+    var c = challenges.find(function (x) { return x.id === Number(tr.dataset.id); });
+    if (!c) return false;
     var status = tr.querySelector('.cv-status').value;
     var whenVal = tr.querySelector('.cv-when').value;
-    var note = tr.querySelector('.cv-note');
-
-    if (status === 'scheduled' && !whenVal) return;   // 날짜 입력을 기다림
-
-    var row;
-    if (status === 'hidden') row = { active: false };
-    else if (status === 'scheduled') row = { active: true, open_at: localToISO(whenVal) };
-    else row = { active: true, open_at: null };       // 공개(즉시)
-
-    if (note) note.textContent = '저장 중...';
-    var res = await sb.from('challenges').update(row).eq('id', id);
-    if (res.error) { if (note) note.textContent = ''; alert('저장 실패: ' + res.error.message); return; }
-
-    var c = challenges.find(function (x) { return x.id === id; });
-    if (c) { c.active = (row.active !== false); c.open_at = ('open_at' in row) ? row.open_at : c.open_at; }
-    tr.querySelector('.cv-badge').innerHTML = badge(c);
-    if (note) {
-      note.textContent = '✓ 저장됨';
-      setTimeout(function () { if (note.textContent === '✓ 저장됨') note.textContent = ''; }, 1800);
-    }
-    flash();
+    var curWhen = c.open_at ? isoToLocal(c.open_at) : '';
+    return (status !== statusOf(c)) || (status === 'scheduled' && whenVal !== curWhen);
+  }
+  function refreshDirty() {
+    var n = 0;
+    els.body.querySelectorAll('tr[data-id]').forEach(function (tr) {
+      var d = rowDirty(tr);
+      tr.classList.toggle('row-dirty', d);
+      var note = tr.querySelector('.cv-note');
+      if (note) note.innerHTML = d ? '<span style="color:#b9791a;font-weight:700;">● 변경</span>' : '';
+      if (d) n++;
+    });
+    saveBtn.textContent = n ? ('모두 저장 (' + n + ')') : '모두 저장';
+    saveBtn.disabled = n === 0;
   }
 
   els.body.addEventListener('change', function (e) {
     var tr = e.target.closest('tr');
     if (!tr) return;
     if (e.target.classList.contains('cv-status')) {
-      var when = tr.querySelector('.cv-when');
-      when.disabled = e.target.value !== 'scheduled';
-      if (e.target.value === 'scheduled' && !when.value) { when.focus(); return; } // 날짜부터 받고 저장
-      saveRow(tr);
-    } else if (e.target.classList.contains('cv-when')) {
-      saveRow(tr);
+      tr.querySelector('.cv-when').disabled = e.target.value !== 'scheduled';
     }
+    refreshDirty();
+  });
+
+  saveBtn.addEventListener('click', async function () {
+    var jobs = [];
+    var trs = Array.prototype.slice.call(els.body.querySelectorAll('tr[data-id]'));
+    for (var i = 0; i < trs.length; i++) {
+      var tr = trs[i];
+      if (!rowDirty(tr)) continue;
+      var c = challenges.find(function (x) { return x.id === Number(tr.dataset.id); });
+      var status = tr.querySelector('.cv-status').value;
+      var whenVal = tr.querySelector('.cv-when').value;
+      if (status === 'scheduled' && !whenVal) { alert('예약 과제에 공개일시를 지정하세요: ' + c.title); return; }
+      jobs.push({ tr: tr, c: c, status: status, whenVal: whenVal });
+    }
+    if (!jobs.length) return;
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = '저장 중...';
+    for (var j = 0; j < jobs.length; j++) {
+      var job = jobs[j];
+      var row = job.status === 'hidden' ? { active: false }
+        : job.status === 'scheduled' ? { active: true, open_at: localToISO(job.whenVal) }
+        : { active: true, open_at: null };
+      var res = await sb.from('challenges').update(row).eq('id', job.c.id);
+      if (res.error) { alert('저장 실패(' + job.c.title + '): ' + res.error.message); refreshDirty(); return; }
+      job.c.active = (row.active !== false);
+      job.c.open_at = ('open_at' in row) ? row.open_at : job.c.open_at;
+      job.tr.querySelector('.cv-badge').innerHTML = badge(job.c);
+    }
+    refreshDirty();
+    flash();
   });
 
   async function loadCohorts() {
@@ -143,6 +167,7 @@
     if (res.error) { alert('과제를 불러오지 못했습니다: ' + res.error.message); return; }
     challenges = res.data || [];
     render();
+    refreshDirty();
   }
 
   els.sel.addEventListener('change', function () {

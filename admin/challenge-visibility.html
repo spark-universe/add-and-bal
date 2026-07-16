@@ -27,7 +27,10 @@
     <div class="panel">
       <div class="panel__head">
         <span>과제 목차 <span id="cvCount" style="color:var(--muted);font-weight:600;"></span></span>
-        <span class="form-saved" id="saved" hidden>저장되었습니다</span>
+        <span style="display:flex;align-items:center;gap:10px;">
+          <span class="form-saved" id="saved" hidden>저장되었습니다</span>
+          <button class="btn-primary" id="saveAll" disabled>모두 저장</button>
+        </span>
       </div>
       <table>
         <thead>
@@ -38,7 +41,7 @@
             <th style="width:120px;">현재</th>
             <th style="width:130px;">상태</th>
             <th style="width:200px;">예약 공개일시</th>
-            <th style="width:80px;">저장</th>
+            <th style="width:80px;"></th>
           </tr>
         </thead>
         <tbody id="cvBody">

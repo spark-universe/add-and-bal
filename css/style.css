@@ -264,6 +264,9 @@ a { color: inherit; text-decoration: none; }
 .nav a .ico { width: 18px; text-align: center; }
 .nav a .nav-ext { margin-left: auto; font-size: 0.72rem; color: var(--muted); }
 
+/* 저장 대기(미저장) 행 강조 */
+tr.row-dirty > td { background: #fff7e0; }
+
 .sidebar__footer {
   padding: 16px 22px 0;
   border-top: 1px solid var(--sidebar-border);

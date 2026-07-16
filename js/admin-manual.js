@@ -64,45 +64,69 @@
     }).join('');
   }
 
-  // 상태/날짜를 바꾸면 즉시 저장 (별도 저장 버튼 없음)
-  async function saveRow(tr) {
-    var slug = tr.dataset.slug;
+  // 여러 챕터를 고친 뒤 [모두 저장]으로 한꺼번에 저장
+  var saveBtn = document.getElementById('saveAll');
+
+  function rowDirty(tr) {
+    var c = chapters.find(function (x) { return x.slug === tr.dataset.slug; });
+    if (!c) return false;
     var status = tr.querySelector('.mc-status').value;
     var whenVal = tr.querySelector('.mc-when').value;
-    var note = tr.querySelector('.mc-note');
-
-    if (status === 'scheduled' && !whenVal) return;   // 날짜 입력을 기다림
-
-    var row = {
-      status: status,
-      publish_at: status === 'scheduled' ? localToISO(whenVal) : null,
-      updated_at: new Date().toISOString(),
-    };
-    if (note) note.textContent = '저장 중...';
-    var res = await sb.from('manual_chapters').update(row).eq('slug', slug);
-    if (res.error) { if (note) note.textContent = ''; alert('저장 실패: ' + res.error.message); return; }
-
-    var c = chapters.find(function (x) { return x.slug === slug; });
-    if (c) { c.status = row.status; c.publish_at = row.publish_at; }
-    tr.querySelector('.mc-badge').innerHTML = currentBadge(c);
-    if (note) {
-      note.textContent = '✓ 저장됨';
-      setTimeout(function () { if (note.textContent === '✓ 저장됨') note.textContent = ''; }, 1800);
-    }
-    flash();
+    var curWhen = c.publish_at ? isoToLocal(c.publish_at) : '';
+    return (status !== c.status) || (status === 'scheduled' && whenVal !== curWhen);
+  }
+  function refreshDirty() {
+    var n = 0;
+    els.body.querySelectorAll('tr[data-slug]').forEach(function (tr) {
+      var d = rowDirty(tr);
+      tr.classList.toggle('row-dirty', d);
+      var note = tr.querySelector('.mc-note');
+      if (note) note.innerHTML = d ? '<span style="color:#b9791a;font-weight:700;">● 변경</span>' : '';
+      if (d) n++;
+    });
+    saveBtn.textContent = n ? ('모두 저장 (' + n + ')') : '모두 저장';
+    saveBtn.disabled = n === 0;
   }
 
   els.body.addEventListener('change', function (e) {
     var tr = e.target.closest('tr');
     if (!tr) return;
     if (e.target.classList.contains('mc-status')) {
-      var when = tr.querySelector('.mc-when');
-      when.disabled = e.target.value !== 'scheduled';
-      if (e.target.value === 'scheduled' && !when.value) { when.focus(); return; }
-      saveRow(tr);
-    } else if (e.target.classList.contains('mc-when')) {
-      saveRow(tr);
+      tr.querySelector('.mc-when').disabled = e.target.value !== 'scheduled';
     }
+    refreshDirty();
+  });
+
+  saveBtn.addEventListener('click', async function () {
+    var jobs = [];
+    var trs = Array.prototype.slice.call(els.body.querySelectorAll('tr[data-slug]'));
+    for (var i = 0; i < trs.length; i++) {
+      var tr = trs[i];
+      if (!rowDirty(tr)) continue;
+      var c = chapters.find(function (x) { return x.slug === tr.dataset.slug; });
+      var status = tr.querySelector('.mc-status').value;
+      var whenVal = tr.querySelector('.mc-when').value;
+      if (status === 'scheduled' && !whenVal) { alert('예약 챕터에 공개일시를 지정하세요: ' + c.title); return; }
+      jobs.push({ tr: tr, c: c, status: status, whenVal: whenVal });
+    }
+    if (!jobs.length) return;
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = '저장 중...';
+    for (var j = 0; j < jobs.length; j++) {
+      var job = jobs[j];
+      var row = {
+        status: job.status,
+        publish_at: job.status === 'scheduled' ? localToISO(job.whenVal) : null,
+        updated_at: new Date().toISOString(),
+      };
+      var res = await sb.from('manual_chapters').update(row).eq('slug', job.c.slug);
+      if (res.error) { alert('저장 실패(' + job.c.title + '): ' + res.error.message); refreshDirty(); return; }
+      job.c.status = row.status; job.c.publish_at = row.publish_at;
+      job.tr.querySelector('.mc-badge').innerHTML = currentBadge(job.c);
+    }
+    refreshDirty();
+    flash();
   });
 
   async function load() {
@@ -119,6 +143,7 @@
       return;
     }
     render();
+    refreshDirty();
   }
 
   (async function init() {
