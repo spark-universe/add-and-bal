@@ -230,7 +230,7 @@
   }
 
   /* ================= 일정 보기 (달력) ================= */
-  var calList = [], calYear, calMonth;
+  var calList = [], calYear, calMonth, monthEvents = [];
 
   async function calendar() {
     user = await require();
@@ -243,25 +243,52 @@
 
     document.getElementById('calPrev').addEventListener('click', function () { shift(-1); });
     document.getElementById('calNext').addEventListener('click', function () { shift(1); });
+    wireEventModal();
+
+    // 달력 클릭: 일정 마커 → 수정, 빈 날짜 → 추가, 과제 마커 → 상세
+    document.getElementById('cal').addEventListener('click', function (e) {
+      var evEl = e.target.closest('[data-ev]');
+      if (evEl) { var ev = monthEvents.find(function (x) { return String(x.id) === evEl.dataset.ev; }); if (ev) openEvent(ev); return; }
+      var hwEl = e.target.closest('[data-id]');
+      if (hwEl) { var c = calList.find(function (x) { return String(x.id) === hwEl.dataset.id; }); if (c) openDetail(c); return; }
+      var cell = e.target.closest('.cal__cell[data-day]');
+      if (cell) openEvent(null, Number(cell.dataset.day));
+    });
+
+    await loadMonthEvents();
     renderCal();
   }
   function shift(d) {
     calMonth += d;
     if (calMonth < 0) { calMonth = 11; calYear--; }
     if (calMonth > 11) { calMonth = 0; calYear++; }
-    renderCal();
+    loadMonthEvents().then(renderCal);
+  }
+  async function loadMonthEvents() {
+    var start = new Date(calYear, calMonth, 1).toISOString();
+    var end = new Date(calYear, calMonth + 1, 1).toISOString();   // 보이는 달만 (데이터 최소화)
+    var res = await sb.from('events').select('*').gte('start_at', start).lt('start_at', end).order('start_at');
+    monthEvents = res.data || [];
+  }
+  function fmtTime(iso) {
+    var d = new Date(iso), h = d.getHours(), ap = h >= 12 ? '오후' : '오전', h12 = h % 12 || 12;
+    return ap + ' ' + h12 + (d.getMinutes() ? ':' + String(d.getMinutes()).padStart(2, '0') : '시');
   }
   function renderCal() {
     document.getElementById('calLabel').textContent = calYear + '년 ' + MON[calMonth];
 
-    // 이 달의 마감 과제를 날짜별로 모음
-    var byDay = {};
+    var byDay = {};   // 과제 마감
     calList.forEach(function (c) {
       if (!c.due_at) return;
       var d = new Date(c.due_at + 'T00:00:00');
       if (d.getFullYear() === calYear && d.getMonth() === calMonth) {
         (byDay[d.getDate()] = byDay[d.getDate()] || []).push(c);
       }
+    });
+    var evDay = {};   // 일정
+    monthEvents.forEach(function (e) {
+      var d = new Date(e.start_at);
+      (evDay[d.getDate()] = evDay[d.getDate()] || []).push(e);
     });
 
     var first = new Date(calYear, calMonth, 1).getDay();
@@ -272,18 +299,91 @@
     for (var i = 0; i < first; i++) cells.push('<div class="cal__cell is-empty"></div>');
     for (var day = 1; day <= days; day++) {
       var isToday = (todayISO() === iso(calYear, calMonth, day));
-      var evs = (byDay[day] || []).map(function (c) {
+      var hw = (byDay[day] || []).map(function (c) {
         var cls = c.sub ? 'done' : (isOver(c.due_at) ? 'over' : 'todo');
         return '<span class="cal__ev ' + cls + '" data-id="' + c.id + '">' + esc(c.title) + '</span>';
       }).join('');
-      cells.push('<div class="cal__cell' + (isToday ? ' is-today' : '') + '">' +
-        '<span class="cal__num">' + day + '</span>' + evs + '</div>');
+      var evs = (evDay[day] || []).map(function (e) {
+        var mine = e.scope === 'personal' && e.owner_id === user.id;
+        return '<span class="cal__ev ' + (mine ? 'mine' : 'adm') + '" data-ev="' + e.id + '">' +
+          esc(fmtTime(e.start_at)) + ' ' + esc(e.title) + '</span>';
+      }).join('');
+      cells.push('<div class="cal__cell' + (isToday ? ' is-today' : '') + '" data-day="' + day + '">' +
+        '<span class="cal__num">' + day + '</span>' + hw + evs + '</div>');
     }
     document.getElementById('cal').innerHTML = cells.join('');
-    bindRows(calList);
   }
   function iso(y, m, d) {
     return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+  }
+
+  /* ===== 일정 추가/수정 모달 ===== */
+  var evEditing = null;   // 수정 중인 일정 (null = 신규)
+  function wireEventModal() {
+    document.getElementById('evClose').addEventListener('click', closeEvent);
+    document.getElementById('evCancel').addEventListener('click', closeEvent);
+    document.getElementById('evModal').addEventListener('click', function (e) {
+      if (e.target === this) closeEvent();
+    });
+    document.getElementById('evSave').addEventListener('click', saveEvent);
+    document.getElementById('evDelete').addEventListener('click', deleteEvent);
+  }
+  function closeEvent() { document.getElementById('evModal').classList.remove('is-open'); evEditing = null; }
+  function openEvent(ev, day) {
+    evEditing = ev || null;
+    var editable = !ev || (ev.scope === 'personal' && ev.owner_id === user.id);
+    document.getElementById('evTitle').textContent = ev ? (editable ? '일정 수정' : '일정') : '일정 추가';
+    document.getElementById('evAdminNote').hidden = editable;
+
+    var name = document.getElementById('evName'), date = document.getElementById('evDate'),
+        time = document.getElementById('evTime'), memo = document.getElementById('evMemo');
+    if (ev) {
+      var d = new Date(ev.start_at);
+      name.value = ev.title || '';
+      date.value = iso(d.getFullYear(), d.getMonth(), d.getDate());
+      time.value = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+      memo.value = ev.memo || '';
+    } else {
+      name.value = ''; memo.value = '';
+      date.value = iso(calYear, calMonth, day || 1);
+      time.value = '09:00';
+    }
+    [name, date, time, memo].forEach(function (el) { el.disabled = !editable; });
+    document.getElementById('evSave').hidden = !editable;
+    document.getElementById('evDelete').hidden = !(ev && editable);
+    document.getElementById('evModal').classList.add('is-open');
+  }
+  async function saveEvent() {
+    var title = document.getElementById('evName').value.trim();
+    var dateV = document.getElementById('evDate').value;
+    var timeV = document.getElementById('evTime').value || '09:00';
+    if (!title) { alert('제목을 입력하세요.'); return; }
+    if (!dateV) { alert('날짜를 선택하세요.'); return; }
+    var startAt = new Date(dateV + 'T' + timeV).toISOString();
+    var memo = document.getElementById('evMemo').value.trim() || null;
+
+    var res;
+    if (evEditing) {
+      res = await sb.from('events').update({ title: title, start_at: startAt, memo: memo }).eq('id', evEditing.id);
+    } else {
+      res = await sb.from('events').insert({
+        title: title, start_at: startAt, memo: memo,
+        scope: 'personal', owner_id: user.id, created_by: user.id
+      });
+    }
+    if (res.error) { alert('저장 실패: ' + res.error.message); return; }
+    closeEvent();
+    await loadMonthEvents();
+    renderCal();
+  }
+  async function deleteEvent() {
+    if (!evEditing) return;
+    if (!confirm('이 일정을 삭제할까요?')) return;
+    var res = await sb.from('events').delete().eq('id', evEditing.id);
+    if (res.error) { alert('삭제 실패: ' + res.error.message); return; }
+    closeEvent();
+    await loadMonthEvents();
+    renderCal();
   }
 
   /* ================= 내 과제 관리 ================= */

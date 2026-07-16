@@ -136,7 +136,11 @@ a { color: inherit; text-decoration: none; }
 .cal__ev.todo { background: #fff0d6; color: #a86b00; }
 .cal__ev.done { background: #eaf7ef; color: #1a6b3c; }
 .cal__ev.over { background: #ffe0e0; color: #c92a2a; }
+.cal__ev.mine { background: var(--primary-soft); color: var(--primary); }   /* 내 일정 */
+.cal__ev.adm { background: #efe7fb; color: #6b3fc9; }                        /* 어드민 배포 일정 */
 .cal__ev:hover { filter: brightness(0.95); }
+.cal__cell[data-day] { cursor: pointer; }
+.cal__cell[data-day]:hover { background: #f7f9fc; }
 
 @media (max-width: 720px) {
   .cal__cell { min-height: 64px; }

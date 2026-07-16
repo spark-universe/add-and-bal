@@ -204,6 +204,29 @@ create table if not exists public.challenge_submissions (
   unique (challenge_id, user_id)
 );
 
+-- ---------- 일정(캘린더): 개인 일정 + 어드민 배포 일정 ----------
+--  scope: 'personal'(학생 본인) | 'all'(전체) | 'cohort'(특정 기수) | 'users'(특정 인원)
+create table if not exists public.events (
+  id bigint generated always as identity primary key,
+  title text not null,
+  memo text,
+  start_at timestamptz not null,      -- 날짜 + 시간
+  scope text default 'personal',
+  cohort int,                         -- scope='cohort'
+  owner_id uuid references auth.users on delete cascade,   -- 개인 일정: 그 학생
+  created_by uuid references auth.users on delete cascade, -- 만든 사람
+  created_at timestamptz default now()
+);
+create index if not exists events_start_idx on public.events (start_at);
+create index if not exists events_owner_idx on public.events (owner_id);
+create index if not exists events_cohort_idx on public.events (cohort);
+
+create table if not exists public.event_users (   -- scope='users' 대상 인원
+  event_id bigint references public.events on delete cascade,
+  user_id uuid references auth.users on delete cascade,
+  primary key (event_id, user_id)
+);
+
 -- ---------- 2. 신규 가입 시 프로필 자동 생성 ----------
 create or replace function public.handle_new_user()
 returns trigger
@@ -296,6 +319,8 @@ alter table public.cohorts     enable row level security;
 alter table public.level_requests enable row level security;
 alter table public.manual_chapters enable row level security;
 alter table public.cohort_manual enable row level security;
+alter table public.events enable row level security;
+alter table public.event_users enable row level security;
 
 -- 프로필: 본인 또는 어드민만 조회, 본인만 수정
 drop policy if exists "profiles_select" on public.profiles;
@@ -383,6 +408,35 @@ create policy "cohort_manual_select" on public.cohort_manual for select
   to authenticated using (true);
 drop policy if exists "cohort_manual_write" on public.cohort_manual;
 create policy "cohort_manual_write" on public.cohort_manual for all
+  using (public.is_admin()) with check (public.is_admin());
+
+-- 일정: 어드민 전체 / 본인 개인 / 전체대상 / 내 기수 / 나를 지정한 것만 조회
+drop policy if exists "events_select" on public.events;
+create policy "events_select" on public.events for select using (
+  public.is_admin()
+  or owner_id = auth.uid()
+  or scope = 'all'
+  or (scope = 'cohort' and cohort = (select cohort from public.profiles where id = auth.uid()))
+  or (scope = 'users' and exists (select 1 from public.event_users eu where eu.event_id = events.id and eu.user_id = auth.uid()))
+);
+drop policy if exists "events_insert" on public.events;
+create policy "events_insert" on public.events for insert with check (
+  (scope = 'personal' and owner_id = auth.uid() and created_by = auth.uid())
+  or public.is_admin()
+);
+drop policy if exists "events_update" on public.events;
+create policy "events_update" on public.events for update
+  using (owner_id = auth.uid() or public.is_admin())
+  with check (owner_id = auth.uid() or public.is_admin());
+drop policy if exists "events_delete" on public.events;
+create policy "events_delete" on public.events for delete
+  using (owner_id = auth.uid() or public.is_admin());
+
+drop policy if exists "eu_select" on public.event_users;
+create policy "eu_select" on public.event_users for select
+  using (user_id = auth.uid() or public.is_admin());
+drop policy if exists "eu_write" on public.event_users;
+create policy "eu_write" on public.event_users for all
   using (public.is_admin()) with check (public.is_admin());
 
 -- 챌린지 과제: 로그인한 사람은 조회, 등록/수정/삭제는 어드민만

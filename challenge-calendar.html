@@ -13,7 +13,7 @@
     <div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
       <div>
         <h2>일정 보기</h2>
-        <p>과제 마감일을 달력으로 확인하세요.</p>
+        <p>과제 마감일과 내 일정을 달력으로 봅니다. <b>빈 날짜를 클릭</b>하면 일정을 추가할 수 있어요.</p>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
         <button class="btn-sm" id="calPrev">←</button>
@@ -25,6 +25,33 @@
     <div class="cal" id="cal"></div>
   </main>
 </div>
+
+<!-- 일정 추가/수정 -->
+<div class="modal-overlay" id="evModal">
+  <div class="modal-card" style="max-width:420px;">
+    <div class="modal-card__head">
+      <h3 id="evTitle">일정 추가</h3>
+      <button type="button" class="modal-close" id="evClose">&times;</button>
+    </div>
+    <div class="modal-card__body">
+      <div id="evAdminNote" style="font-size:0.82rem;color:var(--muted);margin-bottom:10px;" hidden>어드민이 배포한 일정이라 수정할 수 없습니다.</div>
+      <div class="field"><label>제목</label><input type="text" id="evName" placeholder="예: 상품 등록 마감"></div>
+      <div class="field" style="display:flex;gap:10px;">
+        <div style="flex:1;"><label>날짜</label><input type="date" id="evDate"></div>
+        <div style="flex:1;"><label>시간</label><input type="time" id="evTime"></div>
+      </div>
+      <div class="field"><label>메모</label>
+        <textarea id="evMemo" rows="2" style="width:100%;padding:11px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:0.88rem;resize:vertical;"></textarea>
+      </div>
+    </div>
+    <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn-sm" id="evDelete" style="color:var(--danger);margin-right:auto;" hidden>삭제</button>
+      <button class="btn-sm" id="evCancel">취소</button>
+      <button class="btn-primary" id="evSave">저장</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase.js"></script>
 <script src="js/layout.js"></script>
