@@ -18,6 +18,7 @@
     <div class="seg">
       <button class="seg__btn is-on" data-tab="pending">가입자 관리 <span class="seg__badge" id="pendBadge">0</span></button>
       <button class="seg__btn" data-tab="users">사용자 관리 <span class="seg__badge" id="userBadge">0</span></button>
+      <button class="seg__btn" data-tab="levels">등급 관리 <span class="seg__badge" id="lvlBadge">0</span></button>
     </div>
 
     <!-- ===== 가입자 관리 (승인 대기) ===== -->
@@ -71,6 +72,28 @@
         </table>
       </div>
     </section>
+
+    <!-- ===== 등급 관리 ===== -->
+    <section id="tab-levels" hidden>
+      <div class="stat-row">
+        <div class="stat"><div class="label">발주·광고 열림</div><div class="value"><span id="lvOpenCnt">0</span> <span style="font-size:0.9rem;font-weight:600;">명</span></div></div>
+        <div class="stat"><div class="label">잠금(챌린지 단계)</div><div class="value"><span id="lvLockCnt">0</span> <span style="font-size:0.9rem;font-weight:600;">명</span></div></div>
+        <div class="stat is-highlight"><div class="label">등급업 신청 대기</div><div class="value"><span id="lvPendCnt">0</span> <span style="font-size:0.9rem;font-weight:600;">건</span></div></div>
+      </div>
+      <div class="seg" style="margin-bottom:14px;">
+        <button class="seg__btn lv-tab is-on" data-lv="all">전체</button>
+        <button class="seg__btn lv-tab" data-lv="open">발주·광고 열림</button>
+        <button class="seg__btn lv-tab" data-lv="locked">잠금</button>
+        <button class="seg__btn lv-tab" data-lv="pending">신청 대기</button>
+      </div>
+      <div class="panel">
+        <div class="panel__head"><span>등급 현황 <span id="lvlCount" style="color:var(--muted);font-weight:600;"></span></span></div>
+        <table>
+          <thead><tr><th>성명</th><th>이메일</th><th>기수</th><th>등급</th><th>신청 내역</th><th style="width:220px;">관리</th></tr></thead>
+          <tbody id="levelBody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr></tbody>
+        </table>
+      </div>
+    </section>
   </main>
 </div>
 
@@ -105,12 +128,19 @@
     userBody: document.getElementById('userBody'),
     userCount: document.getElementById('userCount'),
     userBadge: document.getElementById('userBadge'),
+    levelBody: document.getElementById('levelBody'),
+    lvlBadge: document.getElementById('lvlBadge'),
+    lvlCount: document.getElementById('lvlCount'),
+    lvOpenCnt: document.getElementById('lvOpenCnt'),
+    lvLockCnt: document.getElementById('lvLockCnt'),
+    lvPendCnt: document.getElementById('lvPendCnt'),
     modal: document.getElementById('detailModal'),
     detailBody: document.getElementById('detailBody'),
     detailTitle: document.getElementById('detailTitle'),
   };
 
   var all = [], storesByUser = {}, subsByUser = {}, cohorts = [], defaultCohort = 1, cohortByDate = {}, pendingReq = {};
+  var reqByUser = {}, levelFilter = 'all';
 
   function ymd(iso) { return iso ? iso.slice(0, 10) : ''; }
   function cohortDateOf(id) {
@@ -157,6 +187,16 @@
       var tab = this.dataset.tab;
       document.getElementById('tab-pending').hidden = tab !== 'pending';
       document.getElementById('tab-users').hidden = tab !== 'users';
+      document.getElementById('tab-levels').hidden = tab !== 'levels';
+    });
+  });
+  // 등급 관리 필터
+  document.querySelectorAll('.lv-tab').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('.lv-tab').forEach(function (x) { x.classList.remove('is-on'); });
+      this.classList.add('is-on');
+      levelFilter = this.dataset.lv;
+      renderLevels();
     });
   });
 
@@ -182,14 +222,70 @@
     var su = await sb.from('submissions').select('*');
     (su.data || []).forEach(function (r) { (subsByUser[r.user_id] = subsByUser[r.user_id] || []).push(r); });
 
-    // 등급업 신청(대기 중)
-    pendingReq = {};
-    var lr = await sb.from('level_requests').select('*').eq('status', 'pending');
-    (lr.data || []).forEach(function (r) { pendingReq[r.user_id] = r; });
+    // 등급업 신청: 대기 + 최근 내역(사용자별 최신 1건)
+    pendingReq = {}; reqByUser = {};
+    var lr = await sb.from('level_requests').select('*').order('created_at', { ascending: false });
+    (lr.data || []).forEach(function (r) {
+      if (!reqByUser[r.user_id]) reqByUser[r.user_id] = r;   // 최신 1건
+      if (r.status === 'pending') pendingReq[r.user_id] = r;
+    });
 
     fillBulkCohort();
     renderPending();
     renderUsers();
+    renderLevels();
+  }
+
+  /* ---------- 등급 관리 ---------- */
+  function reqTag(u) {
+    if (pendingReq[u.id]) return '<span class="tag tag--wait">🚀 신청 대기</span>';
+    var r = reqByUser[u.id];
+    if (!r) return '<span style="color:var(--muted);">-</span>';
+    var when = r.decided_at ? r.decided_at.slice(0, 10) : '';
+    if (r.status === 'approved') return '<span class="tag tag--ok">승인</span> <span style="color:var(--muted);font-size:0.8rem;">' + when + '</span>';
+    if (r.status === 'rejected') return '<span class="tag tag--no">반려</span> ' +
+      (r.note ? '<span style="color:var(--muted);font-size:0.8rem;">' + esc(r.note) + '</span>' : '');
+    return '-';
+  }
+  function renderLevels() {
+    var students = all.filter(function (u) { return u.status === 'approved'; });
+    var openN = students.filter(function (u) { return (u.level || 0) >= 1; }).length;
+    var pendN = students.filter(function (u) { return pendingReq[u.id]; }).length;
+    els.lvOpenCnt.textContent = openN;
+    els.lvLockCnt.textContent = students.length - openN;
+    els.lvPendCnt.textContent = pendN;
+    els.lvlBadge.textContent = pendN;
+
+    var list = students.filter(function (u) {
+      var open = (u.level || 0) >= 1;
+      if (levelFilter === 'open') return open;
+      if (levelFilter === 'locked') return !open;
+      if (levelFilter === 'pending') return !!pendingReq[u.id];
+      return true;
+    });
+    els.lvlCount.textContent = list.length + ' / ' + students.length + '명';
+
+    if (!list.length) {
+      els.levelBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">해당하는 수강생이 없습니다.</td></tr>';
+      return;
+    }
+    els.levelBody.innerHTML = list.map(function (u) {
+      var open = (u.level || 0) >= 1;
+      var lv = open
+        ? '<span class="tag tag--ok">열림</span> <button class="btn-link" data-level="' + u.id + '" data-to="0">닫기</button>'
+        : '<span class="tag tag--wait">잠금</span> <button class="btn-link" data-level="' + u.id + '" data-to="1">열기</button>';
+      var act = pendingReq[u.id]
+        ? '<button class="btn-link" data-approve="' + u.id + '">승인</button> <button class="btn-link danger" data-reject="' + u.id + '">거절</button>'
+        : '<span style="color:var(--muted);font-size:0.82rem;">-</span>';
+      return '<tr>' +
+        '<td><b>' + esc(u.name) + '</b></td>' +
+        '<td>' + esc(u.email) + '</td>' +
+        '<td>' + esc((cohorts.find(function (c) { return c.id === (u.cohort || 1); }) || {}).label || ((u.cohort || 1) + '기')) + '</td>' +
+        '<td>' + lv + '</td>' +
+        '<td>' + reqTag(u) + '</td>' +
+        '<td>' + act + '</td>' +
+      '</tr>';
+    }).join('');
   }
 
   function fillBulkCohort() {
@@ -429,7 +525,7 @@
     }
   });
 
-  els.userBody.addEventListener('click', async function (e) {
+  async function onUserClick(e) {
     var btn = e.target.closest('button');
     if (!btn) return;
     var detail = btn.getAttribute('data-detail');
@@ -481,7 +577,9 @@
       if (res.error) { alert('발송 실패: ' + res.error.message); return; }
       alert('재설정 메일을 보냈습니다.');
     }
-  });
+  }
+  els.userBody.addEventListener('click', onUserClick);
+  els.levelBody.addEventListener('click', onUserClick);   // 등급 관리 탭도 같은 동작
 
   els.detailBody.addEventListener('click', async function (e) {
     var btn = e.target.closest('button');
