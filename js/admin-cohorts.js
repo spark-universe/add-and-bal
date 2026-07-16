@@ -38,10 +38,11 @@
       var n = countByCohort[c.id] || 0;
       return '<tr' + (c.active ? '' : ' style="opacity:0.5;"') + '>' +
         '<td>' + c.id + '</td>' +
-        '<td style="text-align:left;"><b>' + esc(c.label) + '</b></td>' +
-        '<td style="text-align:left;">' +
+        '<td><b style="font-size:0.95rem;">' + esc(c.label) + '</b></td>' +
+        '<td>' +
           '<input type="date" class="co-enroll" data-id="' + c.id + '" value="' + esc(c.enroll_date || '') +
-          '" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;"></td>' +
+          '" style="padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.95rem;font-weight:600;' +
+          'color:var(--text);font-family:inherit;"></td>' +
         '<td>' + n + '명</td>' +
         '<td><button class="btn-sm" data-act="toggle" data-id="' + c.id + '">' +
           (c.active ? '노출중' : '숨김') + '</button></td>' +
