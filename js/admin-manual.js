@@ -6,16 +6,28 @@
    ========================================================= */
 (function () {
   var cohort = 1;
+  var cohortsList = [];    // 기수 목록
   var catalog = [];        // manual_chapters (slug, title, sort)
   var chapters = [];       // 카탈로그 + 현재 기수 오버라이드 병합 (slug, title, sort, status, publish_at)
 
   var els = {
     sel: document.getElementById('cohortSel'),
+    apply: document.getElementById('applyCohorts'),
     body: document.getElementById('mcBody'),
     count: document.getElementById('mcCount'),
     saved: document.getElementById('saved'),
     saveBtn: document.getElementById('saveAll'),
   };
+
+  // "함께 적용할 기수" 체크박스 — 지금 보는 기수는 항상 포함(체크·비활성)
+  function renderApplyCohorts() {
+    els.apply.innerHTML = cohortsList.map(function (c) {
+      var isCur = c.id === cohort;
+      return '<label style="font-size:0.85rem;display:inline-flex;align-items:center;gap:5px;cursor:pointer;">' +
+        '<input type="checkbox" class="apply-co" value="' + c.id + '"' + (isCur ? ' checked disabled' : '') + '> ' +
+        esc(c.label) + (c.enroll_date ? ' (' + esc(c.enroll_date) + ')' : '') + '</label>';
+    }).join('');
+  }
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
@@ -114,11 +126,28 @@
     }
     if (!jobs.length) return;
 
+    // 적용 대상 기수 (지금 보는 기수 + 체크한 기수)
+    var targets = [cohort];
+    els.apply.querySelectorAll('.apply-co:checked').forEach(function (cb) {
+      var id = Number(cb.value);
+      if (targets.indexOf(id) === -1) targets.push(id);
+    });
+    if (targets.length > 1) {
+      var names = targets.map(function (t) {
+        var c = cohortsList.find(function (x) { return x.id === t; });
+        return c ? c.label : t;
+      }).join(', ');
+      if (!confirm('다음 기수에 이번 변경을 저장합니다:\n' + names)) return;
+    }
+
     els.saveBtn.disabled = true;
     els.saveBtn.textContent = '저장 중...';
-    var rows = jobs.map(function (j) {
-      return { cohort: cohort, slug: j.slug, status: j.status, publish_at: j.publish_at,
-        updated_at: new Date().toISOString() };
+    var stamp = new Date().toISOString();
+    var rows = [];
+    jobs.forEach(function (j) {
+      targets.forEach(function (t) {
+        rows.push({ cohort: t, slug: j.slug, status: j.status, publish_at: j.publish_at, updated_at: stamp });
+      });
     });
     var res = await sb.from('cohort_manual').upsert(rows, { onConflict: 'cohort,slug' }).select();
     if (res.error) { alert('저장 실패: ' + res.error.message); await load(); return; }
@@ -149,13 +178,14 @@
 
   async function loadCohorts() {
     var co = await sb.from('cohorts').select('*').order('id');
-    var list = (co.data && co.data.length) ? co.data : [{ id: 1, label: '1기' }];
-    els.sel.innerHTML = list.map(function (c) {
+    cohortsList = (co.data && co.data.length) ? co.data : [{ id: 1, label: '1기' }];
+    els.sel.innerHTML = cohortsList.map(function (c) {
       return '<option value="' + c.id + '">' + esc(c.label) +
         (c.enroll_date ? ' · ' + esc(c.enroll_date) : '') + '</option>';
     }).join('');
-    if (!list.some(function (c) { return c.id === cohort; })) cohort = list[0].id;
+    if (!cohortsList.some(function (c) { return c.id === cohort; })) cohort = cohortsList[0].id;
     els.sel.value = String(cohort);
+    renderApplyCohorts();
   }
 
   async function load() {
@@ -176,6 +206,7 @@
 
   els.sel.addEventListener('change', function () {
     cohort = parseInt(this.value, 10) || 1;
+    renderApplyCohorts();
     loadSchedule();
   });
 
