@@ -69,7 +69,6 @@
           '<div class="ch-meta">' +
             '<span class="ord-chip">' + esc(names[s.user_id] || '-') + '</span>' +
             '<span class="ord-chip">' + esc(c.title || '-') + '</span>' +
-            '<span class="ord-chip">배점 ' + (c.points || 0) + '점</span>' +
           '</div>' +
           '<div class="od-card__sub">제출 내용</div>' +
           '<div style="background:#f6f7f9;border-radius:8px;padding:12px 14px;white-space:pre-wrap;' +
@@ -90,9 +89,9 @@
               '</select>' +
             '</div>' +
             '<div class="field">' +
-              '<label>점수</label>' +
-              '<input type="number" id="rvScore" min="0" max="' + (c.points || 100) + '" ' +
-                'value="' + (s.score != null ? s.score : '') + '" placeholder="0 ~ ' + (c.points || 0) + '">' +
+              '<label>점수 (선택)</label>' +
+              '<input type="number" id="rvScore" min="0" max="100" ' +
+                'value="' + (s.score != null ? s.score : '') + '" placeholder="0 ~ 100">' +
             '</div>' +
           '</div>' +
           '<div class="field">' +

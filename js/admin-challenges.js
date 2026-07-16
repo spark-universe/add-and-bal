@@ -1,21 +1,21 @@
 /* =========================================================
-   어드민 · 챌린지 관리
+   어드민 · 숙제 관리
    - challenges 테이블 CRUD (등록 / 수정 / 표시토글 / 삭제)
-   - 각 과제의 제출 건수도 함께 보여줌
+   - 각 숙제의 제출 건수, 연결된 매뉴얼 챕터 표시
    - 검수는 별도 화면(challenge-review.html)
    ========================================================= */
 (function () {
   var editingId = null;
-  var challenges = [];      // 현재 기수의 과제만
+  var challenges = [];      // 현재 기수의 숙제만
   var subCount = {};        // challenge_id → 제출 건수
   var cohort = 1;           // 지금 관리 중인 기수
   var maxCohort = 1;        // 존재하는 최대 기수
+  var manualChapters = [];  // 매뉴얼 챕터 목록 (연결용)
 
   var els = {
     title: document.getElementById('fTitle'),
     desc: document.getElementById('fDesc'),
-    category: document.getElementById('fCategory'),
-    points: document.getElementById('fPoints'),
+    manual: document.getElementById('fManual'),
     open: document.getElementById('fOpen'),
     due: document.getElementById('fDue'),
     saveBtn: document.getElementById('saveBtn'),
@@ -24,8 +24,12 @@
     cancelEdit: document.getElementById('cancelEdit'),
     body: document.getElementById('chBody'),
     count: document.getElementById('chCount'),
-    catList: document.getElementById('catList'),
   };
+
+  function manualTitle(slug) {
+    var m = manualChapters.find(function (x) { return x.slug === slug; });
+    return m ? m.title : slug;
+  }
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
@@ -53,18 +57,17 @@
     return {
       title: els.title.value.trim(),
       description: els.desc.value.trim() || null,
-      category: els.category.value.trim() || null,
+      manual_slug: els.manual.value || null,
       cohort: cohort,                    // 지금 선택된 기수로 등록
-      points: parseInt(els.points.value, 10) || 0,
       open_at: localToISO(els.open.value),
       due_at: localToISO(els.due.value),
     };
   }
   function clearForm() {
     editingId = null;
-    els.title.value = els.desc.value = els.category.value =
-      els.points.value = els.open.value = els.due.value = '';
-    els.formTitle.textContent = '과제 등록';
+    els.title.value = els.desc.value = els.open.value = els.due.value = '';
+    els.manual.value = '';
+    els.formTitle.textContent = '숙제 등록';
     els.saveBtn.textContent = '등록하기';
     els.cancelEdit.hidden = true;
   }
@@ -72,11 +75,10 @@
     editingId = c.id;
     els.title.value = c.title || '';
     els.desc.value = c.description || '';
-    els.category.value = c.category || '';
-    els.points.value = c.points != null ? c.points : '';
+    els.manual.value = c.manual_slug || '';
     els.open.value = isoToLocal(c.open_at);
     els.due.value = isoToLocal(c.due_at);
-    els.formTitle.textContent = '과제 수정 — ' + c.title;
+    els.formTitle.textContent = '숙제 수정 — ' + c.title;
     els.saveBtn.textContent = '수정 저장';
     els.cancelEdit.hidden = false;
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -90,24 +92,16 @@
   function render() {
     els.count.textContent = challenges.length ? '(' + challenges.length + '개)' : '';
 
-    // 분류 자동완성
-    var cats = {};
-    challenges.forEach(function (c) { if (c.category) cats[c.category] = true; });
-    els.catList.innerHTML = Object.keys(cats).map(function (c) {
-      return '<option value="' + esc(c) + '">';
-    }).join('');
-
     if (!challenges.length) {
-      els.body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">' +
-        '등록된 과제가 없습니다. 위 폼으로 과제를 등록하세요.</td></tr>';
+      els.body.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">' +
+        '등록된 숙제가 없습니다. 위 폼으로 숙제를 등록하세요.</td></tr>';
       return;
     }
     els.body.innerHTML = challenges.map(function (c) {
       var n = subCount[c.id] || 0;
       return '<tr' + (c.active ? '' : ' style="opacity:0.45;"') + '>' +
-        '<td style="text-align:left;font-weight:600;max-width:320px;">' + esc(c.title) + '</td>' +
-        '<td>' + esc(c.category || '-') + '</td>' +
-        '<td>' + (c.points || 0) + '점</td>' +
+        '<td style="text-align:left;font-weight:600;max-width:300px;">' + esc(c.title) + '</td>' +
+        '<td>' + (c.manual_slug ? '📘 ' + esc(manualTitle(c.manual_slug)) : '<span style="color:var(--muted);">-</span>') + '</td>' +
         '<td>' + fmtDate(c.due_at) + '</td>' +
         '<td>' + (n ? '<a href="challenge-review.html?id=' + c.id + '" style="color:var(--primary);">' + n + '건</a>' : '0건') + '</td>' +
         '<td><button class="btn-sm" data-act="toggle" data-id="' + c.id + '">' +
@@ -123,7 +117,7 @@
   async function load() {
     var res = await sb.from('challenges').select('*')
       .eq('cohort', cohort).order('created_at', { ascending: false });
-    if (res.error) { alert('과제를 불러오지 못했습니다: ' + res.error.message); return; }
+    if (res.error) { alert('숙제를 불러오지 못했습니다: ' + res.error.message); return; }
     challenges = res.data || [];
 
     // 제출 건수 집계
@@ -172,13 +166,26 @@
     await loadCohorts();
     clearForm();
     await load();
-    alert('"' + label + '" 기수로 전환했습니다. 이 기수에 과제를 등록하세요.\n' +
+    alert('"' + label + '" 기수로 전환했습니다. 이 기수에 숙제를 등록하세요.\n' +
       '(수강생의 기수는 사용자 관리에서 지정합니다.)');
   });
 
+  // 매뉴얼 챕터 목록으로 '관련 매뉴얼' 드롭다운 채우기
+  async function loadManualChapters() {
+    var res = await sb.from('manual_chapters').select('slug, title, sort').order('sort');
+    manualChapters = res.data || [];
+    var opts = '<option value="">연결 안 함</option>';
+    manualChapters.forEach(function (m) {
+      opts += '<option value="' + esc(m.slug) + '">' + esc(m.title) + '</option>';
+    });
+    var cur = els.manual.value;
+    els.manual.innerHTML = opts;
+    els.manual.value = cur;
+  }
+
   els.saveBtn.addEventListener('click', async function () {
     var row = readForm();
-    if (!row.title) { alert('과제 제목을 입력하세요.'); return; }
+    if (!row.title) { alert('숙제 제목을 입력하세요.'); return; }
     if (row.open_at && row.due_at && row.due_at < row.open_at) {
       alert('마감일이 시작일보다 빠릅니다.'); return;
     }
@@ -230,6 +237,7 @@
     var admin = await Auth.requireAdmin();
     if (!admin) return;
     await loadCohorts();
+    await loadManualChapters();
     await load();
   })();
 })();

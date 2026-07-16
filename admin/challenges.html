@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>어드민 · 챌린지 관리</title>
+<title>어드민 · 숙제 관리</title>
 <link rel="stylesheet" href="../css/style.css">
 </head>
 <body data-area="admin" data-active="challenges">
@@ -12,8 +12,8 @@
   <main class="content">
     <div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
       <div>
-        <h2>챌린지 관리</h2>
-        <p>수강생에게 낼 과제를 등록합니다. 선택한 기수의 수강생에게만 표시됩니다.</p>
+        <h2>숙제 관리</h2>
+        <p>매뉴얼을 보고 하는 숙제를 등록합니다. 선택한 기수의 수강생에게만 표시됩니다.</p>
       </div>
       <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
         <span style="font-size:0.85rem;color:var(--muted);">기수</span>
@@ -26,30 +26,29 @@
 
     <div class="panel">
       <div class="panel__head">
-        <span id="formTitle">과제 등록</span>
+        <span id="formTitle">숙제 등록</span>
         <button class="btn-link" id="cancelEdit" hidden>수정 취소</button>
       </div>
       <div style="padding:20px 24px;">
         <div class="prod-form">
           <div class="field" style="grid-column:1/-1;">
-            <label>과제 제목 <span style="color:var(--danger);">*</span></label>
+            <label>숙제 제목 <span style="color:var(--danger);">*</span></label>
             <input type="text" id="fTitle" placeholder="예: Shop 기본 설정 완료하기">
           </div>
           <div class="field" style="grid-column:1/-1;">
-            <label>과제 설명</label>
+            <label>숙제 설명</label>
             <textarea id="fDesc" rows="3" placeholder="수강생이 해야 할 내용을 적어주세요."
               style="width:100%;padding:11px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:0.88rem;resize:vertical;"></textarea>
           </div>
 
-          <div class="field">
-            <label>분류</label>
-            <input type="text" id="fCategory" list="catList" placeholder="예: 기본 설정">
-            <datalist id="catList"></datalist>
+          <div class="field" style="grid-column:1/-1;">
+            <label>관련 매뉴얼</label>
+            <select id="fManual" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;">
+              <option value="">연결 안 함</option>
+            </select>
+            <div class="field-hint">수강생이 숙제 안에서 이 매뉴얼 챕터로 바로 이동합니다. 챕터는 <a href="manual-schedule.html" style="color:var(--primary);">매뉴얼 공개</a> 목록과 같습니다.</div>
           </div>
-          <div class="field">
-            <label>배점</label>
-            <input type="number" id="fPoints" min="0" step="1" placeholder="10">
-          </div>
+
           <div class="field">
             <label>시작일시</label>
             <input type="datetime-local" id="fOpen">
@@ -68,14 +67,14 @@
 
     <div class="panel">
       <div class="panel__head">
-        <span>등록된 과제 <span id="chCount" style="color:var(--muted);font-weight:600;"></span></span>
+        <span>등록된 숙제 <span id="chCount" style="color:var(--muted);font-weight:600;"></span></span>
       </div>
       <table>
         <thead>
-          <tr><th>제목</th><th>분류</th><th>배점</th><th>마감일</th><th>제출</th><th>표시</th><th>관리</th></tr>
+          <tr><th>제목</th><th>관련 매뉴얼</th><th>마감일</th><th>제출</th><th>표시</th><th>관리</th></tr>
         </thead>
         <tbody id="chBody">
-          <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
         </tbody>
       </table>
     </div>

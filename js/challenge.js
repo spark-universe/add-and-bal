@@ -99,13 +99,12 @@
     var upcoming = list.filter(function (c) { return !c.sub && c.due_at; }).slice(0, 6);
     var body = document.getElementById('chBody');
     if (!upcoming.length) {
-      body.innerHTML = row(4, list.length ? '마감이 임박한 미제출 과제가 없습니다.' : '등록된 과제가 없습니다.');
+      body.innerHTML = row(3, list.length ? '마감이 임박한 미제출 숙제가 없습니다.' : '등록된 숙제가 없습니다.');
       return;
     }
     body.innerHTML = upcoming.map(function (c) {
       return '<tr class="ch-click" data-id="' + c.id + '">' +
         '<td style="text-align:left;font-weight:600;">' + esc(c.title) + '</td>' +
-        '<td>' + esc(c.category || '-') + '</td>' +
         '<td>' + fmtDate(c.due_at) + '</td>' +
         '<td>' + statusTag(c) + '</td>' +
       '</tr>';
@@ -215,14 +214,12 @@
 
     var body = document.getElementById('allBody');
     if (!list.length) {
-      body.innerHTML = row(6, '해당하는 과제가 없습니다.');
+      body.innerHTML = row(4, '해당하는 숙제가 없습니다.');
       return;
     }
     body.innerHTML = list.map(function (c) {
       return '<tr class="ch-click" data-id="' + c.id + '">' +
         '<td style="text-align:left;font-weight:600;">' + esc(c.title) + '</td>' +
-        '<td>' + esc(c.category || '-') + '</td>' +
-        '<td>' + (c.points || 0) + '점</td>' +
         '<td>' + fmtDate(c.open_at) + '</td>' +
         '<td>' + fmtDate(c.due_at) + '</td>' +
         '<td>' + statusTag(c) + '</td>' +
@@ -329,7 +326,7 @@
 
     var body = document.getElementById('mineBody');
     if (!list.length) {
-      body.innerHTML = row(7, mineList.length ? '해당하는 과제가 없습니다.' : '등록된 과제가 없습니다.');
+      body.innerHTML = row(6, mineList.length ? '해당하는 숙제가 없습니다.' : '등록된 숙제가 없습니다.');
       return;
     }
     body.innerHTML = list.map(function (c) {
@@ -353,7 +350,6 @@
       }
       return '<tr class="ch-click" data-id="' + c.id + '">' +
         '<td style="text-align:left;font-weight:600;">' + esc(c.title) + '</td>' +
-        '<td>' + esc(c.category || '-') + '</td>' +
         '<td>' + fmtDate(c.due_at) + '</td>' +
         '<td>' + submitted + '</td>' +
         '<td>' + review + '</td>' +
@@ -382,10 +378,11 @@
     var d = daysLeft(c.due_at);
     var overdue = isOver(c.due_at) && !c.sub;
 
-    // 참고 자료: 스토어 초기작업 매뉴얼 (새 탭)
-    var manualHtml =
-      '<a class="ch-manual-link" href="manual.html" target="_blank" rel="noopener">' +
-        '📘 스토어 초기작업 매뉴얼 열기 <span aria-hidden="true">↗</span></a>';
+    // 연결된 매뉴얼 챕터로 바로가기 (새 탭). 연결 안 됐으면 표시 안 함
+    var manualHtml = c.manual_slug
+      ? '<a class="ch-manual-link" href="manual.html#' + esc(c.manual_slug) + '" target="_blank" rel="noopener">' +
+          '📘 관련 매뉴얼 보기 <span aria-hidden="true">↗</span></a>'
+      : '';
 
     var already = c.sub && c.sub.file_name
       ? '<div class="ch-file">📎 첨부: ' + esc(c.sub.file_name) + '</div>' : '';
@@ -400,8 +397,6 @@
         '</div>' +
         '<div class="modal-card__body">' +
           '<div class="ch-meta">' +
-            (c.category ? '<span class="ord-chip">' + esc(c.category) + '</span>' : '') +
-            '<span class="ord-chip">배점 ' + (c.points || 0) + '점</span>' +
             (c.due_at ? '<span class="ord-chip">마감 ' + fmtDate(c.due_at) +
               (d != null && d >= 0 ? ' (D-' + d + ')' : '') + '</span>' : '') +
           '</div>' +
