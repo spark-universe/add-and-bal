@@ -36,12 +36,15 @@
   // 과제 + 내 제출을 합쳐서 가져온다 (내 기수 과제만)
   var myCohortLabel = '';
   async function fetchData() {
-    var prof = await sb.from('profiles').select('cohort').eq('id', user.id).single();
+    var prof = await sb.from('profiles').select('cohort, enroll_date').eq('id', user.id).single();
     var cohort = (prof.data && prof.data.cohort) || 1;
 
-    // 내 수강일 (수강생은 기수 대신 수강일만 봄. RLS 로 내 기수 한 줄만 조회됨)
-    var co = await sb.from('cohorts').select('enroll_date').eq('id', cohort).maybeSingle();
-    myCohortLabel = (co.data && co.data.enroll_date) || '';
+    // 내 수강일: 개인 수강일 우선, 없으면 기수 수강일 (수강생은 기수 대신 날짜만 봄)
+    myCohortLabel = (prof.data && prof.data.enroll_date) || '';
+    if (!myCohortLabel) {
+      var co = await sb.from('cohorts').select('enroll_date').eq('id', cohort).maybeSingle();
+      myCohortLabel = (co.data && co.data.enroll_date) || '';
+    }
 
     var ch = await sb.from('challenges').select('*')
       .eq('active', true).eq('cohort', cohort)

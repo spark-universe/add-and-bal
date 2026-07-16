@@ -6,7 +6,7 @@
 -- ---------- 1. 테이블 ----------
 create table if not exists public.profiles (
   id uuid primary key references auth.users on delete cascade,
-  name text,
+  name text,0
   phone text,
   email text,
   role text default 'student',      -- 'student' | 'admin'
@@ -34,6 +34,9 @@ on conflict (id) do nothing;
 -- 발주&광고 훈련 접근 등급: 0 = 챌린지 단계(발주&광고 잠김), 1 = 발주&광고 개방
 alter table public.profiles add column if not exists level int default 0;
 update public.profiles set level = 0 where level is null;
+
+-- 수강생 개인 수강일 (수강생이 보는 날짜. 이 날짜로 기수가 자동 매칭됨. 예외 시 기수/날짜 따로 수정)
+alter table public.profiles add column if not exists enroll_date text;
 
 -- 등급업 신청: 수강생이 신청 → 어드민이 승인/반려
 create table if not exists public.level_requests (
@@ -236,6 +239,7 @@ begin
     new.role   := old.role;
     new.status := old.status;
     new.cohort := old.cohort;
+    new.enroll_date := old.enroll_date;
   end if;
   return new;
 end;

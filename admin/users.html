@@ -38,11 +38,11 @@
             <tr>
               <th style="width:40px;"><input type="checkbox" id="pendAll" title="전체 선택"></th>
               <th>성명</th><th>전화번호</th><th>구글 이메일</th><th>신청일</th>
-              <th style="width:130px;">기수</th><th style="width:150px;">처리</th>
+              <th style="width:150px;">수강일</th><th style="width:140px;">기수(자동)</th><th style="width:130px;">처리</th>
             </tr>
           </thead>
           <tbody id="pendBody">
-            <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
+            <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
           </tbody>
         </table>
       </div>
@@ -110,7 +110,13 @@
     detailTitle: document.getElementById('detailTitle'),
   };
 
-  var all = [], storesByUser = {}, subsByUser = {}, cohorts = [], defaultCohort = 1;
+  var all = [], storesByUser = {}, subsByUser = {}, cohorts = [], defaultCohort = 1, cohortByDate = {};
+
+  function ymd(iso) { return iso ? iso.slice(0, 10) : ''; }
+  function cohortDateOf(id) {
+    var c = cohorts.find(function (x) { return x.id === id; });
+    return (c && c.enroll_date) ? c.enroll_date : '';
+  }
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
@@ -155,7 +161,7 @@
   async function load() {
     var pr = await sb.from('profiles').select('*').neq('role', 'admin').order('created_at');
     if (pr.error) {
-      els.pendBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--danger);padding:40px;">조회 실패: ' + esc(pr.error.message) + '</td></tr>';
+      els.pendBody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--danger);padding:40px;">조회 실패: ' + esc(pr.error.message) + '</td></tr>';
       return;
     }
     all = pr.data || [];
@@ -163,6 +169,9 @@
     var co = await sb.from('cohorts').select('*').order('id');
     cohorts = co.data || [];
     defaultCohort = cohorts.length ? cohorts[cohorts.length - 1].id : 1;   // 가장 최근 기수를 기본값
+    // 수강일 → 기수 자동 매칭표
+    cohortByDate = {};
+    cohorts.forEach(function (c) { if (c.enroll_date) cohortByDate[c.enroll_date] = c.id; });
 
     storesByUser = {}; subsByUser = {};
     var st = await sb.from('stores').select('*');
@@ -190,18 +199,22 @@
     updateBulkBtn();
 
     if (!pending.length) {
-      els.pendBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">승인 대기 중인 가입자가 없습니다.</td></tr>';
+      els.pendBody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:40px;">승인 대기 중인 가입자가 없습니다.</td></tr>';
       return;
     }
     els.pendBody.innerHTML = pending.map(function (u) {
+      // 기본 수강일 = 개인 수강일 or 신청일. 그 날짜의 기수를 자동 매칭
+      var d = u.enroll_date || ymd(u.created_at);
+      var matched = cohortByDate[d] || u.cohort || defaultCohort;
       return '<tr data-id="' + u.id + '">' +
         '<td><input type="checkbox" class="pend-check" data-id="' + u.id + '"></td>' +
         '<td><b>' + esc(u.name) + '</b></td>' +
         '<td>' + esc(u.phone) + '</td>' +
         '<td>' + esc(u.email) + '</td>' +
         '<td>' + fmtDate(u.created_at) + '</td>' +
+        '<td><input type="date" class="pend-date" value="' + esc(d) + '" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;"></td>' +
         '<td><select class="pend-cohort" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;">' +
-          cohortOptions(u.cohort || defaultCohort) + '</select></td>' +
+          cohortOptions(matched) + '</select></td>' +
         '<td>' +
           '<button class="btn-sm is-primary" data-approve="' + u.id + '">승인</button> ' +
           '<button class="btn-sm" data-reject="' + u.id + '" style="color:var(--danger);">거절</button>' +
@@ -221,16 +234,30 @@
     updateBulkBtn();
   });
 
-  // 승인(기수 지정) / 거절 / 체크 상태
-  async function approveOne(id, cohortVal) {
-    var res = await sb.from('profiles').update({ status: 'approved', cohort: cohortVal }).eq('id', id).select();
+  // 승인: 기수 + 수강일 저장
+  async function approveOne(id, cohortVal, dateVal) {
+    var res = await sb.from('profiles')
+      .update({ status: 'approved', cohort: cohortVal, enroll_date: dateVal || null })
+      .eq('id', id).select();
     if (res.error) { alert('승인 실패: ' + res.error.message); return false; }
     if (!res.data || !res.data.length) { alert('승인 권한이 없어 반영되지 않았습니다. (어드민 정책 SQL 확인)'); return false; }
     return true;
   }
 
+  // 수강일 ↔ 기수 자동 연동 + 체크 상태
   els.pendBody.addEventListener('change', function (e) {
-    if (e.target.classList.contains('pend-check')) updateBulkBtn();
+    if (e.target.classList.contains('pend-check')) { updateBulkBtn(); return; }
+    var tr = e.target.closest('tr');
+    if (!tr) return;
+    if (e.target.classList.contains('pend-date')) {
+      // 날짜를 바꾸면 그 날짜의 기수를 자동 선택
+      var cid = cohortByDate[e.target.value];
+      if (cid) tr.querySelector('.pend-cohort').value = String(cid);
+    } else if (e.target.classList.contains('pend-cohort')) {
+      // 기수를 바꾸면 그 기수의 수강일로 날짜를 맞춤
+      var d = cohortDateOf(parseInt(e.target.value, 10));
+      if (d) tr.querySelector('.pend-date').value = d;
+    }
   });
 
   els.pendBody.addEventListener('click', async function (e) {
@@ -242,8 +269,9 @@
     if (approve) {
       var tr = btn.closest('tr');
       var cohortVal = parseInt(tr.querySelector('.pend-cohort').value, 10) || defaultCohort;
+      var dateVal = tr.querySelector('.pend-date').value || null;
       btn.disabled = true;
-      if (await approveOne(approve, cohortVal)) await load();
+      if (await approveOne(approve, cohortVal, dateVal)) await load();
       else btn.disabled = false;
     } else if (reject) {
       if (!confirm('이 가입 요청을 거절하시겠습니까?')) return;
@@ -267,10 +295,15 @@
     for (var i = 0; i < checks.length; i++) {
       var id = checks[i].dataset.id;
       var tr = checks[i].closest('tr');
-      var cohortVal = mode === 'each'
-        ? (parseInt(tr.querySelector('.pend-cohort').value, 10) || defaultCohort)
-        : Number(mode);
-      var ok = await approveOne(id, cohortVal);
+      var cohortVal, dateVal;
+      if (mode === 'each') {
+        cohortVal = parseInt(tr.querySelector('.pend-cohort').value, 10) || defaultCohort;
+        dateVal = tr.querySelector('.pend-date').value || null;
+      } else {
+        cohortVal = Number(mode);
+        dateVal = cohortDateOf(cohortVal) || null;   // 특정 기수로 몰면 그 기수의 수강일 부여
+      }
+      var ok = await approveOne(id, cohortVal, dateVal);
       if (!ok) break;
     }
     await load();
@@ -301,7 +334,7 @@
         '<td>' + esc(u.email) + '</td>' +
         '<td>' + esc(u.phone) + '</td>' +
         '<td><select class="cohort-pick" data-id="' + u.id + '" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;">' + opts + '</select></td>' +
-        '<td>' + cohortDate(u.cohort || 1) + '</td>' +
+        '<td><input type="date" class="user-date" data-id="' + u.id + '" value="' + esc(u.enroll_date || '') + '" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;"></td>' +
         '<td>' + statusTag(u.status) + '</td>' +
         '<td>' + storeN + '개</td>' +
         '<td>' + confirmed + ' / 4</td>' +
@@ -354,19 +387,32 @@
   document.getElementById('detailClose').addEventListener('click', closeDetail);
   els.modal.addEventListener('click', function (e) { if (e.target === els.modal) closeDetail(); });
 
-  // 기수 변경 (사용자 탭)
+  // 기수 변경 / 수강일 변경 (사용자 탭 — 각각 따로 수정)
   els.userBody.addEventListener('change', async function (e) {
     var sel = e.target.closest('.cohort-pick');
-    if (!sel) return;
-    var id = sel.dataset.id;
-    var val = parseInt(sel.value, 10) || 1;
-    var res = await sb.from('profiles').update({ cohort: val }).eq('id', id).select();
-    if (res.error || !res.data || !res.data.length) {
-      alert('기수 변경 실패' + (res.error ? ': ' + res.error.message : '')); return;
+    if (sel) {
+      var id = sel.dataset.id;
+      var val = parseInt(sel.value, 10) || 1;
+      var res = await sb.from('profiles').update({ cohort: val }).eq('id', id).select();
+      if (res.error || !res.data || !res.data.length) {
+        alert('기수 변경 실패' + (res.error ? ': ' + res.error.message : '')); return;
+      }
+      var u = all.filter(function (x) { return x.id === id; })[0];
+      if (u) u.cohort = val;
+      return;
     }
-    var u = all.filter(function (x) { return x.id === id; })[0];
-    if (u) u.cohort = val;
-    renderUsers();   // 수강일 칸도 새 기수에 맞게 갱신
+    var dinp = e.target.closest('.user-date');
+    if (dinp) {
+      var id2 = dinp.dataset.id;
+      var d = dinp.value || null;
+      var r2 = await sb.from('profiles').update({ enroll_date: d }).eq('id', id2).select();
+      if (r2.error || !r2.data || !r2.data.length) {
+        alert('수강일 변경 실패' + (r2.error ? ': ' + r2.error.message : '')); return;
+      }
+      var u2 = all.filter(function (x) { return x.id === id2; })[0];
+      if (u2) u2.enroll_date = d;
+      return;
+    }
   });
 
   els.userBody.addEventListener('click', async function (e) {
