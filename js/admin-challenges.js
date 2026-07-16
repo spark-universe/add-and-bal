@@ -106,10 +106,13 @@
   function groupHtml(title, slug, list) {
     var rows = list.length ? list.map(rowHtml).join('') :
       '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:14px;">아직 숙제가 없습니다.</td></tr>';
+    var headBtn = slug !== null
+      ? '<button class="btn-sm" data-add="' + esc(slug) + '">＋ 이 단원에 숙제 추가</button>'
+      : (list.length ? '<button class="btn-link danger" data-delgroup="1">이 목록 전체 삭제</button>' : '');
     return '<div class="panel" style="margin-bottom:14px;">' +
       '<div class="panel__head">' +
         '<span>📘 ' + esc(title) + ' <span style="color:var(--muted);font-weight:600;">(' + list.length + '개)</span></span>' +
-        (slug !== null ? '<button class="btn-sm" data-add="' + esc(slug) + '">＋ 이 단원에 숙제 추가</button>' : '') +
+        headBtn +
       '</div>' +
       '<table><thead><tr><th style="text-align:left;">제목</th><th style="width:120px;">마감일</th>' +
         '<th style="width:80px;">제출</th><th style="width:90px;">표시</th><th style="width:140px;">관리</th></tr></thead>' +
@@ -240,6 +243,22 @@
       els.manual.value = addBtn.dataset.add;
       window.scrollTo({ top: 0, behavior: 'smooth' });
       els.title.focus();
+      return;
+    }
+
+    // (단원 미지정) 목록 전체 삭제
+    var delGroup = e.target.closest('button[data-delgroup]');
+    if (delGroup) {
+      var unassigned = challenges.filter(function (c) { return !c.manual_slug; });
+      if (!unassigned.length) return;
+      var subs = unassigned.reduce(function (a, c) { return a + (subCount[c.id] || 0); }, 0);
+      var msg = '단원 미지정 숙제 ' + unassigned.length + '개를 모두 삭제할까요?' +
+        (subs ? '\n제출된 ' + subs + '건도 함께 삭제됩니다.' : '');
+      if (!confirm(msg)) return;
+      var dg = await sb.from('challenges').delete().eq('cohort', cohort).is('manual_slug', null);
+      if (dg.error) { alert('삭제 실패: ' + dg.error.message); return; }
+      clearForm();
+      await load();
       return;
     }
 
