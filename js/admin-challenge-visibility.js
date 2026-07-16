@@ -136,13 +136,15 @@
       var row = job.status === 'hidden' ? { active: false }
         : job.status === 'scheduled' ? { active: true, open_at: localToISO(job.whenVal) }
         : { active: true, open_at: null };
-      var res = await sb.from('challenges').update(row).eq('id', job.c.id);
-      if (res.error) { alert('저장 실패(' + job.c.title + '): ' + res.error.message); refreshDirty(); return; }
-      job.c.active = (row.active !== false);
-      job.c.open_at = ('open_at' in row) ? row.open_at : job.c.open_at;
-      job.tr.querySelector('.cv-badge').innerHTML = badge(job.c);
+      var res = await sb.from('challenges').update(row).eq('id', job.c.id).select();
+      if (res.error) { alert('저장 실패(' + job.c.title + '): ' + res.error.message); await load(); return; }
+      if (!res.data || !res.data.length) {
+        alert('저장이 반영되지 않았습니다: ' + job.c.title +
+          '\n(어드민 권한이 없거나 세션이 만료됐을 수 있습니다. 다시 로그인 후 시도하세요.)');
+        await load(); return;
+      }
     }
-    refreshDirty();
+    await load();   // 낙관적 표시 대신 DB 실제 상태로 다시 불러와 표시
     flash();
   });
 

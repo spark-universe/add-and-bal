@@ -120,12 +120,15 @@
         publish_at: job.status === 'scheduled' ? localToISO(job.whenVal) : null,
         updated_at: new Date().toISOString(),
       };
-      var res = await sb.from('manual_chapters').update(row).eq('slug', job.c.slug);
-      if (res.error) { alert('저장 실패(' + job.c.title + '): ' + res.error.message); refreshDirty(); return; }
-      job.c.status = row.status; job.c.publish_at = row.publish_at;
-      job.tr.querySelector('.mc-badge').innerHTML = currentBadge(job.c);
+      var res = await sb.from('manual_chapters').update(row).eq('slug', job.c.slug).select();
+      if (res.error) { alert('저장 실패(' + job.c.title + '): ' + res.error.message); await load(); return; }
+      if (!res.data || !res.data.length) {
+        alert('저장이 반영되지 않았습니다: ' + job.c.title +
+          '\n(어드민 권한이 없거나 세션이 만료됐을 수 있습니다. 다시 로그인 후 시도하세요.)');
+        await load(); return;
+      }
     }
-    refreshDirty();
+    await load();
     flash();
   });
 
