@@ -76,42 +76,50 @@
         '<td><input type="datetime-local" class="cv-when" value="' + isoToLocal(c.open_at) + '"' +
           (st === 'scheduled' ? '' : ' disabled') +
           ' style="padding:6px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;width:100%;"></td>' +
-        '<td><button class="btn-sm" data-save="' + c.id + '">저장</button></td>' +
+        '<td class="cv-note" style="color:var(--muted);font-size:0.78rem;white-space:nowrap;"></td>' +
       '</tr>';
     }).join('');
   }
 
-  els.body.addEventListener('change', function (e) {
-    var sel = e.target.closest('.cv-status');
-    if (!sel) return;
-    var when = sel.closest('tr').querySelector('.cv-when');
-    when.disabled = sel.value !== 'scheduled';
-  });
-
-  els.body.addEventListener('click', async function (e) {
-    var btn = e.target.closest('button[data-save]');
-    if (!btn) return;
-    var id = Number(btn.dataset.save);
-    var tr = btn.closest('tr');
+  // 상태/날짜를 바꾸면 즉시 저장 (별도 저장 버튼 없음)
+  async function saveRow(tr) {
+    var id = Number(tr.dataset.id);
     var status = tr.querySelector('.cv-status').value;
     var whenVal = tr.querySelector('.cv-when').value;
+    var note = tr.querySelector('.cv-note');
 
-    if (status === 'scheduled' && !whenVal) { alert('예약 상태에는 공개일시를 지정해야 합니다.'); return; }
+    if (status === 'scheduled' && !whenVal) return;   // 날짜 입력을 기다림
 
     var row;
     if (status === 'hidden') row = { active: false };
     else if (status === 'scheduled') row = { active: true, open_at: localToISO(whenVal) };
-    else row = { active: true, open_at: null };   // 공개(즉시)
+    else row = { active: true, open_at: null };       // 공개(즉시)
 
-    btn.disabled = true;
+    if (note) note.textContent = '저장 중...';
     var res = await sb.from('challenges').update(row).eq('id', id);
-    btn.disabled = false;
-    if (res.error) { alert('저장 실패: ' + res.error.message); return; }
+    if (res.error) { if (note) note.textContent = ''; alert('저장 실패: ' + res.error.message); return; }
 
     var c = challenges.find(function (x) { return x.id === id; });
     if (c) { c.active = (row.active !== false); c.open_at = ('open_at' in row) ? row.open_at : c.open_at; }
     tr.querySelector('.cv-badge').innerHTML = badge(c);
+    if (note) {
+      note.textContent = '✓ 저장됨';
+      setTimeout(function () { if (note.textContent === '✓ 저장됨') note.textContent = ''; }, 1800);
+    }
     flash();
+  }
+
+  els.body.addEventListener('change', function (e) {
+    var tr = e.target.closest('tr');
+    if (!tr) return;
+    if (e.target.classList.contains('cv-status')) {
+      var when = tr.querySelector('.cv-when');
+      when.disabled = e.target.value !== 'scheduled';
+      if (e.target.value === 'scheduled' && !when.value) { when.focus(); return; } // 날짜부터 받고 저장
+      saveRow(tr);
+    } else if (e.target.classList.contains('cv-when')) {
+      saveRow(tr);
+    }
   });
 
   async function loadCohorts() {

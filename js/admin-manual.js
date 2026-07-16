@@ -59,46 +59,50 @@
         '<td><input type="datetime-local" class="mc-when" value="' + isoToLocal(c.publish_at) + '"' +
           (c.status === 'scheduled' ? '' : ' disabled') +
           ' style="padding:6px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;width:100%;"></td>' +
-        '<td><button class="btn-sm" data-save="' + c.slug + '">저장</button></td>' +
+        '<td class="mc-note" style="color:var(--muted);font-size:0.78rem;white-space:nowrap;"></td>' +
       '</tr>';
     }).join('');
   }
 
-  // 상태 바꾸면 예약일 입력 활성/비활성 토글
-  els.body.addEventListener('change', function (e) {
-    var sel = e.target.closest('.mc-status');
-    if (!sel) return;
-    var tr = sel.closest('tr');
-    var when = tr.querySelector('.mc-when');
-    when.disabled = sel.value !== 'scheduled';
-  });
-
-  els.body.addEventListener('click', async function (e) {
-    var btn = e.target.closest('button[data-save]');
-    if (!btn) return;
-    var slug = btn.dataset.save;
-    var tr = btn.closest('tr');
+  // 상태/날짜를 바꾸면 즉시 저장 (별도 저장 버튼 없음)
+  async function saveRow(tr) {
+    var slug = tr.dataset.slug;
     var status = tr.querySelector('.mc-status').value;
     var whenVal = tr.querySelector('.mc-when').value;
+    var note = tr.querySelector('.mc-note');
 
-    if (status === 'scheduled' && !whenVal) {
-      alert('예약 상태에는 공개일시를 지정해야 합니다.');
-      return;
-    }
+    if (status === 'scheduled' && !whenVal) return;   // 날짜 입력을 기다림
+
     var row = {
       status: status,
       publish_at: status === 'scheduled' ? localToISO(whenVal) : null,
       updated_at: new Date().toISOString(),
     };
-    btn.disabled = true;
+    if (note) note.textContent = '저장 중...';
     var res = await sb.from('manual_chapters').update(row).eq('slug', slug);
-    btn.disabled = false;
-    if (res.error) { alert('저장 실패: ' + res.error.message); return; }
+    if (res.error) { if (note) note.textContent = ''; alert('저장 실패: ' + res.error.message); return; }
 
     var c = chapters.find(function (x) { return x.slug === slug; });
     if (c) { c.status = row.status; c.publish_at = row.publish_at; }
     tr.querySelector('.mc-badge').innerHTML = currentBadge(c);
+    if (note) {
+      note.textContent = '✓ 저장됨';
+      setTimeout(function () { if (note.textContent === '✓ 저장됨') note.textContent = ''; }, 1800);
+    }
     flash();
+  }
+
+  els.body.addEventListener('change', function (e) {
+    var tr = e.target.closest('tr');
+    if (!tr) return;
+    if (e.target.classList.contains('mc-status')) {
+      var when = tr.querySelector('.mc-when');
+      when.disabled = e.target.value !== 'scheduled';
+      if (e.target.value === 'scheduled' && !when.value) { when.focus(); return; }
+      saveRow(tr);
+    } else if (e.target.classList.contains('mc-when')) {
+      saveRow(tr);
+    }
   });
 
   async function load() {
