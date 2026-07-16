@@ -152,7 +152,8 @@
     var co = await sb.from('cohorts').select('*').order('id');
     var list = (co.data && co.data.length) ? co.data : [{ id: 1, label: '1기' }];
     els.sel.innerHTML = list.map(function (c) {
-      return '<option value="' + c.id + '">' + esc(c.label) + '</option>';
+      return '<option value="' + c.id + '">' + esc(c.label) +
+        (c.enroll_date ? ' · ' + esc(c.enroll_date) : '') + '</option>';
     }).join('');
     // URL ?cohort= 로 초기 선택
     var q = new URLSearchParams(location.search).get('cohort');

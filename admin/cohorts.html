@@ -12,17 +12,21 @@
   <main class="content">
     <div class="page-head">
       <h2>기수 관리</h2>
-      <p>기수마다 표시 이름을 정합니다. 지금은 "1기"처럼 쓰지만 "2026년 7월"처럼 바꿀 수 있습니다.
-        수강생에게는 <b>자기 기수 이름만</b> 보이고, 다른 기수가 있다는 사실은 알 수 없습니다.</p>
+      <p><b>기수 이름</b>은 어드민 전용 그룹 이름(예: "1기")이고, <b>수강일</b>은 수강생 화면에 보이는 정보입니다.
+        수강생은 <b>수강일만</b> 보고 기수는 모릅니다. 다른 기수가 있다는 사실도 알 수 없습니다.</p>
     </div>
 
     <div class="panel">
       <div class="panel__head"><span>새 기수 추가</span></div>
       <div style="padding:18px 24px;display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
-        <div class="field" style="min-width:240px;">
-          <label>기수 이름</label>
-          <input type="text" id="newLabel" placeholder="예: 2026년 7월">
+        <div class="field" style="min-width:200px;">
+          <label>기수 이름 <span style="color:var(--muted);font-weight:400;">(어드민 전용)</span></label>
+          <input type="text" id="newLabel" placeholder="예: 1기">
           <div class="field-hint">기수 번호는 자동으로 다음 번호가 매겨집니다.</div>
+        </div>
+        <div class="field" style="min-width:200px;">
+          <label>수강일 <span style="color:var(--muted);font-weight:400;">(수강생 표시)</span></label>
+          <input type="text" id="newEnroll" placeholder="예: 2026년 7월 15일">
         </div>
         <button class="btn-primary" id="addBtn">＋ 기수 추가</button>
         <span class="form-saved" id="saved" hidden>저장되었습니다</span>
@@ -35,10 +39,10 @@
       </div>
       <table>
         <thead>
-          <tr><th style="width:70px;">번호</th><th>표시 이름</th><th style="width:110px;">수강생</th><th style="width:100px;">노출</th><th style="width:210px;">관리</th></tr>
+          <tr><th style="width:64px;">번호</th><th>기수 이름</th><th>수강일</th><th style="width:90px;">수강생</th><th style="width:90px;">노출</th><th style="width:250px;">관리</th></tr>
         </thead>
         <tbody id="coBody">
-          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
         </tbody>
       </table>
     </div>

@@ -144,7 +144,8 @@
 
     var sel = document.getElementById('cohortSel');
     sel.innerHTML = cohortList.map(function (c) {
-      return '<option value="' + c.id + '">' + esc(c.label) + '</option>';
+      return '<option value="' + c.id + '">' + esc(c.label) +
+        (c.enroll_date ? ' · ' + esc(c.enroll_date) : '') + '</option>';
     }).join('');
     if (!cohortList.some(function (c) { return c.id === cohort; })) cohort = cohortList[0].id;
     sel.value = String(cohort);

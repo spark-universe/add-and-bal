@@ -39,9 +39,9 @@
     var prof = await sb.from('profiles').select('cohort').eq('id', user.id).single();
     var cohort = (prof.data && prof.data.cohort) || 1;
 
-    // 내 기수 이름 (RLS 로 내 기수 한 줄만 조회됨 → 다른 기수는 알 수 없음)
-    var co = await sb.from('cohorts').select('label').eq('id', cohort).maybeSingle();
-    myCohortLabel = (co.data && co.data.label) || '';
+    // 내 수강일 (수강생은 기수 대신 수강일만 봄. RLS 로 내 기수 한 줄만 조회됨)
+    var co = await sb.from('cohorts').select('enroll_date').eq('id', cohort).maybeSingle();
+    myCohortLabel = (co.data && co.data.enroll_date) || '';
 
     var ch = await sb.from('challenges').select('*')
       .eq('active', true).eq('cohort', cohort)

@@ -123,12 +123,14 @@
     if (st === 'rejected') return '<span class="tag tag--no">거절</span>';
     return '<span class="tag tag--wait">대기</span>';
   }
-  // 기수 드롭다운 옵션 (라벨 기반). 현재 값이 목록에 없으면 임시로 포함.
+  // 어드민 표시용: 기수 이름 · 수강일 (어드민은 둘 다 봄)
+  function cohortText(c) { return esc(c.label) + (c.enroll_date ? ' · ' + esc(c.enroll_date) : ''); }
+  // 기수 드롭다운 옵션. 현재 값이 목록에 없으면 임시로 포함.
   function cohortOptions(cur) {
     var seen = {}, opts = '';
     cohorts.forEach(function (c) {
       seen[c.id] = true;
-      opts += '<option value="' + c.id + '"' + (c.id === cur ? ' selected' : '') + '>' + esc(c.label) + '</option>';
+      opts += '<option value="' + c.id + '"' + (c.id === cur ? ' selected' : '') + '>' + cohortText(c) + '</option>';
     });
     if (!seen[cur]) opts = '<option value="' + cur + '" selected>' + cur + '기</option>' + opts;
     return opts;
@@ -171,7 +173,7 @@
 
   function fillBulkCohort() {
     var opts = '<option value="each">각 행에서 지정</option>';
-    cohorts.forEach(function (c) { opts += '<option value="' + c.id + '">' + esc(c.label) + '(으)로</option>'; });
+    cohorts.forEach(function (c) { opts += '<option value="' + c.id + '">' + cohortText(c) + ' (으)로</option>'; });
     els.bulkCohort.innerHTML = opts;
   }
 

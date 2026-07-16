@@ -17,14 +17,17 @@ create table if not exists public.profiles (
 alter table public.profiles add column if not exists cohort int default 1;
 update public.profiles set cohort = 1 where cohort is null;
 
--- 기수(코호트): 번호 + 어드민이 정하는 표시 이름 (예: "1기", "2026년 7월")
+-- 기수(코호트): 번호 + 기수 이름(어드민 전용) + 수강일(수강생 표시)
 --  * 수강생은 자기 기수 한 줄만 조회 가능 (다른 기수 존재 자체를 알 수 없음)
+--  * label(기수)은 어드민만 봄, enroll_date(수강일)은 수강생에게 보임
 create table if not exists public.cohorts (
   id int primary key,               -- 기수 번호 (profiles.cohort 와 매칭)
-  label text not null,              -- 표시 이름
+  label text not null,              -- 기수 이름 (어드민 전용, 예: "1기")
+  enroll_date text,                 -- 수강일 (수강생에게 표시, 예: "2026년 7월 15일")
   active boolean default true,      -- 끄면 신규 배정 등에서 숨김
   created_at timestamptz default now()
 );
+alter table public.cohorts add column if not exists enroll_date text;
 insert into public.cohorts (id, label) values (1, '1기')
 on conflict (id) do nothing;
 

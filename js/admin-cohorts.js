@@ -10,6 +10,7 @@
 
   var els = {
     newLabel: document.getElementById('newLabel'),
+    newEnroll: document.getElementById('newEnroll'),
     addBtn: document.getElementById('addBtn'),
     saved: document.getElementById('saved'),
     body: document.getElementById('coBody'),
@@ -29,21 +30,26 @@
   function render() {
     els.count.textContent = cohorts.length ? '(' + cohorts.length + '개)' : '';
     if (!cohorts.length) {
-      els.body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:40px;">' +
+      els.body.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">' +
         '등록된 기수가 없습니다.</td></tr>';
       return;
     }
     els.body.innerHTML = cohorts.map(function (c) {
       var n = countByCohort[c.id] || 0;
+      var enroll = c.enroll_date
+        ? esc(c.enroll_date)
+        : '<span style="color:var(--danger);">미입력</span>';
       return '<tr' + (c.active ? '' : ' style="opacity:0.5;"') + '>' +
         '<td>' + c.id + '</td>' +
         '<td style="text-align:left;"><b>' + esc(c.label) + '</b></td>' +
+        '<td style="text-align:left;">' + enroll + '</td>' +
         '<td>' + n + '명</td>' +
         '<td><button class="btn-sm" data-act="toggle" data-id="' + c.id + '">' +
           (c.active ? '노출중' : '숨김') + '</button></td>' +
         '<td>' +
           '<a class="btn-link" href="challenge-visibility.html?cohort=' + c.id + '">챌린지 공개</a> ' +
-          '<button class="btn-link" data-act="rename" data-id="' + c.id + '">이름 변경</button>' +
+          '<button class="btn-link" data-act="enroll" data-id="' + c.id + '">수강일</button> ' +
+          '<button class="btn-link" data-act="rename" data-id="' + c.id + '">이름</button>' +
         '</td>' +
       '</tr>';
     }).join('');
@@ -54,11 +60,13 @@
     if (!label) { alert('기수 이름을 입력하세요.'); return; }
     var nextId = cohorts.reduce(function (m, c) { return Math.max(m, c.id); }, 0) + 1;
 
+    var enroll = els.newEnroll.value.trim() || null;
     els.addBtn.disabled = true;
-    var res = await sb.from('cohorts').insert({ id: nextId, label: label });
+    var res = await sb.from('cohorts').insert({ id: nextId, label: label, enroll_date: enroll });
     els.addBtn.disabled = false;
     if (res.error) { alert('추가 실패: ' + res.error.message); return; }
     els.newLabel.value = '';
+    els.newEnroll.value = '';
     flash();
     await load();
   });
@@ -71,12 +79,20 @@
     if (!c) return;
 
     if (btn.dataset.act === 'rename') {
-      var label = prompt('기수 이름을 입력하세요:', c.label);
+      var label = prompt('기수 이름(어드민 전용)을 입력하세요:', c.label);
       if (label == null) return;
       label = label.trim();
       if (!label) { alert('이름은 비울 수 없습니다.'); return; }
       var r = await sb.from('cohorts').update({ label: label }).eq('id', id);
       if (r.error) { alert('변경 실패: ' + r.error.message); return; }
+      await load();
+      return;
+    }
+    if (btn.dataset.act === 'enroll') {
+      var enroll = prompt('수강일(수강생에게 표시)을 입력하세요:', c.enroll_date || '');
+      if (enroll == null) return;
+      var r2 = await sb.from('cohorts').update({ enroll_date: enroll.trim() || null }).eq('id', id);
+      if (r2.error) { alert('변경 실패: ' + r2.error.message); return; }
       await load();
       return;
     }
