@@ -12,30 +12,65 @@
   <main class="content">
     <div class="page-head">
       <h2>사용자 관리</h2>
-      <p>승급 및 자료 제출 관리 — 수강생을 클릭하면 스토어·제출 현황을 볼 수 있습니다.</p>
+      <p>가입 승인과 수강생 관리를 한 곳에서 합니다. 상단 탭으로 전환하세요.</p>
     </div>
 
-    <div class="stat-row">
-      <div class="stat">
-        <div class="label">총 수강생 (승인)</div>
-        <div class="value"><span id="userCount">0</span> <span style="font-size:0.9rem;font-weight:600;">명</span></div>
+    <div class="seg">
+      <button class="seg__btn is-on" data-tab="pending">가입자 관리 <span class="seg__badge" id="pendBadge">0</span></button>
+      <button class="seg__btn" data-tab="users">사용자 관리 <span class="seg__badge" id="userBadge">0</span></button>
+    </div>
+
+    <!-- ===== 가입자 관리 (승인 대기) ===== -->
+    <section id="tab-pending">
+      <div class="panel">
+        <div class="panel__head" style="flex-wrap:wrap;gap:10px;">
+          <span>승인 요청 <span id="pendCount" style="color:var(--muted);font-weight:600;"></span></span>
+          <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:0.82rem;color:var(--muted);">승인 시 기수</span>
+            <select id="bulkCohort" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.84rem;font-weight:700;">
+              <option value="each">각 행에서 지정</option>
+            </select>
+            <button class="btn-primary" id="bulkApprove" disabled>선택 일괄 승인</button>
+          </span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:40px;"><input type="checkbox" id="pendAll" title="전체 선택"></th>
+              <th>성명</th><th>전화번호</th><th>구글 이메일</th><th>신청일</th>
+              <th style="width:130px;">기수</th><th style="width:150px;">처리</th>
+            </tr>
+          </thead>
+          <tbody id="pendBody">
+            <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
+          </tbody>
+        </table>
       </div>
-    </div>
+    </section>
 
-    <div class="panel">
-      <div class="panel__head"><span>수강생 리스트</span></div>
-      <table>
-        <thead>
-          <tr>
-            <th>성명</th><th>이메일</th><th>전화번호</th>
-            <th>기수</th><th>상태</th><th>스토어</th><th>제출(확정)</th><th>발주&amp;광고</th><th>관리</th>
-          </tr>
-        </thead>
-        <tbody id="userBody">
-          <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <!-- ===== 사용자 관리 (승인된 수강생) ===== -->
+    <section id="tab-users" hidden>
+      <div class="stat-row">
+        <div class="stat">
+          <div class="label">총 수강생 (승인)</div>
+          <div class="value"><span id="userCount">0</span> <span style="font-size:0.9rem;font-weight:600;">명</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel__head"><span>수강생 리스트</span></div>
+        <table>
+          <thead>
+            <tr>
+              <th>성명</th><th>이메일</th><th>전화번호</th>
+              <th>기수</th><th>상태</th><th>스토어</th><th>제출(확정)</th><th>발주&amp;광고</th><th>관리</th>
+            </tr>
+          </thead>
+          <tbody id="userBody">
+            <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   </main>
 </div>
 
@@ -60,15 +95,35 @@
   var ITEM_LABELS = { shop: 'Shop 설정', category: '금지 & 카테고리 설정', order: '기본 필수 주문 설정', amazon: '아마존 가입 & 프라임 설정' };
   var ITEM_ORDER = ['shop', 'category', 'order', 'amazon'];
 
-  var body = document.getElementById('userBody');
-  var countEl = document.getElementById('userCount');
-  var modal = document.getElementById('detailModal');
-  var detailBody = document.getElementById('detailBody');
-  var detailTitle = document.getElementById('detailTitle');
+  var els = {
+    pendBody: document.getElementById('pendBody'),
+    pendCount: document.getElementById('pendCount'),
+    pendBadge: document.getElementById('pendBadge'),
+    pendAll: document.getElementById('pendAll'),
+    bulkCohort: document.getElementById('bulkCohort'),
+    bulkApprove: document.getElementById('bulkApprove'),
+    userBody: document.getElementById('userBody'),
+    userCount: document.getElementById('userCount'),
+    userBadge: document.getElementById('userBadge'),
+    modal: document.getElementById('detailModal'),
+    detailBody: document.getElementById('detailBody'),
+    detailTitle: document.getElementById('detailTitle'),
+  };
 
-  var students = [], storesByUser = {}, subsByUser = {}, cohorts = [];
+  var all = [], storesByUser = {}, subsByUser = {}, cohorts = [], defaultCohort = 1;
 
-  // 기수 드롭다운 옵션 (라벨 기반). 현재 값이 목록에 없으면 임시로 포함시킨다.
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function fmtDate(iso) { return iso ? iso.slice(0, 10) : '-'; }
+  function statusTag(st) {
+    if (st === 'approved') return '<span class="tag tag--ok">승인</span>';
+    if (st === 'rejected') return '<span class="tag tag--no">거절</span>';
+    return '<span class="tag tag--wait">대기</span>';
+  }
+  // 기수 드롭다운 옵션 (라벨 기반). 현재 값이 목록에 없으면 임시로 포함.
   function cohortOptions(cur) {
     var seen = {}, opts = '';
     cohorts.forEach(function (c) {
@@ -79,51 +134,158 @@
     return opts;
   }
 
-  function esc(s) {
-    return String(s || '').replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  /* ---------- 탭 전환 ---------- */
+  document.querySelectorAll('.seg__btn').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('.seg__btn').forEach(function (x) { x.classList.remove('is-on'); });
+      this.classList.add('is-on');
+      var tab = this.dataset.tab;
+      document.getElementById('tab-pending').hidden = tab !== 'pending';
+      document.getElementById('tab-users').hidden = tab !== 'users';
     });
-  }
-  function statusTag(st) {
-    if (st === 'approved') return '<span class="tag tag--ok">승인</span>';
-    if (st === 'rejected') return '<span class="tag tag--no">거절</span>';
-    return '<span class="tag tag--wait">대기</span>';
-  }
+  });
 
+  /* ---------- 데이터 로드 ---------- */
   async function load() {
-    // 수강생(비어드민) 프로필
     var pr = await sb.from('profiles').select('*').neq('role', 'admin').order('created_at');
     if (pr.error) {
-      body.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--danger);padding:40px;">조회 실패: ' + esc(pr.error.message) + '</td></tr>';
+      els.pendBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--danger);padding:40px;">조회 실패: ' + esc(pr.error.message) + '</td></tr>';
       return;
     }
-    students = (pr.data || []);
+    all = pr.data || [];
 
-    // 기수 라벨 목록
     var co = await sb.from('cohorts').select('*').order('id');
     cohorts = co.data || [];
+    defaultCohort = cohorts.length ? cohorts[cohorts.length - 1].id : 1;   // 가장 최근 기수를 기본값
 
-    // 전체 스토어 / 제출 (어드민은 RLS 로 전체 조회 가능) → 유저별로 그룹
     storesByUser = {}; subsByUser = {};
     var st = await sb.from('stores').select('*');
     (st.data || []).forEach(function (s) { (storesByUser[s.user_id] = storesByUser[s.user_id] || []).push(s); });
     var su = await sb.from('submissions').select('*');
     (su.data || []).forEach(function (r) { (subsByUser[r.user_id] = subsByUser[r.user_id] || []).push(r); });
 
-    var approved = students.filter(function (s) { return s.status === 'approved'; });
-    countEl.textContent = approved.length;
+    fillBulkCohort();
+    renderPending();
+    renderUsers();
+  }
 
-    if (!students.length) {
-      body.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:40px;">등록된 수강생이 없습니다.</td></tr>';
+  function fillBulkCohort() {
+    var opts = '<option value="each">각 행에서 지정</option>';
+    cohorts.forEach(function (c) { opts += '<option value="' + c.id + '">' + esc(c.label) + '(으)로</option>'; });
+    els.bulkCohort.innerHTML = opts;
+  }
+
+  /* ---------- 가입자 관리 (대기) ---------- */
+  function renderPending() {
+    var pending = all.filter(function (u) { return u.status === 'pending'; });
+    els.pendCount.textContent = pending.length ? '(' + pending.length + '명)' : '';
+    els.pendBadge.textContent = pending.length;
+    els.pendAll.checked = false;
+    updateBulkBtn();
+
+    if (!pending.length) {
+      els.pendBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">승인 대기 중인 가입자가 없습니다.</td></tr>';
       return;
     }
+    els.pendBody.innerHTML = pending.map(function (u) {
+      return '<tr data-id="' + u.id + '">' +
+        '<td><input type="checkbox" class="pend-check" data-id="' + u.id + '"></td>' +
+        '<td><b>' + esc(u.name) + '</b></td>' +
+        '<td>' + esc(u.phone) + '</td>' +
+        '<td>' + esc(u.email) + '</td>' +
+        '<td>' + fmtDate(u.created_at) + '</td>' +
+        '<td><select class="pend-cohort" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;">' +
+          cohortOptions(u.cohort || defaultCohort) + '</select></td>' +
+        '<td>' +
+          '<button class="btn-sm is-primary" data-approve="' + u.id + '">승인</button> ' +
+          '<button class="btn-sm" data-reject="' + u.id + '" style="color:var(--danger);">거절</button>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+  }
 
-    body.innerHTML = students.map(function (u) {
+  function updateBulkBtn() {
+    var n = els.pendBody.querySelectorAll('.pend-check:checked').length;
+    els.bulkApprove.textContent = n ? '선택 일괄 승인 (' + n + ')' : '선택 일괄 승인';
+    els.bulkApprove.disabled = n === 0;
+  }
+
+  els.pendAll.addEventListener('change', function () {
+    els.pendBody.querySelectorAll('.pend-check').forEach(function (c) { c.checked = els.pendAll.checked; });
+    updateBulkBtn();
+  });
+
+  // 승인(기수 지정) / 거절 / 체크 상태
+  async function approveOne(id, cohortVal) {
+    var res = await sb.from('profiles').update({ status: 'approved', cohort: cohortVal }).eq('id', id).select();
+    if (res.error) { alert('승인 실패: ' + res.error.message); return false; }
+    if (!res.data || !res.data.length) { alert('승인 권한이 없어 반영되지 않았습니다. (어드민 정책 SQL 확인)'); return false; }
+    return true;
+  }
+
+  els.pendBody.addEventListener('change', function (e) {
+    if (e.target.classList.contains('pend-check')) updateBulkBtn();
+  });
+
+  els.pendBody.addEventListener('click', async function (e) {
+    var btn = e.target.closest('button');
+    if (!btn) return;
+    var approve = btn.getAttribute('data-approve');
+    var reject = btn.getAttribute('data-reject');
+
+    if (approve) {
+      var tr = btn.closest('tr');
+      var cohortVal = parseInt(tr.querySelector('.pend-cohort').value, 10) || defaultCohort;
+      btn.disabled = true;
+      if (await approveOne(approve, cohortVal)) await load();
+      else btn.disabled = false;
+    } else if (reject) {
+      if (!confirm('이 가입 요청을 거절하시겠습니까?')) return;
+      var r = await sb.from('profiles').update({ status: 'rejected' }).eq('id', reject).select();
+      if (r.error) { alert('거절 실패: ' + r.error.message); return; }
+      if (!r.data || !r.data.length) { alert('권한이 없어 반영되지 않았습니다.'); return; }
+      await load();
+    }
+  });
+
+  els.bulkApprove.addEventListener('click', async function () {
+    var checks = Array.prototype.slice.call(els.pendBody.querySelectorAll('.pend-check:checked'));
+    if (!checks.length) return;
+    var mode = els.bulkCohort.value;   // 'each' 또는 기수 id
+    var label = mode === 'each' ? '각 행에서 지정한 기수' :
+      (els.bulkCohort.options[els.bulkCohort.selectedIndex].text);
+    if (!confirm(checks.length + '명을 승인합니다.\n기수: ' + label)) return;
+
+    els.bulkApprove.disabled = true;
+    els.bulkApprove.textContent = '승인 중...';
+    for (var i = 0; i < checks.length; i++) {
+      var id = checks[i].dataset.id;
+      var tr = checks[i].closest('tr');
+      var cohortVal = mode === 'each'
+        ? (parseInt(tr.querySelector('.pend-cohort').value, 10) || defaultCohort)
+        : Number(mode);
+      var ok = await approveOne(id, cohortVal);
+      if (!ok) break;
+    }
+    await load();
+  });
+
+  /* ---------- 사용자 관리 (승인됨) ---------- */
+  function renderUsers() {
+    var list = all.filter(function (u) { return u.status !== 'pending'; });
+    var approved = all.filter(function (u) { return u.status === 'approved'; });
+    els.userCount.textContent = approved.length;
+    els.userBadge.textContent = approved.length;
+
+    if (!list.length) {
+      els.userBody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:40px;">승인된 수강생이 없습니다.</td></tr>';
+      return;
+    }
+    els.userBody.innerHTML = list.map(function (u) {
       var storeN = (storesByUser[u.id] || []).length;
       var subs = subsByUser[u.id] || [];
       var confirmed = subs.filter(function (r) { return r.status === 'confirmed'; }).length;
-      var cohort = u.cohort || 1;
-      var opts = cohortOptions(cohort);
+      var opts = cohortOptions(u.cohort || 1);
       var lvOpen = (u.level || 0) >= 1;
       var lvCell = lvOpen
         ? '<span class="tag tag--ok">열림</span> <button class="btn-link" data-level="' + u.id + '" data-to="0">닫기</button>'
@@ -146,7 +308,7 @@
   }
 
   function openDetail(u) {
-    detailTitle.textContent = (u.name || '수강생') + ' 상세';
+    els.detailTitle.textContent = (u.name || '수강생') + ' 상세';
     var stores = storesByUser[u.id] || [];
     var subs = subsByUser[u.id] || [];
 
@@ -178,30 +340,28 @@
       '</tr>';
     });
     html += '</table>';
-    detailBody.innerHTML = html;
-    modal.classList.add('is-open');
+    els.detailBody.innerHTML = html;
+    els.modal.classList.add('is-open');
   }
-  function closeDetail() { modal.classList.remove('is-open'); }
+  function closeDetail() { els.modal.classList.remove('is-open'); }
   document.getElementById('detailClose').addEventListener('click', closeDetail);
-  modal.addEventListener('click', function (e) { if (e.target === modal) closeDetail(); });
+  els.modal.addEventListener('click', function (e) { if (e.target === els.modal) closeDetail(); });
 
-  // 기수 변경
-  body.addEventListener('change', async function (e) {
+  // 기수 변경 (사용자 탭)
+  els.userBody.addEventListener('change', async function (e) {
     var sel = e.target.closest('.cohort-pick');
     if (!sel) return;
     var id = sel.dataset.id;
     var val = parseInt(sel.value, 10) || 1;
     var res = await sb.from('profiles').update({ cohort: val }).eq('id', id).select();
     if (res.error || !res.data || !res.data.length) {
-      alert('기수 변경 실패' + (res.error ? ': ' + res.error.message : ''));
-      return;
+      alert('기수 변경 실패' + (res.error ? ': ' + res.error.message : '')); return;
     }
-    var u = students.filter(function (x) { return x.id === id; })[0];
+    var u = all.filter(function (x) { return x.id === id; })[0];
     if (u) u.cohort = val;
   });
 
-  // 목록 버튼 (상세 / 비번 재설정 / 발주&광고 열기·닫기)
-  body.addEventListener('click', async function (e) {
+  els.userBody.addEventListener('click', async function (e) {
     var btn = e.target.closest('button');
     if (!btn) return;
     var detail = btn.getAttribute('data-detail');
@@ -209,7 +369,7 @@
     var levelId = btn.getAttribute('data-level');
     if (levelId) {
       var to = parseInt(btn.getAttribute('data-to'), 10) || 0;
-      var u0 = students.filter(function (x) { return x.id === levelId; })[0];
+      var u0 = all.filter(function (x) { return x.id === levelId; })[0];
       var msg = to >= 1
         ? '"' + (u0 ? u0.name : '수강생') + '"님에게 발주 & 광고 훈련을 열어줄까요?'
         : '"' + (u0 ? u0.name : '수강생') + '"님의 발주 & 광고 훈련을 다시 잠글까요?';
@@ -221,7 +381,7 @@
       return;
     }
     if (detail) {
-      var u = students.filter(function (x) { return x.id === detail; })[0];
+      var u = all.filter(function (x) { return x.id === detail; })[0];
       if (u) openDetail(u);
     } else if (reset) {
       if (!confirm(reset + ' 로 비밀번호 재설정 메일을 보낼까요?')) return;
@@ -231,8 +391,7 @@
     }
   });
 
-  // 상세 모달 안의 '열기' 버튼
-  detailBody.addEventListener('click', async function (e) {
+  els.detailBody.addEventListener('click', async function (e) {
     var btn = e.target.closest('button');
     if (!btn) return;
     var path = btn.getAttribute('data-path');

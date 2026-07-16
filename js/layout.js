@@ -37,7 +37,6 @@
       base: '',            // 어드민 페이지는 admin/ 폴더 내부이므로 상대경로 그대로
       items: [
         { key: 'home',        section: '공통',            ico: '🏠', label: '메인',        href: 'index.html' },
-        { key: 'registrants', section: '공통',            ico: '🙋', label: '가입자 관리',  href: 'registrants.html' },
         { key: 'users',       section: '공통',            ico: '👥', label: '사용자 관리',  href: 'users.html' },
         { key: 'cohorts',     section: '공통',            ico: '🎓', label: '기수 관리',    href: 'cohorts.html' },
 
