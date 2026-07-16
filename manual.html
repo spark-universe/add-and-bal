@@ -2591,10 +2591,15 @@ Object.keys(map).forEach(id=>{const el=document.getElementById(id);if(el)obs.obs
 links.forEach(l=>l.addEventListener('click',()=>document.body.classList.remove('nav-open')));
 </script>
 <script>
-// 챕터 공개/예약: manual_chapters 를 읽어 아직 공개 안 된 챕터를 숨긴다
+// 챕터 공개/예약: 내 기수(cohort_manual)의 설정으로 아직 공개 안 된 챕터를 숨긴다
 (async function () {
   try {
-    var res = await sb.from('manual_chapters').select('slug,status,publish_at');
+    var ses = await sb.auth.getSession();
+    if (!ses.data.session) return;
+    var prof = await sb.from('profiles').select('role, cohort').eq('id', ses.data.session.user.id).single();
+    var p = (prof && prof.data) || {};
+    if (p.role === 'admin') return;   // 어드민은 전체 보기
+    var res = await sb.from('cohort_manual').select('slug,status,publish_at').eq('cohort', p.cohort || 1);
     if (res.error || !res.data) return;
     var now = Date.now();
     res.data.forEach(function (c) {

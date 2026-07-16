@@ -152,6 +152,18 @@ insert into public.manual_chapters (slug, title, sort) values
   ('popup','팝업창 & 쿠키 설정',180)
 on conflict (slug) do nothing;
 
+-- 기수별 매뉴얼 챕터 공개/예약 (기수마다 따로 설정)
+--  manual_chapters 는 챕터 목록(제목/순서), 실제 "언제 보일지"는 기수별로 여기서 제어
+--  행이 없으면 기본 공개. visible = status='public' 또는 (scheduled 이고 publish_at <= 지금)
+create table if not exists public.cohort_manual (
+  cohort int not null,
+  slug text not null,
+  status text default 'public',       -- 'public' | 'hidden' | 'scheduled'
+  publish_at timestamptz,
+  updated_at timestamptz default now(),
+  primary key (cohort, slug)
+);
+
 -- ---------- 챌린지: 과제 + 제출 ----------
 -- 어드민이 등록하는 과제(챌린지)
 create table if not exists public.challenges (
@@ -259,6 +271,7 @@ alter table public.challenge_submissions enable row level security;
 alter table public.cohorts     enable row level security;
 alter table public.level_requests enable row level security;
 alter table public.manual_chapters enable row level security;
+alter table public.cohort_manual enable row level security;
 
 -- 프로필: 본인 또는 어드민만 조회, 본인만 수정
 drop policy if exists "profiles_select" on public.profiles;
@@ -338,6 +351,14 @@ create policy "manual_chapters_select" on public.manual_chapters for select
   to authenticated using (true);
 drop policy if exists "manual_chapters_write" on public.manual_chapters;
 create policy "manual_chapters_write" on public.manual_chapters for all
+  using (public.is_admin()) with check (public.is_admin());
+
+-- 기수별 매뉴얼 공개: 로그인한 사람은 조회(클라가 자기 기수만 사용), 수정은 어드민만
+drop policy if exists "cohort_manual_select" on public.cohort_manual;
+create policy "cohort_manual_select" on public.cohort_manual for select
+  to authenticated using (true);
+drop policy if exists "cohort_manual_write" on public.cohort_manual;
+create policy "cohort_manual_write" on public.cohort_manual for all
   using (public.is_admin()) with check (public.is_admin());
 
 -- 챌린지 과제: 로그인한 사람은 조회, 등록/수정/삭제는 어드민만

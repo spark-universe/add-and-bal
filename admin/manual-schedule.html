@@ -13,10 +13,16 @@
     <div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
       <div>
         <h2>매뉴얼 공개 관리</h2>
-        <p>스토어 초기작업 매뉴얼의 챕터별 공개 여부와 예약 공개일을 설정합니다.
-          예약한 챕터는 그 시각 전까지 수강생 화면(목차·본문)에서 숨겨집니다.</p>
+        <p><b>기수별로 따로</b> 챕터 공개 여부·예약 공개일을 설정합니다. 위에서 기수를 고르세요.
+          예약한 챕터는 그 시각 전까지 해당 기수 수강생 화면(목차·본문)에서 숨겨집니다.</p>
       </div>
-      <a class="btn-sm" href="../manual.html" target="_blank" rel="noopener" style="flex-shrink:0;">매뉴얼 미리보기 ↗</a>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        <span style="font-size:0.85rem;color:var(--muted);">기수</span>
+        <select id="cohortSel" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;font-weight:700;">
+          <option value="1">1기</option>
+        </select>
+        <a class="btn-sm" href="../manual.html" target="_blank" rel="noopener">미리보기 ↗</a>
+      </div>
     </div>
 
     <div class="panel">
