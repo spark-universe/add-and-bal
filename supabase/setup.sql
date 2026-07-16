@@ -146,19 +146,6 @@ insert into public.manual_chapters (slug, title, sort) values
   ('popup','팝업창 & 쿠키 설정',180)
 on conflict (slug) do nothing;
 
--- ---------- 교재(레슨): 어드민이 등록, 과제에 연결 ----------
-create table if not exists public.lessons (
-  id bigint generated always as identity primary key,
-  category text,                    -- 분류 (예: "3-1 현지화")
-  title text not null,              -- 예: "3-1-1 쇼피파이 $1 플랜 가입"
-  body text,                        -- 리치 텍스트(HTML) 본문
-  sort int default 0,               -- 정렬 순서
-  active boolean default true,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
-create index if not exists lessons_sort_idx on public.lessons (sort);
-
 -- ---------- 챌린지: 과제 + 제출 ----------
 -- 어드민이 등록하는 과제(챌린지)
 create table if not exists public.challenges (
@@ -177,7 +164,6 @@ create table if not exists public.challenges (
 -- (이전 버전 스키마를 이미 실행했다면 아래가 컬럼/타입을 맞춰줌)
 alter table public.challenges add column if not exists manual jsonb default '[]'::jsonb;
 alter table public.challenges add column if not exists cohort int default 1;
-alter table public.challenges add column if not exists lesson_id bigint references public.lessons on delete set null;
 update public.challenges set cohort = 1 where cohort is null;
 alter table public.challenges alter column open_at type timestamptz using open_at::timestamptz;
 alter table public.challenges alter column due_at  type timestamptz using due_at::timestamptz;
@@ -265,7 +251,6 @@ alter table public.topics      enable row level security;
 alter table public.practice_settings enable row level security;
 alter table public.challenges  enable row level security;
 alter table public.challenge_submissions enable row level security;
-alter table public.lessons     enable row level security;
 alter table public.cohorts     enable row level security;
 alter table public.level_requests enable row level security;
 alter table public.manual_chapters enable row level security;
@@ -320,14 +305,6 @@ create policy "topics_select" on public.topics for select
   to authenticated using (true);
 drop policy if exists "topics_write" on public.topics;
 create policy "topics_write" on public.topics for all
-  using (public.is_admin()) with check (public.is_admin());
-
--- 교재(레슨): 로그인한 사람은 조회, 등록/수정/삭제는 어드민만
-drop policy if exists "lessons_select" on public.lessons;
-create policy "lessons_select" on public.lessons for select
-  to authenticated using (true);
-drop policy if exists "lessons_write" on public.lessons;
-create policy "lessons_write" on public.lessons for all
   using (public.is_admin()) with check (public.is_admin());
 
 -- 기수: 어드민은 전체 조회/수정, 수강생은 "자기 기수" 한 줄만 조회 (다른 기수 비노출)
@@ -392,17 +369,6 @@ create policy "practice_settings_write" on public.practice_settings for all
 insert into storage.buckets (id, name, public)
 values ('submissions', 'submissions', false)
 on conflict (id) do nothing;
-
--- 교재 이미지: 공개 버킷 (누구나 조회, 업로드/삭제는 어드민만)
-insert into storage.buckets (id, name, public)
-values ('lessons', 'lessons', true)
-on conflict (id) do nothing;
-drop policy if exists "lesson_img_insert" on storage.objects;
-create policy "lesson_img_insert" on storage.objects for insert
-  with check (bucket_id = 'lessons' and public.is_admin());
-drop policy if exists "lesson_img_delete" on storage.objects;
-create policy "lesson_img_delete" on storage.objects for delete
-  using (bucket_id = 'lessons' and public.is_admin());
 
 -- 파일 경로 규칙: {user_id}/{item}/{filename}  → 첫 폴더가 본인 uid 여야 함
 drop policy if exists "sub_files_insert" on storage.objects;

@@ -43,7 +43,6 @@
         { key: 'promotions',  ico: '🚀', label: '등급 승인',    href: 'promotions.html' },
         { key: 'review',      ico: '📝', label: '자료 검수',    href: 'review.html' },
         { key: 'products',    ico: '🛍️', label: '상품 관리',    href: 'products.html' },
-        { key: 'lessons',     ico: '📖', label: '교재 관리',    href: 'lessons.html' },
         { key: 'manualsched', ico: '📘', label: '매뉴얼 공개',   href: 'manual-schedule.html' },
         { key: 'challenges',  ico: '🏆', label: '챌린지 관리',   href: 'challenges.html' },
         { key: 'chreview',    ico: '✅', label: '과제 검수',    href: 'challenge-review.html' },

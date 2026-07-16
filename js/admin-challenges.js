@@ -11,12 +11,9 @@
   var cohort = 1;           // 지금 관리 중인 기수
   var maxCohort = 1;        // 존재하는 최대 기수
 
-  var lessons = [];         // 드롭다운용 교재 목록
-
   var els = {
     title: document.getElementById('fTitle'),
     desc: document.getElementById('fDesc'),
-    lesson: document.getElementById('fLesson'),
     category: document.getElementById('fCategory'),
     points: document.getElementById('fPoints'),
     open: document.getElementById('fOpen'),
@@ -52,28 +49,10 @@
     return new Date(d - off).toISOString().slice(0, 16);
   }
 
-  // 교재 목록으로 드롭다운 채우기
-  function fillLessonSelect() {
-    var opts = '<option value="">교재 없음</option>';
-    var byCat = {};
-    lessons.forEach(function (l) { (byCat[l.category || '기타'] = byCat[l.category || '기타'] || []).push(l); });
-    Object.keys(byCat).sort().forEach(function (cat) {
-      opts += '<optgroup label="' + esc(cat) + '">';
-      byCat[cat].forEach(function (l) {
-        opts += '<option value="' + l.id + '">' + esc(l.title) + '</option>';
-      });
-      opts += '</optgroup>';
-    });
-    var cur = els.lesson.value;
-    els.lesson.innerHTML = opts;
-    els.lesson.value = cur;
-  }
-
   function readForm() {
     return {
       title: els.title.value.trim(),
       description: els.desc.value.trim() || null,
-      lesson_id: els.lesson.value ? Number(els.lesson.value) : null,
       category: els.category.value.trim() || null,
       cohort: cohort,                    // 지금 선택된 기수로 등록
       points: parseInt(els.points.value, 10) || 0,
@@ -85,7 +64,6 @@
     editingId = null;
     els.title.value = els.desc.value = els.category.value =
       els.points.value = els.open.value = els.due.value = '';
-    els.lesson.value = '';
     els.formTitle.textContent = '과제 등록';
     els.saveBtn.textContent = '등록하기';
     els.cancelEdit.hidden = true;
@@ -94,7 +72,6 @@
     editingId = c.id;
     els.title.value = c.title || '';
     els.desc.value = c.description || '';
-    els.lesson.value = c.lesson_id ? String(c.lesson_id) : '';
     els.category.value = c.category || '';
     els.points.value = c.points != null ? c.points : '';
     els.open.value = isoToLocal(c.open_at);
@@ -248,18 +225,10 @@
     }
   });
 
-  async function loadLessons() {
-    var res = await sb.from('lessons').select('id, title, category').eq('active', true)
-      .order('sort').order('created_at');
-    lessons = res.data || [];
-    fillLessonSelect();
-  }
-
   (async function init() {
     var admin = await Auth.requireAdmin();
     if (!admin) return;
     await loadCohorts();
-    await loadLessons();
     await load();
   })();
 })();

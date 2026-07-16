@@ -375,26 +375,14 @@
     });
   }
 
-  // 교재 캐시 (같은 교재를 여러 번 안 부르도록)
-  var lessonCache = {};
-  async function fetchLesson(id) {
-    if (!id) return null;
-    if (lessonCache[id] !== undefined) return lessonCache[id];
-    var res = await sb.from('lessons').select('*').eq('id', id).maybeSingle();
-    lessonCache[id] = res.data || null;
-    return lessonCache[id];
-  }
-
-  async function openDetail(c) {
+  function openDetail(c) {
     var d = daysLeft(c.due_at);
     var overdue = isOver(c.due_at) && !c.sub;
 
-    // 연결된 교재 본문 (사이트 내부에 저장된 리치 텍스트)
-    var lesson = c.lesson_id ? await fetchLesson(c.lesson_id) : null;
-    var manualHtml = lesson && lesson.body
-      ? '<div class="od-card__sub" style="margin-top:0;">📖 교재</div>' +
-        '<div class="lesson-body">' + lesson.body + '</div>'
-      : '';
+    // 참고 자료: 스토어 초기작업 매뉴얼 (새 탭)
+    var manualHtml =
+      '<a class="ch-manual-link" href="manual.html" target="_blank" rel="noopener">' +
+        '📘 스토어 초기작업 매뉴얼 열기 <span aria-hidden="true">↗</span></a>';
 
     var already = c.sub && c.sub.file_name
       ? '<div class="ch-file">📎 첨부: ' + esc(c.sub.file_name) + '</div>' : '';
