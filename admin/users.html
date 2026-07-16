@@ -89,8 +89,8 @@
       <div class="panel">
         <div class="panel__head"><span>등급 현황 <span id="lvlCount" style="color:var(--muted);font-weight:600;"></span></span></div>
         <table>
-          <thead><tr><th>성명</th><th>이메일</th><th>기수</th><th>등급</th><th>신청 내역</th><th style="width:220px;">관리</th></tr></thead>
-          <tbody id="levelBody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr></tbody>
+          <thead><tr><th>성명</th><th>이메일</th><th>기수</th><th style="width:150px;">등급</th><th style="width:120px;">권한</th><th>신청 내역</th><th style="width:150px;">신청 처리</th></tr></thead>
+          <tbody id="levelBody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr></tbody>
         </table>
       </div>
     </section>
@@ -140,7 +140,7 @@
   };
 
   var all = [], storesByUser = {}, subsByUser = {}, cohorts = [], defaultCohort = 1, cohortByDate = {}, pendingReq = {};
-  var reqByUser = {}, levelFilter = 'all';
+  var reqByUser = {}, levelFilter = 'all', admins = [], myId = null;
 
   function ymd(iso) { return iso ? iso.slice(0, 10) : ''; }
   function cohortDateOf(id) {
@@ -177,6 +177,38 @@
       opts = '<option value="' + cur + '" selected>' + lbl + '</option>' + opts;
     }
     return opts;
+  }
+  // 등급(발주·광고 접근) 드롭다운
+  function levelSelect(u) {
+    var open = (u.level || 0) >= 1;
+    return '<select class="lv-sel" data-id="' + u.id + '" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;">' +
+      '<option value="0"' + (!open ? ' selected' : '') + '>잠금 (챌린지)</option>' +
+      '<option value="1"' + (open ? ' selected' : '') + '>열림 (발주·광고)</option></select>';
+  }
+  // 권한 드롭다운
+  function roleSelect(u) {
+    var isAdmin = u.role === 'admin';
+    return '<select class="role-sel" data-id="' + u.id + '" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;">' +
+      '<option value="student"' + (!isAdmin ? ' selected' : '') + '>수강생</option>' +
+      '<option value="admin"' + (isAdmin ? ' selected' : '') + '>관리자</option></select>';
+  }
+  async function doSetLevel(id, to) {
+    var res = await sb.from('profiles').update({ level: to }).eq('id', id).select();
+    if (res.error || !res.data || !res.data.length) { alert('등급 변경 실패' + (res.error ? ': ' + res.error.message : '')); return false; }
+    var u = all.filter(function (x) { return x.id === id; })[0]; if (u) u.level = to;
+    return true;
+  }
+  async function doSetRole(id, role) {
+    if (role === 'student' && id === myId) { alert('본인의 관리자 권한은 해제할 수 없습니다.'); renderLevels(); return; }
+    var u = all.filter(function (x) { return x.id === id; })[0] || admins.filter(function (x) { return x.id === id; })[0];
+    var nm = u ? (u.name || '이 사용자') : '이 사용자';
+    var msg = role === 'admin'
+      ? '"' + nm + '"님에게 관리자 권한을 줄까요?\n관리자는 어드민 화면 전체를 볼 수 있습니다.'
+      : '"' + nm + '"님의 관리자 권한을 해제(수강생으로)할까요?';
+    if (!confirm(msg)) { renderLevels(); return; }
+    var res = await sb.from('profiles').update({ role: role }).eq('id', id).select();
+    if (res.error || !res.data || !res.data.length) { alert('권한 변경 실패' + (res.error ? ': ' + res.error.message : '')); renderLevels(); return; }
+    await load();
   }
 
   /* ---------- 탭 전환 ---------- */
@@ -230,6 +262,10 @@
       if (r.status === 'pending') pendingReq[r.user_id] = r;
     });
 
+    // 관리자 목록 (권한 해제용)
+    var ad = await sb.from('profiles').select('id,name,email,role').eq('role', 'admin');
+    admins = ad.data || [];
+
     fillBulkCohort();
     renderPending();
     renderUsers();
@@ -265,15 +301,7 @@
     });
     els.lvlCount.textContent = list.length + ' / ' + students.length + '명';
 
-    if (!list.length) {
-      els.levelBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">해당하는 수강생이 없습니다.</td></tr>';
-      return;
-    }
-    els.levelBody.innerHTML = list.map(function (u) {
-      var open = (u.level || 0) >= 1;
-      var lv = open
-        ? '<span class="tag tag--ok">열림</span> <button class="btn-link" data-level="' + u.id + '" data-to="0">닫기</button>'
-        : '<span class="tag tag--wait">잠금</span> <button class="btn-link" data-level="' + u.id + '" data-to="1">열기</button>';
+    var rows = list.map(function (u) {
       var act = pendingReq[u.id]
         ? '<button class="btn-link" data-approve="' + u.id + '">승인</button> <button class="btn-link danger" data-reject="' + u.id + '">거절</button>'
         : '<span style="color:var(--muted);font-size:0.82rem;">-</span>';
@@ -281,11 +309,27 @@
         '<td><b>' + esc(u.name) + '</b></td>' +
         '<td>' + esc(u.email) + '</td>' +
         '<td>' + esc((cohorts.find(function (c) { return c.id === (u.cohort || 1); }) || {}).label || ((u.cohort || 1) + '기')) + '</td>' +
-        '<td>' + lv + '</td>' +
+        '<td>' + levelSelect(u) + '</td>' +
+        '<td>' + roleSelect(u) + '</td>' +
         '<td>' + reqTag(u) + '</td>' +
         '<td>' + act + '</td>' +
       '</tr>';
-    }).join('');
+    });
+    // 전체 필터에서는 현재 관리자도 표시 (권한 해제 가능)
+    if (levelFilter === 'all' && admins.length) {
+      admins.forEach(function (a) {
+        rows.push('<tr style="background:#faf7ff;">' +
+          '<td><b>' + esc(a.name) + '</b></td>' +
+          '<td>' + esc(a.email) + '</td>' +
+          '<td>-</td>' +
+          '<td><span class="badge-admin">관리자</span></td>' +
+          '<td>' + roleSelect(a) + '</td>' +
+          '<td>-</td><td>-</td></tr>');
+      });
+    }
+    els.levelBody.innerHTML = rows.length
+      ? rows.join('')
+      : '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">해당하는 수강생이 없습니다.</td></tr>';
   }
 
   function fillBulkCohort() {
@@ -429,11 +473,8 @@
       var subs = subsByUser[u.id] || [];
       var confirmed = subs.filter(function (r) { return r.status === 'confirmed'; }).length;
       var opts = cohortOptions(u.cohort || 1);
-      var lvOpen = (u.level || 0) >= 1;
       var req = pendingReq[u.id];   // 등급업 신청(대기)
-      var lvCell = lvOpen
-        ? '<span class="tag tag--ok">열림</span> <button class="btn-link" data-level="' + u.id + '" data-to="0">닫기</button>'
-        : '<span class="tag tag--wait">잠금</span> <button class="btn-link" data-level="' + u.id + '" data-to="1">열기</button>';
+      var lvCell = levelSelect(u);
       if (req) {
         lvCell += '<div style="margin-top:5px;">🚀 <span class="tag tag--wait">등급업 신청</span> ' +
           '<button class="btn-link" data-approve="' + u.id + '">승인</button> ' +
@@ -497,8 +538,10 @@
   document.getElementById('detailClose').addEventListener('click', closeDetail);
   els.modal.addEventListener('click', function (e) { if (e.target === els.modal) closeDetail(); });
 
-  // 기수 변경 / 수강일 변경 (사용자 탭 — 각각 따로 수정)
+  // 기수 변경 / 수강일 변경 / 등급 변경 (사용자 탭)
   els.userBody.addEventListener('change', async function (e) {
+    var lv0 = e.target.closest('.lv-sel');
+    if (lv0) { if (await doSetLevel(lv0.dataset.id, Number(lv0.value))) { renderUsers(); renderLevels(); } return; }
     var sel = e.target.closest('.cohort-pick');
     if (sel) {
       var id = sel.dataset.id;
@@ -581,6 +624,14 @@
   els.userBody.addEventListener('click', onUserClick);
   els.levelBody.addEventListener('click', onUserClick);   // 등급 관리 탭도 같은 동작
 
+  // 등급 관리 탭: 등급/권한 드롭다운 변경
+  els.levelBody.addEventListener('change', async function (e) {
+    var lv = e.target.closest('.lv-sel');
+    if (lv) { if (await doSetLevel(lv.dataset.id, Number(lv.value))) { renderLevels(); renderUsers(); } return; }
+    var role = e.target.closest('.role-sel');
+    if (role) { await doSetRole(role.dataset.id, role.value); return; }
+  });
+
   els.detailBody.addEventListener('click', async function (e) {
     var btn = e.target.closest('button');
     if (!btn) return;
@@ -594,6 +645,7 @@
   (async function init() {
     var admin = await Auth.requireAdmin();
     if (!admin) return;
+    myId = admin.id;
     await load();
   })();
 })();
