@@ -269,7 +269,7 @@ security definer set search_path = public
 as $$
 declare tmpl int;
 begin
-  select min(cohort) into tmpl from public.challenges;
+  select min(cohort) into tmpl from public.challenges where cohort > 0;   -- 0=미분류 제외
   if tmpl is not null and tmpl <> new.id then
     insert into public.challenges (title, description, manual_slug, cohort, due_at, active)
     select title, description, manual_slug, new.id, due_at, false

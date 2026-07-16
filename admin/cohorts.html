@@ -51,6 +51,29 @@
   </main>
 </div>
 
+<!-- 기수 삭제 -->
+<div class="modal-overlay" id="delModal">
+  <div class="modal-card" style="max-width:460px;">
+    <div class="modal-card__head">
+      <h3>기수 삭제</h3>
+      <button type="button" class="modal-close" id="delClose">&times;</button>
+    </div>
+    <div class="modal-card__body">
+      <p id="delInfo" style="font-size:0.9rem;line-height:1.6;"></p>
+      <div id="delMoveWrap" style="margin-top:12px;" hidden>
+        <label style="font-size:0.85rem;font-weight:700;">옮길 기수</label>
+        <select id="delTarget" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-top:6px;font-size:0.9rem;"></select>
+      </div>
+    </div>
+    <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
+      <button class="btn-sm" id="delCancel" type="button">취소</button>
+      <button class="btn-sm" id="delEmpty" type="button" style="color:var(--danger);" hidden>삭제</button>
+      <button class="btn-sm" id="delUnassign" type="button" style="color:var(--danger);" hidden>미분류로 삭제</button>
+      <button class="btn-primary" id="delMove" type="button" hidden>이동 후 삭제</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../js/supabase.js"></script>
 <script src="../js/layout.js"></script>

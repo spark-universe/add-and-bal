@@ -37,7 +37,8 @@
   var myCohortLabel = '';
   async function fetchData() {
     var prof = await sb.from('profiles').select('cohort, enroll_date').eq('id', user.id).single();
-    var cohort = (prof.data && prof.data.cohort) || 1;
+    // 0 = 미분류(그대로 0으로 조회), null 이면 기본 1
+    var cohort = (prof.data && prof.data.cohort != null) ? prof.data.cohort : 1;
 
     // 내 수강일: 개인 수강일 우선, 없으면 기수 수강일 (수강생은 기수 대신 날짜만 봄)
     myCohortLabel = (prof.data && prof.data.enroll_date) || '';

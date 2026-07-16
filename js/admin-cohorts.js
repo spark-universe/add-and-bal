@@ -47,7 +47,8 @@
           (c.active ? '노출중' : '숨김') + '</button></td>' +
         '<td>' +
           '<a class="btn-link" href="challenge-visibility.html?cohort=' + c.id + '">챌린지 공개</a> ' +
-          '<button class="btn-link" data-act="rename" data-id="' + c.id + '">이름 변경</button>' +
+          '<button class="btn-link" data-act="rename" data-id="' + c.id + '">이름 변경</button> ' +
+          '<button class="btn-link danger" data-act="del" data-id="' + c.id + '">삭제</button>' +
         '</td>' +
       '</tr>';
     }).join('');
@@ -90,7 +91,98 @@
       var t = await sb.from('cohorts').update({ active: !c.active }).eq('id', id);
       if (t.error) { alert('변경 실패: ' + t.error.message); return; }
       await load();
+      return;
     }
+    if (btn.dataset.act === 'del') { openDelete(c); return; }
+  });
+
+  /* ---------- 기수 삭제 ---------- */
+  var delModal = document.getElementById('delModal');
+  var delEls = {
+    info: document.getElementById('delInfo'),
+    moveWrap: document.getElementById('delMoveWrap'),
+    target: document.getElementById('delTarget'),
+    empty: document.getElementById('delEmpty'),
+    unassign: document.getElementById('delUnassign'),
+    move: document.getElementById('delMove'),
+    cancel: document.getElementById('delCancel'),
+    close: document.getElementById('delClose'),
+  };
+  var delId = null, delHw = 0;
+
+  function closeDel() { delModal.classList.remove('is-open'); delId = null; }
+  delEls.cancel.addEventListener('click', closeDel);
+  delEls.close.addEventListener('click', closeDel);
+  delModal.addEventListener('click', function (e) { if (e.target === delModal) closeDel(); });
+
+  async function openDelete(c) {
+    if (cohorts.length <= 1) { alert('기수가 하나뿐이라 삭제할 수 없습니다.'); return; }
+    delId = c.id;
+    var students = countByCohort[c.id] || 0;
+    var hw = await sb.from('challenges').select('id', { count: 'exact', head: true }).eq('cohort', c.id);
+    delHw = hw.count || 0;
+
+    delEls.info.innerHTML = '<b>' + esc(c.label) + '</b> 기수를 삭제합니다.<br>' +
+      '학생 <b>' + students + '명</b>, 숙제 <b>' + delHw + '개</b>.';
+
+    // 버튼/이동옵션 표시 결정
+    delEls.empty.hidden = students > 0;
+    delEls.unassign.hidden = students === 0;
+    delEls.move.hidden = students === 0;
+    delEls.moveWrap.hidden = students === 0;
+
+    if (students > 0) {
+      var others = cohorts.filter(function (x) { return x.id !== c.id; });
+      delEls.target.innerHTML = others.map(function (x) {
+        return '<option value="' + x.id + '">' + esc(x.label) + (x.enroll_date ? ' · ' + esc(x.enroll_date) : '') + '</option>';
+      }).join('');
+      delEls.info.innerHTML += '<br><span style="color:var(--muted);font-size:0.85rem;">' +
+        '· 이동 후 삭제: 학생을 고른 기수로 옮기고(그 기수 숙제를 봄), 이 기수 숙제는 삭제<br>' +
+        '· 미분류로 삭제: 학생·숙제를 미분류로 두고 기수만 삭제</span>';
+    } else {
+      delEls.info.innerHTML += '<br><span style="color:var(--muted);font-size:0.85rem;">학생이 없어 숙제와 함께 바로 삭제됩니다.</span>';
+    }
+    delModal.classList.add('is-open');
+  }
+
+  async function finishDelete() { closeDel(); await load(); }
+
+  // 학생 없음 → 기수 + 숙제 삭제
+  delEls.empty.addEventListener('click', async function () {
+    var id = delId; if (id == null) return;
+    var dh = await sb.from('challenges').delete().eq('cohort', id);
+    if (dh.error) { alert('숙제 삭제 실패: ' + dh.error.message); return; }
+    var dc = await sb.from('cohorts').delete().eq('id', id);
+    if (dc.error) { alert('기수 삭제 실패: ' + dc.error.message); return; }
+    await finishDelete();
+  });
+
+  // 다른 기수로 이동 후 삭제
+  delEls.move.addEventListener('click', async function () {
+    var id = delId; if (id == null) return;
+    var target = Number(delEls.target.value);
+    if (!target) { alert('옮길 기수를 고르세요.'); return; }
+    if (!confirm('학생을 "' + (cohorts.find(function (x){return x.id===target;})||{}).label + '"(으)로 옮기고 이 기수를 삭제할까요?\n이 기수의 숙제·제출물은 삭제됩니다.')) return;
+    var mp = await sb.from('profiles').update({ cohort: target }).eq('cohort', id);
+    if (mp.error) { alert('학생 이동 실패: ' + mp.error.message); return; }
+    var dh = await sb.from('challenges').delete().eq('cohort', id);
+    if (dh.error) { alert('숙제 삭제 실패: ' + dh.error.message); return; }
+    var dc = await sb.from('cohorts').delete().eq('id', id);
+    if (dc.error) { alert('기수 삭제 실패: ' + dc.error.message); return; }
+    await finishDelete();
+  });
+
+  // 미분류로 삭제 (학생·숙제 cohort=0)
+  delEls.unassign.addEventListener('click', async function () {
+    var id = delId; if (id == null) return;
+    if (!confirm('학생과 숙제를 미분류로 두고 이 기수를 삭제할까요?')) return;
+    var mp = await sb.from('profiles').update({ cohort: 0 }).eq('cohort', id);
+    if (mp.error) { alert('학생 미분류 처리 실패: ' + mp.error.message); return; }
+    var mh = await sb.from('challenges').update({ cohort: 0 }).eq('cohort', id);
+    if (mh.error) { alert('숙제 미분류 처리 실패: ' + mh.error.message); return; }
+    var dc = await sb.from('cohorts').delete().eq('id', id);
+    if (dc.error) { alert('기수 삭제 실패: ' + dc.error.message); return; }
+    await finishDelete();
   });
 
   // 수강일(날짜) 즉시 저장

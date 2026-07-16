@@ -142,7 +142,10 @@
       seen[c.id] = true;
       opts += '<option value="' + c.id + '"' + (c.id === cur ? ' selected' : '') + '>' + cohortText(c) + '</option>';
     });
-    if (!seen[cur]) opts = '<option value="' + cur + '" selected>' + cur + '기</option>' + opts;
+    if (!seen[cur]) {
+      var lbl = (cur === 0) ? '미분류' : cur + '기';
+      opts = '<option value="' + cur + '" selected>' + lbl + '</option>' + opts;
+    }
     return opts;
   }
 
