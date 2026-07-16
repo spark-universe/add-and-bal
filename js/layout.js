@@ -36,17 +36,19 @@
       brand: { title: '발주 &amp; 광고<br>설정 훈련', sub: '어드민 영역' },
       base: '',            // 어드민 페이지는 admin/ 폴더 내부이므로 상대경로 그대로
       items: [
-        { key: 'home',        ico: '🏠', label: '메인',        href: 'index.html' },
-        { key: 'registrants', ico: '🙋', label: '가입자 관리',  href: 'registrants.html' },
-        { key: 'users',       ico: '👥', label: '사용자 관리',  href: 'users.html' },
-        { key: 'cohorts',     ico: '🎓', label: '기수 관리',    href: 'cohorts.html' },
-        { key: 'promotions',  ico: '🚀', label: '등급 승인',    href: 'promotions.html' },
-        { key: 'review',      ico: '📝', label: '자료 검수',    href: 'review.html' },
-        { key: 'products',    ico: '🛍️', label: '상품 관리',    href: 'products.html' },
-        { key: 'manualsched', ico: '📘', label: '매뉴얼 공개',   href: 'manual-schedule.html' },
-        { key: 'challenges',  ico: '🏆', label: '챌린지 관리',   href: 'challenges.html' },
-        { key: 'chreview',    ico: '✅', label: '과제 검수',    href: 'challenge-review.html' },
-        { key: 'results',     ico: '📊', label: '결과 관리',    href: 'results.html' },
+        { key: 'home',        section: '공통',            ico: '🏠', label: '메인',        href: 'index.html' },
+        { key: 'registrants', section: '공통',            ico: '🙋', label: '가입자 관리',  href: 'registrants.html' },
+        { key: 'users',       section: '공통',            ico: '👥', label: '사용자 관리',  href: 'users.html' },
+        { key: 'cohorts',     section: '공통',            ico: '🎓', label: '기수 관리',    href: 'cohorts.html' },
+
+        { key: 'challenges',  section: '챌린지 관리',      ico: '🏆', label: '챌린지 관리',   href: 'challenges.html' },
+        { key: 'chreview',    section: '챌린지 관리',      ico: '✅', label: '과제 검수',    href: 'challenge-review.html' },
+        { key: 'manualsched', section: '챌린지 관리',      ico: '📘', label: '매뉴얼 공개',   href: 'manual-schedule.html' },
+
+        { key: 'products',    section: '발주 &amp; 광고 관리', ico: '🛍️', label: '상품 관리',    href: 'products.html' },
+        { key: 'review',      section: '발주 &amp; 광고 관리', ico: '📝', label: '자료 검수',    href: 'review.html' },
+        { key: 'promotions',  section: '발주 &amp; 광고 관리', ico: '🚀', label: '등급 승인',    href: 'promotions.html' },
+        { key: 'results',     section: '발주 &amp; 광고 관리', ico: '📊', label: '결과 관리',    href: 'results.html' },
       ],
       footer: '<div class="who">GSK Admin <span class="badge-admin">관리자</span></div><a href="../index.html">사용자 화면으로</a>',
     },
@@ -56,12 +58,19 @@
   const active = document.body.dataset.active || 'home';
   const menu = MENUS[area];
 
+  let curSection = null;
   const links = menu.items.map(function (it) {
+    // 섹션이 바뀌면 구분 라벨을 먼저 넣는다 (어드민 사이드바 그룹화)
+    let head = '';
+    if (it.section && it.section !== curSection) {
+      curSection = it.section;
+      head = '<li class="nav-sec">' + it.section + '</li>';
+    }
     const cls = it.key === active ? 'is-active' : '';
     // target 지정 시 새 탭으로 (예: 매뉴얼)
     const tgt = it.target ? ' target="' + it.target + '" rel="noopener"' : '';
     const ext = it.target === '_blank' ? ' <span class="nav-ext">↗</span>' : '';
-    return '<li><a class="' + cls + '" href="' + it.href + '"' + tgt + '>' +
+    return head + '<li><a class="' + cls + '" href="' + it.href + '"' + tgt + '>' +
            '<span class="ico">' + it.ico + '</span>' + it.label + ext + '</a></li>';
   }).join('');
 
