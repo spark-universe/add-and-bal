@@ -47,7 +47,6 @@
 
         { key: 'products',    section: '발주 &amp; 광고 관리', ico: '🛍️', label: '상품 관리',    href: 'products.html' },
         { key: 'review',      section: '발주 &amp; 광고 관리', ico: '📝', label: '자료 검수',    href: 'review.html' },
-        { key: 'promotions',  section: '발주 &amp; 광고 관리', ico: '🚀', label: '등급 승인',    href: 'promotions.html' },
         { key: 'results',     section: '발주 &amp; 광고 관리', ico: '📊', label: '결과 관리',    href: 'results.html' },
       ],
       footer: '<div class="who">GSK Admin <span class="badge-admin">관리자</span></div><a href="../index.html">사용자 화면으로</a>',

@@ -110,7 +110,7 @@
     detailTitle: document.getElementById('detailTitle'),
   };
 
-  var all = [], storesByUser = {}, subsByUser = {}, cohorts = [], defaultCohort = 1, cohortByDate = {};
+  var all = [], storesByUser = {}, subsByUser = {}, cohorts = [], defaultCohort = 1, cohortByDate = {}, pendingReq = {};
 
   function ymd(iso) { return iso ? iso.slice(0, 10) : ''; }
   function cohortDateOf(id) {
@@ -181,6 +181,11 @@
     (st.data || []).forEach(function (s) { (storesByUser[s.user_id] = storesByUser[s.user_id] || []).push(s); });
     var su = await sb.from('submissions').select('*');
     (su.data || []).forEach(function (r) { (subsByUser[r.user_id] = subsByUser[r.user_id] || []).push(r); });
+
+    // 등급업 신청(대기 중)
+    pendingReq = {};
+    var lr = await sb.from('level_requests').select('*').eq('status', 'pending');
+    (lr.data || []).forEach(function (r) { pendingReq[r.user_id] = r; });
 
     fillBulkCohort();
     renderPending();
@@ -329,9 +334,15 @@
       var confirmed = subs.filter(function (r) { return r.status === 'confirmed'; }).length;
       var opts = cohortOptions(u.cohort || 1);
       var lvOpen = (u.level || 0) >= 1;
+      var req = pendingReq[u.id];   // 등급업 신청(대기)
       var lvCell = lvOpen
         ? '<span class="tag tag--ok">열림</span> <button class="btn-link" data-level="' + u.id + '" data-to="0">닫기</button>'
         : '<span class="tag tag--wait">잠금</span> <button class="btn-link" data-level="' + u.id + '" data-to="1">열기</button>';
+      if (req) {
+        lvCell += '<div style="margin-top:5px;">🚀 <span class="tag tag--wait">등급업 신청</span> ' +
+          '<button class="btn-link" data-approve="' + u.id + '">승인</button> ' +
+          '<button class="btn-link danger" data-reject="' + u.id + '">거절</button></div>';
+      }
       return '<tr>' +
         '<td><b>' + esc(u.name) + '</b></td>' +
         '<td>' + esc(u.email) + '</td>' +
@@ -424,6 +435,30 @@
     var detail = btn.getAttribute('data-detail');
     var reset = btn.getAttribute('data-reset');
     var levelId = btn.getAttribute('data-level');
+    var approveId = btn.getAttribute('data-approve');
+    var rejectId = btn.getAttribute('data-reject');
+
+    // 등급업 신청 승인 → 발주&광고 열기 + 신청 처리
+    if (approveId) {
+      var reqA = pendingReq[approveId];
+      var uA = all.filter(function (x) { return x.id === approveId; })[0];
+      if (!confirm('"' + (uA ? uA.name : '수강생') + '"님의 등급업을 승인할까요? (발주 & 광고 훈련이 열립니다)')) return;
+      var up = await sb.from('profiles').update({ level: (reqA ? reqA.to_level : 1) || 1 }).eq('id', approveId).select();
+      if (up.error || !up.data || !up.data.length) { alert('승인 실패' + (up.error ? ': ' + up.error.message : '')); return; }
+      if (reqA) await sb.from('level_requests').update({ status: 'approved', decided_at: new Date().toISOString() }).eq('id', reqA.id);
+      await load();
+      return;
+    }
+    if (rejectId) {
+      var reqR = pendingReq[rejectId];
+      if (!reqR) { await load(); return; }
+      var note = prompt('반려 사유를 입력하세요 (수강생에게 표시):', '');
+      if (note == null) return;
+      var rr = await sb.from('level_requests').update({ status: 'rejected', note: note.trim() || null, decided_at: new Date().toISOString() }).eq('id', reqR.id);
+      if (rr.error) { alert('거절 실패: ' + rr.error.message); return; }
+      await load();
+      return;
+    }
     if (levelId) {
       var to = parseInt(btn.getAttribute('data-to'), 10) || 0;
       var u0 = all.filter(function (x) { return x.id === levelId; })[0];
