@@ -39,6 +39,7 @@
         { key: 'home',        section: '공통',            ico: '🏠', label: '메인',        href: 'index.html' },
         { key: 'users',       section: '공통',            ico: '👥', label: '사용자 관리',  href: 'users.html' },
         { key: 'cohorts',     section: '공통',            ico: '🎓', label: '기수 관리',    href: 'cohorts.html' },
+        { key: 'events',      section: '공통',            ico: '📅', label: '일정 관리',    href: 'events.html' },
 
         { key: 'manualsched', section: '챌린지',          ico: '📘', label: '매뉴얼 공개',   href: 'manual-schedule.html' },
         { key: 'challenges',  section: '챌린지',          ico: '📋', label: '숙제 관리',    href: 'challenges.html' },

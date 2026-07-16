@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>어드민 · 일정 관리</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-area="admin" data-active="events">
+<div class="layout">
+  <div id="sidebar"></div>
+  <main class="content">
+    <div class="page-head">
+      <h2>일정 관리</h2>
+      <p>학생 캘린더에 뜰 일정을 배포하고(전체·특정 기수·특정 인원), 학생별 캘린더를 확인합니다.</p>
+    </div>
+
+    <!-- 일정 배포 -->
+    <div class="panel">
+      <div class="panel__head"><span>일정 배포</span><span class="form-saved" id="saved" hidden>배포되었습니다</span></div>
+      <div style="padding:20px 24px;">
+        <div class="prod-form">
+          <div class="field" style="grid-column:1/-1;">
+            <label>제목 <span style="color:var(--danger);">*</span></label>
+            <input type="text" id="fTitle" placeholder="예: 1차 상품 등록 마감">
+          </div>
+          <div class="field"><label>날짜 <span style="color:var(--danger);">*</span></label><input type="date" id="fDate"></div>
+          <div class="field"><label>시간</label><input type="time" id="fTime" value="09:00"></div>
+          <div class="field" style="grid-column:1/-1;">
+            <label>메모</label>
+            <textarea id="fMemo" rows="2" style="width:100%;padding:11px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:0.88rem;resize:vertical;"></textarea>
+          </div>
+          <div class="field">
+            <label>대상</label>
+            <select id="fScope" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;">
+              <option value="all">전체 수강생</option>
+              <option value="cohort">특정 기수</option>
+              <option value="users">특정 인원</option>
+            </select>
+          </div>
+          <div class="field" id="cohortWrap" hidden>
+            <label>기수</label>
+            <select id="fCohort" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;"></select>
+          </div>
+          <div class="field" id="usersWrap" style="grid-column:1/-1;" hidden>
+            <label>대상 인원</label>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <button class="btn-sm" id="pickUsers" type="button">＋ 인원 선택</button>
+              <span id="usersSummary" style="font-size:0.86rem;font-weight:600;"></span>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:8px;"><button class="btn-primary" id="saveBtn">배포하기</button></div>
+      </div>
+    </div>
+
+    <!-- 배포한 일정 -->
+    <div class="panel">
+      <div class="panel__head"><span>배포한 일정 <span id="evCount" style="color:var(--muted);font-weight:600;"></span></span></div>
+      <table>
+        <thead><tr><th style="width:150px;">일시</th><th>제목</th><th style="width:180px;">대상</th><th style="width:90px;">관리</th></tr></thead>
+        <tbody id="evBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:30px;">불러오는 중...</td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- 학생 캘린더 보기 -->
+    <div class="panel">
+      <div class="panel__head" style="flex-wrap:wrap;gap:10px;">
+        <span>학생 캘린더 보기</span>
+        <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <select id="stuSel" style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;min-width:200px;"></select>
+          <button class="btn-sm" id="vPrev">←</button>
+          <span id="vLabel" style="font-weight:800;min-width:110px;text-align:center;"></span>
+          <button class="btn-sm" id="vNext">→</button>
+        </span>
+      </div>
+      <div style="padding:14px 18px;">
+        <div class="cal" id="vCal"></div>
+        <div style="margin-top:10px;font-size:0.8rem;color:var(--muted);">
+          <span class="cal__ev mine" style="display:inline-block;">개인 일정</span>
+          <span class="cal__ev adm" style="display:inline-block;margin-left:6px;">어드민 배포</span>
+          <span class="cal__ev todo" style="display:inline-block;margin-left:6px;">과제 마감</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- 특정 인원 선택 -->
+<div class="modal-overlay" id="uModal">
+  <div class="modal-card" style="max-width:440px;">
+    <div class="modal-card__head"><h3>대상 인원 선택</h3><button type="button" class="modal-close" id="uClose">&times;</button></div>
+    <div class="modal-card__body">
+      <input type="text" id="uSearch" placeholder="이름 또는 이메일 검색" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <button class="btn-sm" id="uAll" type="button">전체 선택</button>
+        <button class="btn-sm" id="uNone" type="button">전체 해제</button>
+        <span id="uCount" style="margin-left:auto;font-size:0.82rem;color:var(--muted);font-weight:700;"></span>
+      </div>
+      <div id="uList" style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;"></div>
+    </div>
+    <div style="padding:14px 20px;border-top:1px solid var(--border);text-align:right;"><button class="btn-primary" id="uApply">확인</button></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/admin-events.js"></script>
+</body>
+</html>
