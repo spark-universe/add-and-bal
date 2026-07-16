@@ -62,11 +62,11 @@
           <thead>
             <tr>
               <th>성명</th><th>이메일</th><th>전화번호</th>
-              <th>기수</th><th>상태</th><th>스토어</th><th>제출(확정)</th><th>발주&amp;광고</th><th>관리</th>
+              <th>기수</th><th>수강일</th><th>상태</th><th>스토어</th><th>제출(확정)</th><th>발주&amp;광고</th><th>관리</th>
             </tr>
           </thead>
           <tbody id="userBody">
-            <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
+            <tr><td colspan="10" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
           </tbody>
         </table>
       </div>
@@ -125,6 +125,10 @@
   }
   // 어드민 표시용: 기수 이름 · 수강일 (어드민은 둘 다 봄)
   function cohortText(c) { return esc(c.label) + (c.enroll_date ? ' · ' + esc(c.enroll_date) : ''); }
+  function cohortDate(id) {
+    var c = cohorts.find(function (x) { return x.id === id; });
+    return (c && c.enroll_date) ? esc(c.enroll_date) : '<span style="color:var(--muted);">-</span>';
+  }
   // 기수 드롭다운 옵션. 현재 값이 목록에 없으면 임시로 포함.
   function cohortOptions(cur) {
     var seen = {}, opts = '';
@@ -280,7 +284,7 @@
     els.userBadge.textContent = approved.length;
 
     if (!list.length) {
-      els.userBody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:40px;">승인된 수강생이 없습니다.</td></tr>';
+      els.userBody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:40px;">승인된 수강생이 없습니다.</td></tr>';
       return;
     }
     els.userBody.innerHTML = list.map(function (u) {
@@ -297,6 +301,7 @@
         '<td>' + esc(u.email) + '</td>' +
         '<td>' + esc(u.phone) + '</td>' +
         '<td><select class="cohort-pick" data-id="' + u.id + '" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;">' + opts + '</select></td>' +
+        '<td>' + cohortDate(u.cohort || 1) + '</td>' +
         '<td>' + statusTag(u.status) + '</td>' +
         '<td>' + storeN + '개</td>' +
         '<td>' + confirmed + ' / 4</td>' +
@@ -361,6 +366,7 @@
     }
     var u = all.filter(function (x) { return x.id === id; })[0];
     if (u) u.cohort = val;
+    renderUsers();   // 수강일 칸도 새 기수에 맞게 갱신
   });
 
   els.userBody.addEventListener('click', async function (e) {

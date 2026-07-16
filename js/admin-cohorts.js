@@ -36,20 +36,18 @@
     }
     els.body.innerHTML = cohorts.map(function (c) {
       var n = countByCohort[c.id] || 0;
-      var enroll = c.enroll_date
-        ? esc(c.enroll_date)
-        : '<span style="color:var(--danger);">미입력</span>';
       return '<tr' + (c.active ? '' : ' style="opacity:0.5;"') + '>' +
         '<td>' + c.id + '</td>' +
         '<td style="text-align:left;"><b>' + esc(c.label) + '</b></td>' +
-        '<td style="text-align:left;">' + enroll + '</td>' +
+        '<td style="text-align:left;">' +
+          '<input type="date" class="co-enroll" data-id="' + c.id + '" value="' + esc(c.enroll_date || '') +
+          '" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;"></td>' +
         '<td>' + n + '명</td>' +
         '<td><button class="btn-sm" data-act="toggle" data-id="' + c.id + '">' +
           (c.active ? '노출중' : '숨김') + '</button></td>' +
         '<td>' +
           '<a class="btn-link" href="challenge-visibility.html?cohort=' + c.id + '">챌린지 공개</a> ' +
-          '<button class="btn-link" data-act="enroll" data-id="' + c.id + '">수강일</button> ' +
-          '<button class="btn-link" data-act="rename" data-id="' + c.id + '">이름</button>' +
+          '<button class="btn-link" data-act="rename" data-id="' + c.id + '">이름 변경</button>' +
         '</td>' +
       '</tr>';
     }).join('');
@@ -88,19 +86,27 @@
       await load();
       return;
     }
-    if (btn.dataset.act === 'enroll') {
-      var enroll = prompt('수강일(수강생에게 표시)을 입력하세요:', c.enroll_date || '');
-      if (enroll == null) return;
-      var r2 = await sb.from('cohorts').update({ enroll_date: enroll.trim() || null }).eq('id', id);
-      if (r2.error) { alert('변경 실패: ' + r2.error.message); return; }
-      await load();
-      return;
-    }
     if (btn.dataset.act === 'toggle') {
       var t = await sb.from('cohorts').update({ active: !c.active }).eq('id', id);
       if (t.error) { alert('변경 실패: ' + t.error.message); return; }
       await load();
     }
+  });
+
+  // 수강일(날짜) 즉시 저장
+  els.body.addEventListener('change', async function (e) {
+    var inp = e.target.closest('.co-enroll');
+    if (!inp) return;
+    var id = Number(inp.dataset.id);
+    var val = inp.value || null;   // 'YYYY-MM-DD' 또는 빈값
+    var r = await sb.from('cohorts').update({ enroll_date: val }).eq('id', id).select();
+    if (r.error || !r.data || !r.data.length) {
+      alert('수강일 저장 실패' + (r.error ? ': ' + r.error.message : ''));
+      return;
+    }
+    var c = cohorts.find(function (x) { return x.id === id; });
+    if (c) c.enroll_date = val;
+    flash();
   });
 
   async function load() {
