@@ -22,7 +22,7 @@
     saved: document.getElementById('saved'),
     formTitle: document.getElementById('formTitle'),
     cancelEdit: document.getElementById('cancelEdit'),
-    body: document.getElementById('chBody'),
+    groups: document.getElementById('chGroups'),
     count: document.getElementById('chCount'),
   };
 
@@ -89,29 +89,57 @@
     setTimeout(function () { els.saved.hidden = true; }, 2000);
   }
 
+  function rowHtml(c) {
+    var n = subCount[c.id] || 0;
+    return '<tr' + (c.active ? '' : ' style="opacity:0.45;"') + '>' +
+      '<td style="text-align:left;font-weight:600;">' + esc(c.title) + '</td>' +
+      '<td>' + fmtDate(c.due_at) + '</td>' +
+      '<td>' + (n ? '<a href="challenge-review.html?id=' + c.id + '" style="color:var(--primary);">' + n + '건</a>' : '0건') + '</td>' +
+      '<td><button class="btn-sm" data-act="toggle" data-id="' + c.id + '">' +
+        (c.active ? '표시중' : '숨김') + '</button></td>' +
+      '<td>' +
+        '<button class="btn-link" data-act="edit" data-id="' + c.id + '">수정</button> ' +
+        '<button class="btn-link danger" data-act="del" data-id="' + c.id + '">삭제</button>' +
+      '</td>' +
+    '</tr>';
+  }
+  function groupHtml(title, slug, list) {
+    var rows = list.length ? list.map(rowHtml).join('') :
+      '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:14px;">아직 숙제가 없습니다.</td></tr>';
+    return '<div class="panel" style="margin-bottom:14px;">' +
+      '<div class="panel__head">' +
+        '<span>📘 ' + esc(title) + ' <span style="color:var(--muted);font-weight:600;">(' + list.length + '개)</span></span>' +
+        (slug !== null ? '<button class="btn-sm" data-add="' + esc(slug) + '">＋ 이 단원에 숙제 추가</button>' : '') +
+      '</div>' +
+      '<table><thead><tr><th style="text-align:left;">제목</th><th style="width:120px;">마감일</th>' +
+        '<th style="width:80px;">제출</th><th style="width:90px;">표시</th><th style="width:140px;">관리</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>' +
+    '</div>';
+  }
+
   function render() {
     els.count.textContent = challenges.length ? '(' + challenges.length + '개)' : '';
 
-    if (!challenges.length) {
-      els.body.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">' +
-        '등록된 숙제가 없습니다. 위 폼으로 숙제를 등록하세요.</td></tr>';
+    if (!manualChapters.length) {
+      els.groups.innerHTML = '<div class="panel"><div style="padding:30px;text-align:center;color:var(--muted);">' +
+        '매뉴얼 단원이 없습니다. setup.sql 을 실행하면 단원이 등록됩니다.</div></div>';
       return;
     }
-    els.body.innerHTML = challenges.map(function (c) {
-      var n = subCount[c.id] || 0;
-      return '<tr' + (c.active ? '' : ' style="opacity:0.45;"') + '>' +
-        '<td style="text-align:left;font-weight:600;max-width:300px;">' + esc(c.title) + '</td>' +
-        '<td>' + (c.manual_slug ? '📘 ' + esc(manualTitle(c.manual_slug)) : '<span style="color:var(--muted);">-</span>') + '</td>' +
-        '<td>' + fmtDate(c.due_at) + '</td>' +
-        '<td>' + (n ? '<a href="challenge-review.html?id=' + c.id + '" style="color:var(--primary);">' + n + '건</a>' : '0건') + '</td>' +
-        '<td><button class="btn-sm" data-act="toggle" data-id="' + c.id + '">' +
-          (c.active ? '표시중' : '숨김') + '</button></td>' +
-        '<td>' +
-          '<button class="btn-link" data-act="edit" data-id="' + c.id + '">수정</button> ' +
-          '<button class="btn-link danger" data-act="del" data-id="' + c.id + '">삭제</button>' +
-        '</td>' +
-      '</tr>';
+    // 숙제를 단원(manual_slug)별로 묶는다
+    var bySlug = {};
+    challenges.forEach(function (c) {
+      var k = c.manual_slug || '__none__';
+      (bySlug[k] = bySlug[k] || []).push(c);
+    });
+
+    var html = manualChapters.map(function (m) {
+      return groupHtml(m.title, m.slug, bySlug[m.slug] || []);
     }).join('');
+
+    var none = bySlug['__none__'] || [];
+    if (none.length) html += groupHtml('(단원 미지정)', null, none);
+
+    els.groups.innerHTML = html;
   }
 
   async function load() {
@@ -204,7 +232,17 @@
 
   els.cancelEdit.addEventListener('click', clearForm);
 
-  els.body.addEventListener('click', async function (e) {
+  els.groups.addEventListener('click', async function (e) {
+    // "이 단원에 숙제 추가" → 폼에 그 단원을 미리 선택하고 위로
+    var addBtn = e.target.closest('button[data-add]');
+    if (addBtn) {
+      clearForm();
+      els.manual.value = addBtn.dataset.add;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      els.title.focus();
+      return;
+    }
+
     var btn = e.target.closest('button[data-act]');
     if (!btn) return;
     var id = Number(btn.dataset.id);
