@@ -13,6 +13,9 @@
   var els = {
     sel: document.getElementById('cohortSel'),
     apply: document.getElementById('applyCohorts'),
+    applyAll: document.getElementById('applyAll'),
+    applyNone: document.getElementById('applyNone'),
+    applyCount: document.getElementById('applyCount'),
     body: document.getElementById('mcBody'),
     count: document.getElementById('mcCount'),
     saved: document.getElementById('saved'),
@@ -23,11 +26,25 @@
   function renderApplyCohorts() {
     els.apply.innerHTML = cohortsList.map(function (c) {
       var isCur = c.id === cohort;
-      return '<label style="font-size:0.85rem;display:inline-flex;align-items:center;gap:5px;cursor:pointer;">' +
+      return '<label style="font-size:0.85rem;display:inline-flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;">' +
         '<input type="checkbox" class="apply-co" value="' + c.id + '"' + (isCur ? ' checked disabled' : '') + '> ' +
         esc(c.label) + (c.enroll_date ? ' (' + esc(c.enroll_date) + ')' : '') + '</label>';
     }).join('');
+    updateApplyCount();
   }
+  function updateApplyCount() {
+    var n = els.apply.querySelectorAll('.apply-co:checked').length;  // 비활성(현재 기수) 포함
+    els.applyCount.textContent = '선택 ' + n + '개 기수';
+  }
+  els.apply.addEventListener('change', updateApplyCount);
+  els.applyAll.addEventListener('click', function () {
+    els.apply.querySelectorAll('.apply-co:not(:disabled)').forEach(function (cb) { cb.checked = true; });
+    updateApplyCount();
+  });
+  els.applyNone.addEventListener('click', function () {
+    els.apply.querySelectorAll('.apply-co:not(:disabled)').forEach(function (cb) { cb.checked = false; });
+    updateApplyCount();
+  });
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
