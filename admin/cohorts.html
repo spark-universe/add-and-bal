@@ -18,18 +18,20 @@
 
     <div class="panel">
       <div class="panel__head"><span>새 기수 추가</span></div>
-      <div style="padding:18px 24px;display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
-        <div class="field" style="min-width:200px;">
-          <label>기수 이름 <span style="color:var(--muted);font-weight:400;">(어드민 전용)</span></label>
-          <input type="text" id="newLabel" placeholder="예: 1기">
-          <div class="field-hint">기수 번호는 자동으로 다음 번호가 매겨집니다.</div>
+      <div style="padding:18px 24px;">
+        <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+          <div class="field" style="min-width:200px;margin:0;">
+            <label>기수 이름 <span style="color:var(--muted);font-weight:400;">(어드민 전용)</span></label>
+            <input type="text" id="newLabel" placeholder="예: 1기">
+          </div>
+          <div class="field" style="min-width:180px;margin:0;">
+            <label>수강일 <span style="color:var(--muted);font-weight:400;">(수강생 표시)</span></label>
+            <input type="date" id="newEnroll">
+          </div>
+          <button class="btn-primary" id="addBtn">＋ 기수 추가</button>
+          <span class="form-saved" id="saved" hidden>저장되었습니다</span>
         </div>
-        <div class="field" style="min-width:180px;">
-          <label>수강일 <span style="color:var(--muted);font-weight:400;">(수강생 표시)</span></label>
-          <input type="date" id="newEnroll">
-        </div>
-        <button class="btn-primary" id="addBtn">＋ 기수 추가</button>
-        <span class="form-saved" id="saved" hidden>저장되었습니다</span>
+        <div class="field-hint" style="margin-top:8px;">기수 번호는 자동으로 다음 번호가 매겨집니다.</div>
       </div>
     </div>
 
