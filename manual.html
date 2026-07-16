@@ -2662,7 +2662,12 @@ links.forEach(l=>l.addEventListener('click',()=>document.body.classList.remove('
             '</div></div>';
       }
     }
-  } catch (e) {}
+  } catch (e) {
+  } finally {
+    // 숨김/잠금 판단이 끝난 뒤에만 매뉴얼을 보여준다 (잠깐 보였다 사라지는 현상 방지)
+    var doneDoc = document.querySelector('.manual-doc');
+    if (doneDoc) doneDoc.classList.add('ready');
+  }
 })();
 </script>
 
