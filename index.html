@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>발주 &amp; 광고 설정 훈련 · 메인</title>
+<title>스파미의 쇼피파이 챌린지 · 메인</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body data-area="user" data-active="home">
@@ -17,7 +17,7 @@
     </div>
 
     <!-- 등급 성장 카드 -->
-    <div class="tier">
+    <div class="tier" id="tierCard">
       <div class="tier__badge" id="tierBadge">🐤</div>
       <div class="tier__info">
         <div class="t" id="tierTitle">병아리 · 챌린지 단계</div>
@@ -26,7 +26,7 @@
       <div class="tier__track">
         <div class="tier-step" id="tierS1"><span class="e">🐤</span><span class="n">챌린지</span></div>
         <span class="tier-arrow">→</span>
-        <div class="tier-step" id="tierS2"><span class="e">🐔</span><span class="n">심화 과정</span></div>
+        <div class="tier-step" id="tierS2"><span class="e">👑</span><span class="n">심화 과정</span></div>
       </div>
     </div>
 
@@ -52,7 +52,7 @@
         <p>매뉴얼을 보고 숙제를 제출하는 챌린지</p>
       </a>
       <a class="entry-card" id="cardOrder" href="order-home.html">
-        <div class="ico">🐔</div>
+        <div class="ico">👑</div>
         <h3>챌린지 심화 과정</h3>
         <p id="cardOrderDesc">발주 연습 · 광고 설정 · 기본 설정을 실습합니다</p>
       </a>
@@ -68,6 +68,22 @@
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]; }); }
   function setT(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
 
+  function showLevelUp() {
+    var ov = document.createElement('div');
+    ov.className = 'lvup-overlay';
+    ov.innerHTML =
+      '<div class="lvup-card">' +
+        '<div class="lvup-emoji">👑</div>' +
+        '<h3>축하합니다! 승급했어요 🎉</h3>' +
+        '<p>병아리 단계를 졸업하고 <b>챌린지 심화 과정</b>에 입성했습니다.<br>이제 발주 &amp; 광고 실전을 연습할 수 있어요!</p>' +
+        '<button type="button" class="btn-primary" id="lvupClose">좋아요!</button>' +
+      '</div>';
+    document.body.appendChild(ov);
+    function close() { ov.remove(); }
+    ov.addEventListener('click', function (e) { if (e.target === ov) close(); });
+    document.getElementById('lvupClose').addEventListener('click', close);
+  }
+
   var user = await Auth.require();
   if (!user) return;
 
@@ -81,14 +97,26 @@
   if (!myDate) { var co = await sb.from('cohorts').select('enroll_date').eq('id', cohort).maybeSingle(); myDate = co.data && co.data.enroll_date; }
   if (myDate) { var b = document.getElementById('dashCohort'); b.textContent = myDate; b.hidden = false; }
 
-  // 등급 성장 단계 (0=병아리/챌린지, 1=닭/발주광고)
-  var open = (p.level || 0) >= 1;
-  setT('tierBadge', open ? '🐔' : '🐤');
-  setT('tierTitle', open ? '성장한 닭 · 챌린지 심화 과정' : '병아리 · 챌린지 단계');
+  // 등급 성장 단계 (0=병아리/챌린지, 1=왕관/심화 과정)
+  var lvl = p.level || 0;
+  var open = lvl >= 1;
+  setT('tierBadge', open ? '👑' : '🐤');
+  setT('tierTitle', open ? '🎉 챌린지 심화 과정 · 승급 완료!' : '병아리 · 챌린지 단계');
   setT('tierDesc', open
-    ? '챌린지 심화 과정이 열렸어요. 실전 발주와 광고 설정을 연습해 보세요!'
+    ? '축하해요! 챌린지 심화 과정이 열렸어요. 실전 발주와 광고 설정을 연습해 보세요!'
     : '챌린지를 모두 마치고 승인되면 챌린지 심화 과정이 열립니다.');
   document.getElementById(open ? 'tierS2' : 'tierS1').classList.add('is-on');
+  if (open) document.getElementById('tierCard').classList.add('is-up');
+
+  // 승급 축하 팝업 (첫 접속 1회) — 이전 등급보다 올라갔을 때만
+  try {
+    var lkey = 'seenLevel:' + user.id;
+    var seen = localStorage.getItem(lkey);
+    if (seen !== null && Number(seen) < lvl && lvl >= 1) {
+      showLevelUp();
+    }
+    localStorage.setItem(lkey, String(lvl));   // 최초 접속은 기록만(오탐 방지)
+  } catch (e) {}
 
   // 챌린지 현황 (내 기수의 공개된 숙제 + 내 제출)
   var now = Date.now();

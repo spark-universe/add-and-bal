@@ -304,6 +304,27 @@ a { color: inherit; text-decoration: none; }
 .tier-step .e { font-size: 1.7rem; line-height: 1; }
 .tier-step .n { font-size: 0.75rem; font-weight: 700; }
 .tier-arrow { color: var(--muted); font-size: 1.15rem; }
+/* 승급 완료 강조 */
+.tier.is-up { border-color: #f0c14b; background: linear-gradient(135deg, #fffaf0, #fff6e0); }
+.tier.is-up .tier__info .t { color: #b8860b; }
+
+/* 승급 축하 팝업 */
+.lvup-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(20, 30, 50, 0.5);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.lvup-card {
+  background: #fff; border-radius: 18px; max-width: 380px; width: 100%;
+  padding: 34px 30px; text-align: center;
+  box-shadow: 0 20px 60px rgba(20, 30, 50, 0.3);
+  animation: lvup-pop 0.28s ease;
+}
+@keyframes lvup-pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.lvup-emoji { font-size: 3.4rem; line-height: 1; margin-bottom: 10px; }
+.lvup-card h3 { margin: 0 0 10px; font-size: 1.25rem; font-weight: 800; }
+.lvup-card p { margin: 0 0 22px; color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+.lvup-card .btn-primary { width: 100%; }
 
 /* 저장 대기(미저장) 행 강조 */
 tr.row-dirty > td { background: #fff7e0; }

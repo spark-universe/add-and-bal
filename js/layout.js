@@ -9,7 +9,7 @@
 (function () {
   // ---------- 학생 메뉴 정의 ----------
   const STUDENT = {
-    brand: { title: '발주 &amp; 광고<br>설정 훈련', sub: '수강생' },
+    brand: { title: '스파미의<br>쇼피파이 챌린지', sub: '수강생' },
     top: [
       { key: 'home',   ico: '🏠', label: '메인',         href: 'index.html' },
       { key: 'myinfo', ico: '🧾', label: '내 스토어 정보', href: 'my-info.html' },
@@ -26,7 +26,7 @@
         ],
       },
       {
-        id: 'order', ico: '🐔', label: '챌린지 심화 과정',
+        id: 'order', ico: '👑', label: '챌린지 심화 과정',
         items: [
           { key: 'ohome',    ico: '🏠', label: '심화 과정 메인',   href: 'order-home.html',     lock: true },
           { key: 'basic',    ico: '⚙️', label: '기본 설정',      href: 'basic-settings.html', lock: true },
@@ -41,7 +41,7 @@
 
   // ---------- 어드민 메뉴 정의 ----------
   const ADMIN = {
-    brand: { title: '발주 &amp; 광고<br>설정 훈련', sub: '어드민 영역' },
+    brand: { title: '스파미의<br>쇼피파이 챌린지', sub: '어드민 영역' },
     items: [
       { key: 'home',        section: '공통',              ico: '🏠', label: '메인',        href: 'index.html' },
       { key: 'users',       section: '공통',              ico: '👥', label: '사용자 관리',  href: 'users.html' },
