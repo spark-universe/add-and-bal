@@ -48,11 +48,11 @@ document.addEventListener('click', function (e) {
   }
 });
 
-// 발주 & 광고 훈련(user 영역) 자동 가드
+// 발주 & 광고 훈련 페이지 자동 가드 (body data-lock="1" 인 페이지만)
 //  - 등급(level)이 1 이상이어야 접근 가능. 어드민은 통과.
-//  - 아직 안 열렸으면 허브(home.html)로 돌려보냄. (챌린지 영역은 가드 없음)
+//  - 아직 안 열렸으면 훈련 메인(index.html)으로 돌려보냄.
 (async function () {
-  if (!document.body || document.body.dataset.area !== 'user') return;
+  if (!document.body || document.body.dataset.lock !== '1') return;
   var res = await sb.auth.getSession();
   if (!res.data.session) { location.href = Auth.prefix() + 'login.html'; return; }
   var prof = await sb.from('profiles').select('role, level').eq('id', res.data.session.user.id).single();
@@ -60,5 +60,5 @@ document.addEventListener('click', function (e) {
   if (p.role === 'admin') return;
   if ((p.level || 0) >= 1) return;
   alert('발주 & 광고 훈련은 아직 열리지 않았습니다.\n챌린지를 모두 마치고 승인되면 열립니다.');
-  location.href = Auth.prefix() + 'home.html';
+  location.href = Auth.prefix() + 'index.html';
 })();

@@ -5,32 +5,26 @@
    ========================================================= */
 (function () {
   const MENUS = {
-    user: {
-      brand: { title: '발주 &amp; 광고<br>설정 훈련', sub: '사용자 영역' },
-      base: '',            // 사용자 페이지는 루트 기준
-      items: [
-        { key: 'hub',      ico: '🧭', label: '메뉴 선택',        href: 'home.html' },
-        { key: 'home',     ico: '🏠', label: '훈련 메인',        href: 'index.html' },
-        { key: 'myinfo',   ico: '🧾', label: '내 스토어 정보',    href: 'my-info.html' },
-        { key: 'basic',    ico: '⚙️', label: '기본 설정 연습하기', href: 'basic-settings.html' },
-        { key: 'ad',       ico: '📢', label: '광고 설정하기',      href: 'ad-settings.html' },
-        { key: 'setup',    ico: '🧩', label: '발주 연습 세팅',     href: 'order-setup.html' },
-        { key: 'practice', ico: '📦', label: '발주 연습하기',      href: 'order-practice.html' },
-      ],
-      footer: '<div class="who">홍길동 <span class="badge-admin">수강생</span></div><a href="#">로그아웃</a>',
-    },
-    challenge: {
-      brand: { title: '챌린지', sub: '수강생 영역' },
+    // 수강생 통합 사이드바 (홈 / 챌린지 / 발주 & 광고). user·challenge 영역 공통.
+    student: {
+      brand: { title: '발주 &amp; 광고<br>설정 훈련', sub: '수강생' },
       base: '',
       items: [
-        { key: 'hub',      ico: '🧭', label: '메뉴 선택',      href: 'home.html' },
-        { key: 'home',     ico: '🏆', label: '챌린지 메인',     href: 'challenge.html' },
-        { key: 'calendar', ico: '📅', label: '일정 보기',       href: 'challenge-calendar.html' },
-        { key: 'all',      ico: '📋', label: '과제 전체 보기',   href: 'challenge-all.html' },
-        { key: 'mine',     ico: '🗂️', label: '내 과제 관리',     href: 'challenge-mine.html' },
-        { key: 'manual',   ico: '📘', label: '스토어 초기작업 매뉴얼', href: 'manual.html', target: '_blank' },
+        { key: 'home',     section: '홈',          ico: '🏠', label: '훈련 메인',        href: 'index.html' },
+        { key: 'myinfo',   section: '홈',          ico: '🧾', label: '내 스토어 정보',    href: 'my-info.html' },
+
+        { key: 'chome',    section: '챌린지',       ico: '🏆', label: '챌린지 메인',       href: 'challenge.html' },
+        { key: 'calendar', section: '챌린지',       ico: '📅', label: '일정 보기',         href: 'challenge-calendar.html' },
+        { key: 'all',      section: '챌린지',       ico: '📋', label: '숙제 전체 보기',     href: 'challenge-all.html' },
+        { key: 'mine',     section: '챌린지',       ico: '🗂️', label: '내 숙제',           href: 'challenge-mine.html' },
+        { key: 'manual',   section: '챌린지',       ico: '📘', label: '스토어 초기작업 매뉴얼', href: 'manual.html', target: '_blank' },
+
+        { key: 'basic',    section: '발주 &amp; 광고', ico: '⚙️', label: '기본 설정',        href: 'basic-settings.html', lock: true },
+        { key: 'ad',       section: '발주 &amp; 광고', ico: '📢', label: '광고 설정',        href: 'ad-settings.html', lock: true },
+        { key: 'setup',    section: '발주 &amp; 광고', ico: '🧩', label: '발주 세팅',        href: 'order-setup.html', lock: true },
+        { key: 'practice', section: '발주 &amp; 광고', ico: '📦', label: '발주 연습',        href: 'order-practice.html', lock: true },
       ],
-      footer: '<div class="who">홍길동 <span class="badge-admin">수강생</span></div><a href="#">로그아웃</a>',
+      footer: '<div class="who"><span id="sbName">수강생</span> <span class="badge-admin">수강생</span></div><a href="#">로그아웃</a>',
     },
     admin: {
       brand: { title: '발주 &amp; 광고<br>설정 훈련', sub: '어드민 영역' },
@@ -55,21 +49,20 @@
 
   const area = document.body.dataset.area || 'user';
   const active = document.body.dataset.active || 'home';
-  const menu = MENUS[area];
+  const menu = (area === 'admin') ? MENUS.admin : MENUS.student;   // user·challenge → 통합 학생 메뉴
 
   let curSection = null;
   const links = menu.items.map(function (it) {
-    // 섹션이 바뀌면 구분 라벨을 먼저 넣는다 (어드민 사이드바 그룹화)
+    // 섹션이 바뀌면 구분 라벨을 먼저 넣는다 (사이드바 그룹화)
     let head = '';
     if (it.section && it.section !== curSection) {
       curSection = it.section;
       head = '<li class="nav-sec">' + it.section + '</li>';
     }
-    const cls = it.key === active ? 'is-active' : '';
-    // target 지정 시 새 탭으로 (예: 매뉴얼)
+    const cls = (it.key === active ? 'is-active' : '') + (it.lock ? ' is-lockable' : '');
     const tgt = it.target ? ' target="' + it.target + '" rel="noopener"' : '';
     const ext = it.target === '_blank' ? ' <span class="nav-ext">↗</span>' : '';
-    return head + '<li><a class="' + cls + '" href="' + it.href + '"' + tgt + '>' +
+    return head + '<li><a class="' + cls.trim() + '" href="' + it.href + '"' + tgt + ' data-key="' + it.key + '">' +
            '<span class="ico">' + it.ico + '</span>' + it.label + ext + '</a></li>';
   }).join('');
 
@@ -83,4 +76,27 @@
 
   const mount = document.getElementById('sidebar');
   if (mount) mount.outerHTML = html;
+
+  // 학생 이름 + 발주&광고 잠금 표시 (등급 안 열린 학생은 🔒)
+  if (area !== 'admin' && typeof sb !== 'undefined') {
+    (async function () {
+      try {
+        var s = await sb.auth.getSession();
+        if (!s.data.session) return;
+        var prof = await sb.from('profiles').select('name, level, role').eq('id', s.data.session.user.id).single();
+        var p = (prof && prof.data) || {};
+        var nameEl = document.getElementById('sbName');
+        if (nameEl && p.name) nameEl.textContent = p.name;
+        if (p.role === 'admin' || (p.level || 0) >= 1) return;   // 열린 학생·어드민은 잠금 없음
+        document.querySelectorAll('.nav a.is-lockable').forEach(function (a) {
+          a.classList.add('is-locked');
+          a.insertAdjacentHTML('beforeend', ' <span class="nav-lock">🔒</span>');
+          a.addEventListener('click', function (e) {
+            e.preventDefault();
+            alert('발주 & 광고 훈련은 아직 열리지 않았습니다.\n챌린지를 모두 마치고 승인되면 열립니다.');
+          });
+        });
+      } catch (e) {}
+    })();
+  }
 })();

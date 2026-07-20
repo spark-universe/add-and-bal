@@ -258,6 +258,8 @@ a { color: inherit; text-decoration: none; }
 }
 .nav a .ico { width: 18px; text-align: center; }
 .nav a .nav-ext { margin-left: auto; font-size: 0.72rem; color: var(--muted); }
+.nav a.is-locked { opacity: 0.55; }
+.nav a .nav-lock { margin-left: auto; font-size: 0.78rem; }
 
 /* 저장 대기(미저장) 행 강조 */
 tr.row-dirty > td { background: #fff7e0; }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>발주 &amp; 광고 설정 훈련</title>
+<title>발주 &amp; 광고 설정 훈련 · 훈련 메인</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body data-area="user" data-active="home">
@@ -11,30 +11,37 @@
   <div id="sidebar"></div>
   <main class="content">
     <div class="page-head">
-      <h2>안녕하세요, <span id="userName">수강생</span>님 👋</h2>
-      <p>아래 단계를 순서대로 진행하며 발주와 광고 설정을 연습해 보세요.</p>
+      <h2>안녕하세요, <span id="userName">수강생</span>님 👋
+        <span id="dashCohort" class="cohort-badge" hidden></span></h2>
+      <p>훈련 현황과 내 스토어 정보를 한눈에 확인하세요.</p>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat"><div class="label">등급</div><div class="value" style="font-size:1.05rem;" id="stLevel">-</div></div>
+      <div class="stat"><div class="label">챌린지 제출</div><div class="value"><span id="stChSub">-</span> <span style="font-size:0.9rem;font-weight:600;">/ <span id="stChTot">-</span></span></div></div>
+      <div class="stat"><div class="label">검수 통과</div><div class="value"><span id="stChPass">-</span> <span style="font-size:0.9rem;font-weight:600;">건</span></div></div>
+      <div class="stat"><div class="label">내 스토어</div><div class="value"><span id="stStore">-</span> <span style="font-size:0.9rem;font-weight:600;">개</span></div></div>
+      <div class="stat"><div class="label">자료 제출(확정)</div><div class="value"><span id="stSubm">-</span> <span style="font-size:0.9rem;font-weight:600;">/ 4</span></div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head">
+        <span>내 스토어 정보</span>
+        <a href="my-info.html" style="font-size:0.85rem;color:var(--primary);">관리하기 →</a>
+      </div>
+      <div id="storeBox" style="padding:16px 20px;color:var(--muted);">불러오는 중...</div>
     </div>
 
     <div class="card-grid">
-      <a class="entry-card" href="basic-settings.html">
-        <div class="ico">⚙️</div>
-        <h3>기본 설정 연습하기</h3>
-        <p>Shop 설정 · 카테고리 · 필수 주문 · 아마존 가입/프라임</p>
+      <a class="entry-card" href="challenge.html">
+        <div class="ico">🏆</div>
+        <h3>챌린지</h3>
+        <p>매뉴얼을 보고 숙제를 제출하는 챌린지</p>
       </a>
-      <a class="entry-card" href="ad-settings.html">
-        <div class="ico">📢</div>
-        <h3>광고 설정하기</h3>
-        <p>광고 세팅 가이드를 따라 직접 설정을 연습합니다.</p>
-      </a>
-      <a class="entry-card" href="order-setup.html">
-        <div class="ico">🧩</div>
-        <h3>발주 연습 세팅</h3>
-        <p>주제 · 마진 · 판매 수량 · 난이도를 설정합니다.</p>
-      </a>
-      <a class="entry-card" href="order-practice.html">
+      <a class="entry-card" id="cardPractice" href="order-practice.html">
         <div class="ico">📦</div>
-        <h3>발주 연습하기</h3>
-        <p>임시 주문을 받아 발주와 차지백을 실습합니다.</p>
+        <h3>발주 &amp; 광고 훈련</h3>
+        <p id="cardPracticeDesc">발주 연습 · 광고 설정 · 기본 설정을 실습합니다</p>
       </a>
     </div>
   </main>
@@ -45,10 +52,70 @@
 <script src="js/auth.js"></script>
 <script>
 (async function () {
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]; }); }
+  function setT(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
+
   var user = await Auth.require();
   if (!user) return;
-  var prof = await sb.from('profiles').select('name').eq('id', user.id).single();
-  if (prof.data && prof.data.name) document.getElementById('userName').textContent = prof.data.name;
+
+  var prof = await sb.from('profiles').select('name, cohort, level, enroll_date').eq('id', user.id).single();
+  var p = (prof && prof.data) || {};
+  if (p.name) setT('userName', p.name);
+  var cohort = (p.cohort != null) ? p.cohort : 1;
+
+  // 수강일 배지 (개인 수강일 우선, 없으면 기수 수강일)
+  var myDate = p.enroll_date;
+  if (!myDate) { var co = await sb.from('cohorts').select('enroll_date').eq('id', cohort).maybeSingle(); myDate = co.data && co.data.enroll_date; }
+  if (myDate) { var b = document.getElementById('dashCohort'); b.textContent = myDate; b.hidden = false; }
+
+  // 등급
+  var open = (p.level || 0) >= 1;
+  document.getElementById('stLevel').innerHTML = open
+    ? '<span style="color:var(--ok);">발주·광고 열림</span>'
+    : '<span style="color:var(--muted);">챌린지 단계</span>';
+
+  // 챌린지 현황 (내 기수의 공개된 숙제 + 내 제출)
+  var now = Date.now();
+  var ch = await sb.from('challenges').select('id, open_at').eq('active', true).eq('cohort', cohort);
+  var visible = (ch.data || []).filter(function (c) { return !c.open_at || new Date(c.open_at).getTime() <= now; });
+  var vis = {}; visible.forEach(function (c) { vis[c.id] = true; });
+  var su = await sb.from('challenge_submissions').select('challenge_id, review_status').eq('user_id', user.id);
+  var subs = (su.data || []).filter(function (s) { return vis[s.challenge_id]; });
+  setT('stChTot', visible.length);
+  setT('stChSub', subs.length);
+  setT('stChPass', subs.filter(function (s) { return s.review_status === 'pass'; }).length);
+
+  // 내 스토어
+  var stores = await sb.from('stores').select('*').eq('user_id', user.id).order('created_at');
+  var sl = stores.data || [];
+  setT('stStore', sl.length);
+  var box = document.getElementById('storeBox');
+  if (!sl.length) {
+    box.innerHTML = '등록된 스토어가 없습니다. <a href="my-info.html" style="color:var(--primary);">내 스토어 정보</a>에서 추가하세요.';
+  } else {
+    box.style.color = 'var(--text)';
+    box.innerHTML = '<ul style="margin:0;padding-left:18px;line-height:1.9;font-size:0.9rem;">' + sl.map(function (s) {
+      var url = s.url ? ' · <a href="' + esc(s.url) + '" target="_blank" rel="noopener" style="color:var(--primary);">' + esc(s.url) + '</a>' : '';
+      var code = s.partner_code ? ' · 코드 ' + esc(s.partner_code) : '';
+      return '<li><b>' + esc(s.name) + '</b> (' + (esc(s.topic) || '주제없음') + ')' + url + code + '</li>';
+    }).join('') + '</ul>';
+  }
+
+  // 자료 제출 (발주&광고)
+  var subm = await sb.from('submissions').select('status');
+  setT('stSubm', (subm.data || []).filter(function (r) { return r.status === 'confirmed'; }).length);
+
+  // 발주&광고 잠금 처리
+  if (!open) {
+    var card = document.getElementById('cardPractice');
+    card.removeAttribute('href');
+    card.style.opacity = '0.6'; card.style.cursor = 'not-allowed';
+    setT('cardPracticeDesc', '🔒 챌린지를 모두 마치고 승인되면 열립니다.');
+    card.addEventListener('click', function (e) {
+      e.preventDefault();
+      alert('발주 & 광고 훈련은 아직 열리지 않았습니다.\n챌린지를 모두 마치고 승인되면 열립니다.');
+    });
+  }
 })();
 </script>
 </body>

@@ -3,58 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>메뉴 선택 · 발주 &amp; 광고 설정 훈련</title>
-<link rel="stylesheet" href="css/style.css">
+<title>이동 중…</title>
+<script>location.replace('index.html');</script>
 </head>
-<body>
-<div class="hub">
-  <div class="hub__head">
-    <h1>환영합니다. <span id="hubName">수강생</span>님</h1>
-    <p>어떤 메뉴를 사용하실지 선택해 주세요.</p>
-    <a href="#" id="hubLogout" class="hub__logout">로그아웃</a>
-  </div>
-
-  <div class="hub__grid">
-    <a class="hub-card" href="challenge.html">
-      <div class="hub-card__ico">🏆</div>
-      <div class="hub-card__title">챌린지</div>
-      <div class="hub-card__desc">과제를 확인하고 기한 안에 제출하는 챌린지</div>
-    </a>
-
-    <a class="hub-card" href="index.html" id="hubOrderAd">
-      <div class="hub-card__ico">📦</div>
-      <div class="hub-card__title">발주 &amp; 광고 설정 훈련</div>
-      <div class="hub-card__desc" id="hubOrderAdDesc">발주 연습 · 광고 설정 · 기본 설정을 실습합니다</div>
-    </a>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js"></script>
-<script src="js/auth.js"></script>
-<script>
-(async function () {
-  var user = await Auth.require();
-  if (!user) return;
-  var prof = await sb.from('profiles').select('name, role, level').eq('id', user.id).single();
-  var p = (prof && prof.data) || {};
-  if (p.name) document.getElementById('hubName').textContent = p.name;
-
-  // 발주 & 광고 훈련: 등급이 열리지 않은 수강생에게는 잠금 표시
-  var open = p.role === 'admin' || (p.level || 0) >= 1;
-  if (!open) {
-    var card = document.getElementById('hubOrderAd');
-    card.classList.add('is-locked');
-    card.removeAttribute('href');
-    card.querySelector('.hub-card__ico').textContent = '🔒';
-    document.getElementById('hubOrderAdDesc').textContent =
-      '챌린지를 모두 마치고 승인되면 열립니다.';
-    card.addEventListener('click', function (e) {
-      e.preventDefault();
-      alert('발주 & 광고 훈련은 아직 열리지 않았습니다.\n챌린지를 모두 마치고 승인되면 열립니다.');
-    });
-  }
-})();
-</script>
-</body>
+<body></body>
 </html>
