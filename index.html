@@ -21,12 +21,12 @@
       <div class="tier__badge" id="tierBadge">🐤</div>
       <div class="tier__info">
         <div class="t" id="tierTitle">병아리 · 챌린지 단계</div>
-        <div class="d" id="tierDesc">챌린지를 모두 마치고 승인되면 발주 &amp; 광고 훈련이 열립니다.</div>
+        <div class="d" id="tierDesc">챌린지를 모두 마치고 승인되면 챌린지 심화 과정이 열립니다.</div>
       </div>
       <div class="tier__track">
         <div class="tier-step" id="tierS1"><span class="e">🐤</span><span class="n">챌린지</span></div>
         <span class="tier-arrow">→</span>
-        <div class="tier-step" id="tierS2"><span class="e">🐔</span><span class="n">발주 &amp; 광고</span></div>
+        <div class="tier-step" id="tierS2"><span class="e">🐔</span><span class="n">심화 과정</span></div>
       </div>
     </div>
 
@@ -53,7 +53,7 @@
       </a>
       <a class="entry-card" id="cardOrder" href="order-home.html">
         <div class="ico">🐔</div>
-        <h3>발주 &amp; 광고 메인</h3>
+        <h3>챌린지 심화 과정</h3>
         <p id="cardOrderDesc">발주 연습 · 광고 설정 · 기본 설정을 실습합니다</p>
       </a>
     </div>
@@ -84,10 +84,10 @@
   // 등급 성장 단계 (0=병아리/챌린지, 1=닭/발주광고)
   var open = (p.level || 0) >= 1;
   setT('tierBadge', open ? '🐔' : '🐤');
-  setT('tierTitle', open ? '성장한 닭 · 발주 & 광고 단계' : '병아리 · 챌린지 단계');
+  setT('tierTitle', open ? '성장한 닭 · 챌린지 심화 과정' : '병아리 · 챌린지 단계');
   setT('tierDesc', open
-    ? '발주 & 광고 훈련이 열렸어요. 실전 발주와 광고 설정을 연습해 보세요!'
-    : '챌린지를 모두 마치고 승인되면 발주 & 광고 훈련이 열립니다.');
+    ? '챌린지 심화 과정이 열렸어요. 실전 발주와 광고 설정을 연습해 보세요!'
+    : '챌린지를 모두 마치고 승인되면 챌린지 심화 과정이 열립니다.');
   document.getElementById(open ? 'tierS2' : 'tierS1').classList.add('is-on');
 
   // 챌린지 현황 (내 기수의 공개된 숙제 + 내 제출)
@@ -129,7 +129,7 @@
     setT('cardOrderDesc', '🔒 챌린지를 모두 마치고 승인되면 열립니다.');
     card.addEventListener('click', function (e) {
       e.preventDefault();
-      alert('발주 & 광고 훈련은 아직 열리지 않았습니다.\n챌린지를 모두 마치고 승인되면 열립니다.');
+      alert('챌린지 심화 과정은 아직 열리지 않았습니다.\n챌린지를 모두 마치고 승인되면 열립니다.');
     });
   }
 })();

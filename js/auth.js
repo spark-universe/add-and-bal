@@ -59,6 +59,6 @@ document.addEventListener('click', function (e) {
   var p = (prof && prof.data) || {};
   if (p.role === 'admin') return;
   if ((p.level || 0) >= 1) return;
-  alert('발주 & 광고 훈련은 아직 열리지 않았습니다.\n챌린지를 모두 마치고 승인되면 열립니다.');
+  alert('챌린지 심화 과정은 아직 열리지 않았습니다.\n챌린지를 모두 마치고 승인되면 열립니다.');
   location.href = Auth.prefix() + 'index.html';
 })();

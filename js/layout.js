@@ -26,9 +26,9 @@
         ],
       },
       {
-        id: 'order', ico: '🐔', label: '발주 &amp; 광고',
+        id: 'order', ico: '🐔', label: '챌린지 심화 과정',
         items: [
-          { key: 'ohome',    ico: '🏠', label: '발주 & 광고 메인', href: 'order-home.html',     lock: true },
+          { key: 'ohome',    ico: '🏠', label: '심화 과정 메인',   href: 'order-home.html',     lock: true },
           { key: 'basic',    ico: '⚙️', label: '기본 설정',      href: 'basic-settings.html', lock: true },
           { key: 'ad',       ico: '📢', label: '광고 설정',      href: 'ad-settings.html',    lock: true },
           { key: 'setup',    ico: '🧩', label: '발주 세팅',      href: 'order-setup.html',    lock: true },
@@ -159,7 +159,7 @@
           a.insertAdjacentHTML('beforeend', ' <span class="nav-lock">🔒</span>');
           a.addEventListener('click', function (e) {
             e.preventDefault();
-            alert('발주 & 광고 훈련은 아직 열리지 않았습니다.\n챌린지를 모두 마치고 승인되면 열립니다.');
+            alert('챌린지 심화 과정은 아직 열리지 않았습니다.\n챌린지를 모두 마치고 승인되면 열립니다.');
           });
         });
       } catch (e) {}

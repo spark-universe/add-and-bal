@@ -126,10 +126,10 @@
       box.innerHTML =
         '<div class="promo is-open">' +
           '<div class="promo__body">' +
-            '<div class="promo__title">🎉 발주 &amp; 광고 훈련이 열렸습니다</div>' +
-            '<div class="promo__desc">메뉴 선택 화면에서 발주 &amp; 광고 설정 훈련으로 이동할 수 있습니다.</div>' +
+            '<div class="promo__title">🎉 챌린지 심화 과정이 열렸습니다</div>' +
+            '<div class="promo__desc">메인 화면에서 챌린지 심화 과정으로 이동할 수 있습니다.</div>' +
           '</div>' +
-          '<a class="btn-primary promo__btn" href="index.html">발주 &amp; 광고로 이동</a>' +
+          '<a class="btn-primary promo__btn" href="order-home.html">심화 과정으로 이동</a>' +
         '</div>';
       return;
     }
@@ -149,7 +149,7 @@
         '<div class="promo is-wait">' +
           '<div class="promo__body">' +
             '<div class="promo__title">⏳ 승인 대기 중</div>' +
-            '<div class="promo__desc">발주 &amp; 광고 훈련 넘어가기를 신청했습니다. 어드민 승인을 기다려 주세요.</div>' +
+            '<div class="promo__desc">챌린지 심화 과정 넘어가기를 신청했습니다. 어드민 승인을 기다려 주세요.</div>' +
           '</div>' +
         '</div>';
       return;
@@ -163,7 +163,7 @@
     box.innerHTML =
       '<div class="promo ' + (last && last.status === 'rejected' ? 'is-reject' : '') + '">' +
         '<div class="promo__body">' +
-          '<div class="promo__title">🚀 발주 &amp; 광고 훈련으로 넘어가기</div>' +
+          '<div class="promo__title">🚀 챌린지 심화 과정으로 넘어가기</div>' +
           '<div class="promo__desc">챌린지 과제를 <b>모두 검수 통과</b>하면 신청할 수 있습니다. ' +
             '(검수 통과 ' + passed + ' / ' + total + ')</div>' +
           rejectMsg +
@@ -175,7 +175,7 @@
     var btn = document.getElementById('promoApply');
     if (btn && eligible) {
       btn.addEventListener('click', async function () {
-        if (!confirm('발주 & 광고 훈련으로 넘어가기를 신청할까요?\n어드민 승인 후 열립니다.')) return;
+        if (!confirm('챌린지 심화 과정으로 넘어가기를 신청할까요?\n어드민 승인 후 열립니다.')) return;
         btn.disabled = true;
         var res = await sb.from('level_requests').insert({
           user_id: user.id, from_level: 0, to_level: 1
