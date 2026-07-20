@@ -10,14 +10,14 @@
       brand: { title: '발주 &amp; 광고<br>설정 훈련', sub: '수강생' },
       base: '',
       items: [
-        { key: 'home',     section: '홈',          ico: '🏠', label: '훈련 메인',        href: 'index.html' },
-        { key: 'myinfo',   section: '홈',          ico: '🧾', label: '내 스토어 정보',    href: 'my-info.html' },
+        { key: 'home',     ico: '🏠', label: '메인',            href: 'index.html' },
+        { key: 'myinfo',   ico: '🧾', label: '내 스토어 정보',    href: 'my-info.html' },
 
         { key: 'chome',    section: '챌린지',       ico: '🏆', label: '챌린지 메인',       href: 'challenge.html' },
         { key: 'calendar', section: '챌린지',       ico: '📅', label: '일정 보기',         href: 'challenge-calendar.html' },
         { key: 'all',      section: '챌린지',       ico: '📋', label: '숙제 전체 보기',     href: 'challenge-all.html' },
         { key: 'mine',     section: '챌린지',       ico: '🗂️', label: '내 숙제',           href: 'challenge-mine.html' },
-        { key: 'manual',   section: '챌린지',       ico: '📘', label: '스토어 초기작업 매뉴얼', href: 'manual.html', target: '_blank' },
+        { key: 'manual',   section: '챌린지',       ico: '📘', label: '챌린지 보기',        href: 'manual.html', target: '_blank' },
 
         { key: 'basic',    section: '발주 &amp; 광고', ico: '⚙️', label: '기본 설정',        href: 'basic-settings.html', lock: true },
         { key: 'ad',       section: '발주 &amp; 광고', ico: '📢', label: '광고 설정',        href: 'ad-settings.html', lock: true },
