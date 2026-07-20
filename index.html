@@ -37,12 +37,25 @@
       <div class="stat"><div class="label">자료 제출(확정)</div><div class="value"><span id="stSubm">-</span> <span style="font-size:0.9rem;font-weight:600;">/ 4</span></div></div>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="storePanel" style="margin-bottom:24px;">
       <div class="panel__head">
-        <span>내 스토어 정보</span>
-        <a href="my-info.html" style="font-size:0.85rem;color:var(--primary);">관리하기 →</a>
+        <button type="button" id="storeToggle" class="panel-toggle">
+          <span class="caret">▾</span> 내 스토어 정보 <span class="count" id="storeCount"></span>
+        </button>
+        <div class="panel-head-right">
+          <select id="storePageSize" class="mini-select">
+            <option value="5">5개씩 보기</option>
+            <option value="10">10개씩 보기</option>
+            <option value="20">20개씩 보기</option>
+            <option value="all">전체 보기</option>
+          </select>
+          <a href="my-info.html" class="panel-link">관리하기 →</a>
+        </div>
       </div>
-      <div id="storeBox" style="padding:16px 20px;color:var(--muted);">불러오는 중...</div>
+      <div id="storeBody" class="panel-body">
+        <div id="storeBox" style="padding:16px 20px;color:var(--muted);">불러오는 중...</div>
+        <div id="storeMore" style="padding:0 20px 14px;"></div>
+      </div>
     </div>
 
     <div class="card-grid">
@@ -133,17 +146,35 @@
   var stores = await sb.from('stores').select('*').eq('user_id', user.id).order('created_at');
   var sl = stores.data || [];
   setT('stStore', sl.length);
+  setT('storeCount', sl.length ? '(' + sl.length + '개)' : '');
+
   var box = document.getElementById('storeBox');
-  if (!sl.length) {
-    box.innerHTML = '등록된 스토어가 없습니다. <a href="my-info.html" style="color:var(--primary);">내 스토어 정보</a>에서 추가하세요.';
-  } else {
+  var more = document.getElementById('storeMore');
+  var sizeSel = document.getElementById('storePageSize');
+
+  function renderStores() {
+    if (!sl.length) {
+      box.innerHTML = '등록된 스토어가 없습니다. <a href="my-info.html" style="color:var(--primary);">내 스토어 정보</a>에서 추가하세요.';
+      more.innerHTML = '';
+      return;
+    }
     box.style.color = 'var(--text)';
-    box.innerHTML = '<ul style="margin:0;padding-left:18px;line-height:1.9;font-size:0.9rem;">' + sl.map(function (s) {
+    var v = sizeSel.value;
+    var limit = (v === 'all') ? sl.length : Math.min(sl.length, Number(v));
+    box.innerHTML = '<ul style="margin:0;padding-left:18px;line-height:1.9;font-size:0.9rem;">' + sl.slice(0, limit).map(function (s) {
       var url = s.url ? ' · <a href="' + esc(s.url) + '" target="_blank" rel="noopener" style="color:var(--primary);">' + esc(s.url) + '</a>' : '';
       var code = s.partner_code ? ' · 코드 ' + esc(s.partner_code) : '';
       return '<li><b>' + esc(s.name) + '</b> (' + (esc(s.topic) || '주제없음') + ')' + url + code + '</li>';
     }).join('') + '</ul>';
+    more.innerHTML = (limit < sl.length)
+      ? '<span style="color:var(--muted);font-size:0.82rem;">총 ' + sl.length + '개 중 ' + limit + '개 표시 · 더 보려면 개수를 늘리세요</span>'
+      : '';
   }
+  sizeSel.addEventListener('change', renderStores);
+  document.getElementById('storeToggle').addEventListener('click', function () {
+    document.getElementById('storePanel').classList.toggle('is-collapsed');
+  });
+  renderStores();
 
   // 자료 제출 (발주&광고)
   var subm = await sb.from('submissions').select('status');

@@ -612,7 +612,23 @@ tr.row-dirty > td { background: #fff7e0; }
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
 }
+/* 접이식 패널 헤더 (내 스토어 정보 등) */
+.panel-toggle {
+  background: none; border: 0; cursor: pointer; font: inherit; font-weight: 700;
+  color: var(--text); display: flex; align-items: center; gap: 8px; padding: 0;
+}
+.panel-toggle .caret { font-size: 0.7rem; color: var(--muted); transition: transform 0.18s; }
+.panel-toggle .count { color: var(--muted); font-weight: 600; font-size: 0.85rem; }
+.panel.is-collapsed .panel-toggle .caret { transform: rotate(-90deg); }
+.panel.is-collapsed .panel-body { display: none; }
+.panel__head .panel-head-right { display: flex; align-items: center; gap: 14px; }
+.mini-select {
+  border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px;
+  font-size: 0.82rem; color: var(--text); background: #fff; cursor: pointer;
+}
+.panel-link { font-size: 0.85rem; color: var(--primary); white-space: nowrap; }
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 13px 20px; text-align: left; font-size: 0.88rem; }
 thead th {
