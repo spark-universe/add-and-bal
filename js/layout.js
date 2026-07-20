@@ -16,8 +16,9 @@
     ],
     groups: [
       {
-        id: 'challenge', key: 'chome', ico: '🐤', label: '챌린지', href: 'challenge.html',
+        id: 'challenge', ico: '🐤', label: '챌린지',
         items: [
+          { key: 'chome',    ico: '🏆', label: '챌린지 메인',    href: 'challenge.html' },
           { key: 'calendar', ico: '📅', label: '일정 보기',      href: 'challenge-calendar.html' },
           { key: 'all',      ico: '📋', label: '숙제 전체 보기',  href: 'challenge-all.html' },
           { key: 'mine',     ico: '🗂️', label: '내 숙제',        href: 'challenge-mine.html' },
@@ -25,12 +26,13 @@
         ],
       },
       {
-        id: 'order', key: 'ohome', ico: '🐔', label: '발주 &amp; 광고', href: 'order-home.html', lock: true,
+        id: 'order', ico: '🐔', label: '발주 &amp; 광고',
         items: [
-          { key: 'basic',    ico: '⚙️', label: '기본 설정', href: 'basic-settings.html', lock: true },
-          { key: 'ad',       ico: '📢', label: '광고 설정', href: 'ad-settings.html',    lock: true },
-          { key: 'setup',    ico: '🧩', label: '발주 세팅', href: 'order-setup.html',    lock: true },
-          { key: 'practice', ico: '📦', label: '발주 연습', href: 'order-practice.html', lock: true },
+          { key: 'ohome',    ico: '🏠', label: '발주 & 광고 메인', href: 'order-home.html',     lock: true },
+          { key: 'basic',    ico: '⚙️', label: '기본 설정',      href: 'basic-settings.html', lock: true },
+          { key: 'ad',       ico: '📢', label: '광고 설정',      href: 'ad-settings.html',    lock: true },
+          { key: 'setup',    ico: '🧩', label: '발주 세팅',      href: 'order-setup.html',    lock: true },
+          { key: 'practice', ico: '📦', label: '발주 연습',      href: 'order-practice.html', lock: true },
         ],
       },
     ],
@@ -100,15 +102,14 @@
 
     const groups = STUDENT.groups.map(function (g) {
       const isOpen = groupIsOpen(g, stored);
-      const headActive = (active === g.key) ? ' is-active' : '';
-      const headLock = g.lock ? ' is-lockable' : '';
+      const curCls = g.items.some(function (i) { return i.key === active; }) ? ' is-current' : '';
       const items = g.items.map(function (it) { return '<li>' + linkHtml(it) + '</li>'; }).join('');
       return '<li class="nav-group' + (isOpen ? ' is-open' : '') + '" data-group="' + g.id + '">' +
-               '<div class="nav-group__head">' +
-                 '<a class="nav-group__link' + headActive + headLock + '" href="' + g.href + '" data-key="' + g.key + '">' +
-                   '<span class="ico">' + g.ico + '</span>' + g.label + '</a>' +
-                 '<button class="nav-group__toggle" type="button" aria-label="펼치기/접기">▾</button>' +
-               '</div>' +
+               '<button class="nav-group__head' + curCls + '" type="button" aria-expanded="' + isOpen + '">' +
+                 '<span class="ico">' + g.ico + '</span>' +
+                 '<span class="nav-group__label">' + g.label + '</span>' +
+                 '<span class="nav-group__caret">▾</span>' +
+               '</button>' +
                '<ul class="nav-group__items">' + items + '</ul>' +
              '</li>';
     }).join('');
@@ -129,13 +130,13 @@
   const mount = document.getElementById('sidebar');
   if (mount) mount.outerHTML = html;
 
-  // ---------- 그룹 펼치기/접기 (우측 화살표) ----------
-  document.querySelectorAll('.nav-group__toggle').forEach(function (btn) {
-    btn.addEventListener('click', function (e) {
-      e.preventDefault();
+  // ---------- 그룹 펼치기/접기 (헤더 전체 클릭) ----------
+  document.querySelectorAll('.nav-group__head').forEach(function (btn) {
+    btn.addEventListener('click', function () {
       const grp = btn.closest('.nav-group');
       if (!grp) return;
       const opened = grp.classList.toggle('is-open');
+      btn.setAttribute('aria-expanded', opened);
       const stored = openState();
       stored[grp.dataset.group] = opened;
       try { localStorage.setItem('nav.groups', JSON.stringify(stored)); } catch (e) {}
