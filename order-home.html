@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>발주 &amp; 광고 · 메인</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-area="user" data-active="ohome" data-lock="1">
+<div class="layout">
+  <div id="sidebar"></div>
+  <main class="content">
+    <div class="page-head">
+      <h2>🐔 발주 &amp; 광고 훈련</h2>
+      <p>기본 설정 → 광고 설정 → 발주 세팅 → 발주 연습 순서로 실전을 연습하세요.</p>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat"><div class="label">자료 제출(확정)</div><div class="value"><span id="stSubm">-</span> <span style="font-size:0.9rem;font-weight:600;">/ 4</span></div></div>
+      <div class="stat"><div class="label">내 스토어</div><div class="value"><span id="stStore">-</span> <span style="font-size:0.9rem;font-weight:600;">개</span></div></div>
+      <div class="stat"><div class="label">누적 주문</div><div class="value"><span id="stOrder">-</span> <span style="font-size:0.9rem;font-weight:600;">건</span></div></div>
+    </div>
+
+    <div class="card-grid" style="max-width:none;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
+      <a class="entry-card" href="basic-settings.html">
+        <div class="ico">⚙️</div><h3>기본 설정</h3><p>스토어·카테고리·발주·아마존 자료 제출</p>
+      </a>
+      <a class="entry-card" href="ad-settings.html">
+        <div class="ico">📢</div><h3>광고 설정</h3><p>광고 캠페인 설정을 연습합니다</p>
+      </a>
+      <a class="entry-card" href="order-setup.html">
+        <div class="ico">🧩</div><h3>발주 세팅</h3><p>주제·마진·주문건수·난이도 설정</p>
+      </a>
+      <a class="entry-card" href="order-practice.html">
+        <div class="ico">📦</div><h3>발주 연습</h3><p>실제 주문을 받아 발주를 처리합니다</p>
+      </a>
+    </div>
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/auth.js"></script>
+<script>
+(async function () {
+  function setT(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
+  var user = await Auth.require();
+  if (!user) return;
+
+  var subm = await sb.from('submissions').select('status');
+  setT('stSubm', (subm.data || []).filter(function (r) { return r.status === 'confirmed'; }).length);
+
+  var stores = await sb.from('stores').select('id').eq('user_id', user.id);
+  setT('stStore', (stores.data || []).length);
+
+  try {
+    var raw = localStorage.getItem('orderScenario');
+    var n = raw ? (JSON.parse(raw).orders || []).length : 0;
+    setT('stOrder', n);
+  } catch (e) { setT('stOrder', 0); }
+})();
+</script>
+</body>
+</html>

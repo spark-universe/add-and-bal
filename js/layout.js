@@ -2,82 +2,147 @@
    공통 사이드바 렌더링
    - 각 페이지 <body data-area="user|admin" data-active="키"> 로 지정
    - file:// 로 바로 열어도 동작 (fetch 미사용, DOM 생성 방식)
+   - 학생 사이드바: 상단 링크(메인/내 스토어) + 접이식 그룹(챌린지 / 발주 & 광고)
+     · 그룹명(좌측) 클릭 → 그 영역 메인으로 이동
+     · 우측 화살표 클릭 → 세부 메뉴 펼치기/접기
    ========================================================= */
 (function () {
-  const MENUS = {
-    // 수강생 통합 사이드바 (홈 / 챌린지 / 발주 & 광고). user·challenge 영역 공통.
-    student: {
-      brand: { title: '발주 &amp; 광고<br>설정 훈련', sub: '수강생' },
-      base: '',
-      items: [
-        { key: 'home',     ico: '🏠', label: '메인',            href: 'index.html' },
-        { key: 'myinfo',   ico: '🧾', label: '내 스토어 정보',    href: 'my-info.html' },
+  // ---------- 학생 메뉴 정의 ----------
+  const STUDENT = {
+    brand: { title: '발주 &amp; 광고<br>설정 훈련', sub: '수강생' },
+    top: [
+      { key: 'home',   ico: '🏠', label: '메인',         href: 'index.html' },
+      { key: 'myinfo', ico: '🧾', label: '내 스토어 정보', href: 'my-info.html' },
+    ],
+    groups: [
+      {
+        id: 'challenge', key: 'chome', ico: '🐤', label: '챌린지', href: 'challenge.html',
+        items: [
+          { key: 'calendar', ico: '📅', label: '일정 보기',      href: 'challenge-calendar.html' },
+          { key: 'all',      ico: '📋', label: '숙제 전체 보기',  href: 'challenge-all.html' },
+          { key: 'mine',     ico: '🗂️', label: '내 숙제',        href: 'challenge-mine.html' },
+          { key: 'manual',   ico: '📘', label: '챌린지 보기',     href: 'manual.html', target: '_blank' },
+        ],
+      },
+      {
+        id: 'order', key: 'ohome', ico: '🐔', label: '발주 &amp; 광고', href: 'order-home.html', lock: true,
+        items: [
+          { key: 'basic',    ico: '⚙️', label: '기본 설정', href: 'basic-settings.html', lock: true },
+          { key: 'ad',       ico: '📢', label: '광고 설정', href: 'ad-settings.html',    lock: true },
+          { key: 'setup',    ico: '🧩', label: '발주 세팅', href: 'order-setup.html',    lock: true },
+          { key: 'practice', ico: '📦', label: '발주 연습', href: 'order-practice.html', lock: true },
+        ],
+      },
+    ],
+    footer: '<div class="who"><span id="sbName">수강생</span> <span class="badge-admin">수강생</span></div><a href="#">로그아웃</a>',
+  };
 
-        { key: 'chome',    section: '챌린지',       ico: '🏆', label: '챌린지 메인',       href: 'challenge.html' },
-        { key: 'calendar', section: '챌린지',       ico: '📅', label: '일정 보기',         href: 'challenge-calendar.html' },
-        { key: 'all',      section: '챌린지',       ico: '📋', label: '숙제 전체 보기',     href: 'challenge-all.html' },
-        { key: 'mine',     section: '챌린지',       ico: '🗂️', label: '내 숙제',           href: 'challenge-mine.html' },
-        { key: 'manual',   section: '챌린지',       ico: '📘', label: '챌린지 보기',        href: 'manual.html', target: '_blank' },
+  // ---------- 어드민 메뉴 정의 ----------
+  const ADMIN = {
+    brand: { title: '발주 &amp; 광고<br>설정 훈련', sub: '어드민 영역' },
+    items: [
+      { key: 'home',        section: '공통',              ico: '🏠', label: '메인',        href: 'index.html' },
+      { key: 'users',       section: '공통',              ico: '👥', label: '사용자 관리',  href: 'users.html' },
+      { key: 'cohorts',     section: '공통',              ico: '🎓', label: '기수 관리',    href: 'cohorts.html' },
+      { key: 'events',      section: '공통',              ico: '📅', label: '일정 관리',    href: 'events.html' },
 
-        { key: 'basic',    section: '발주 &amp; 광고', ico: '⚙️', label: '기본 설정',        href: 'basic-settings.html', lock: true },
-        { key: 'ad',       section: '발주 &amp; 광고', ico: '📢', label: '광고 설정',        href: 'ad-settings.html', lock: true },
-        { key: 'setup',    section: '발주 &amp; 광고', ico: '🧩', label: '발주 세팅',        href: 'order-setup.html', lock: true },
-        { key: 'practice', section: '발주 &amp; 광고', ico: '📦', label: '발주 연습',        href: 'order-practice.html', lock: true },
-      ],
-      footer: '<div class="who"><span id="sbName">수강생</span> <span class="badge-admin">수강생</span></div><a href="#">로그아웃</a>',
-    },
-    admin: {
-      brand: { title: '발주 &amp; 광고<br>설정 훈련', sub: '어드민 영역' },
-      base: '',            // 어드민 페이지는 admin/ 폴더 내부이므로 상대경로 그대로
-      items: [
-        { key: 'home',        section: '공통',            ico: '🏠', label: '메인',        href: 'index.html' },
-        { key: 'users',       section: '공통',            ico: '👥', label: '사용자 관리',  href: 'users.html' },
-        { key: 'cohorts',     section: '공통',            ico: '🎓', label: '기수 관리',    href: 'cohorts.html' },
-        { key: 'events',      section: '공통',            ico: '📅', label: '일정 관리',    href: 'events.html' },
+      { key: 'manualsched', section: '챌린지',            ico: '📘', label: '매뉴얼 공개',   href: 'manual-schedule.html' },
+      { key: 'challenges',  section: '챌린지',            ico: '📋', label: '숙제 관리',    href: 'challenges.html' },
+      { key: 'chreview',    section: '챌린지',            ico: '✅', label: '숙제 검수',    href: 'challenge-review.html' },
 
-        { key: 'manualsched', section: '챌린지',          ico: '📘', label: '매뉴얼 공개',   href: 'manual-schedule.html' },
-        { key: 'challenges',  section: '챌린지',          ico: '📋', label: '숙제 관리',    href: 'challenges.html' },
-        { key: 'chreview',    section: '챌린지',          ico: '✅', label: '숙제 검수',    href: 'challenge-review.html' },
-
-        { key: 'products',    section: '발주 &amp; 광고 관리', ico: '🛍️', label: '상품 관리',    href: 'products.html' },
-        { key: 'review',      section: '발주 &amp; 광고 관리', ico: '📝', label: '자료 검수',    href: 'review.html' },
-        { key: 'results',     section: '발주 &amp; 광고 관리', ico: '📊', label: '결과 관리',    href: 'results.html' },
-      ],
-      footer: '<div class="who">GSK Admin <span class="badge-admin">관리자</span></div><a href="../index.html">사용자 화면으로</a>',
-    },
+      { key: 'products',    section: '발주 &amp; 광고 관리', ico: '🛍️', label: '상품 관리',   href: 'products.html' },
+      { key: 'review',      section: '발주 &amp; 광고 관리', ico: '📝', label: '자료 검수',   href: 'review.html' },
+      { key: 'results',     section: '발주 &amp; 광고 관리', ico: '📊', label: '결과 관리',   href: 'results.html' },
+    ],
+    footer: '<div class="who">GSK Admin <span class="badge-admin">관리자</span></div><a href="../index.html">사용자 화면으로</a>',
   };
 
   const area = document.body.dataset.area || 'user';
   const active = document.body.dataset.active || 'home';
-  const menu = (area === 'admin') ? MENUS.admin : MENUS.student;   // user·challenge → 통합 학생 메뉴
 
-  let curSection = null;
-  const links = menu.items.map(function (it) {
-    // 섹션이 바뀌면 구분 라벨을 먼저 넣는다 (사이드바 그룹화)
-    let head = '';
-    if (it.section && it.section !== curSection) {
-      curSection = it.section;
-      head = '<li class="nav-sec">' + it.section + '</li>';
-    }
-    const cls = (it.key === active ? 'is-active' : '') + (it.lock ? ' is-lockable' : '');
+  function linkHtml(it, extraCls) {
+    const cls = ((it.key === active ? 'is-active ' : '') + (it.lock ? 'is-lockable ' : '') + (extraCls || '')).trim();
     const tgt = it.target ? ' target="' + it.target + '" rel="noopener"' : '';
     const ext = it.target === '_blank' ? ' <span class="nav-ext">↗</span>' : '';
-    return head + '<li><a class="' + cls.trim() + '" href="' + it.href + '"' + tgt + ' data-key="' + it.key + '">' +
-           '<span class="ico">' + it.ico + '</span>' + it.label + ext + '</a></li>';
-  }).join('');
+    return '<a class="' + cls + '" href="' + it.href + '"' + tgt + ' data-key="' + it.key + '">' +
+           '<span class="ico">' + it.ico + '</span>' + it.label + ext + '</a>';
+  }
 
-  const html =
-    '<aside class="sidebar">' +
-      '<div class="sidebar__brand"><h1>' + menu.brand.title + '</h1>' +
-        '<span>' + menu.brand.sub + '</span></div>' +
-      '<ul class="nav">' + links + '</ul>' +
-      '<div class="sidebar__footer">' + menu.footer + '</div>' +
-    '</aside>';
+  // ---------- 어드민 렌더 (섹션 라벨 방식) ----------
+  function renderAdmin() {
+    let curSection = null;
+    const links = ADMIN.items.map(function (it) {
+      let head = '';
+      if (it.section && it.section !== curSection) {
+        curSection = it.section;
+        head = '<li class="nav-sec">' + it.section + '</li>';
+      }
+      return head + '<li>' + linkHtml(it) + '</li>';
+    }).join('');
+    return sidebarHtml(ADMIN, '<ul class="nav">' + links + '</ul>');
+  }
 
+  // ---------- 학생 렌더 (상단 링크 + 접이식 그룹) ----------
+  function openState() {
+    let stored = null;
+    try { stored = JSON.parse(localStorage.getItem('nav.groups') || 'null'); } catch (e) {}
+    return stored || {};
+  }
+  function groupIsOpen(g, stored) {
+    // 현재 보고 있는 그룹은 항상 펼침. 그 외엔 저장값(기본 펼침).
+    if (active === g.key || g.items.some(function (i) { return i.key === active; })) return true;
+    if (g.id in stored) return !!stored[g.id];
+    return true;
+  }
+  function renderStudent() {
+    const stored = openState();
+    const top = STUDENT.top.map(function (it) { return '<li>' + linkHtml(it) + '</li>'; }).join('');
+
+    const groups = STUDENT.groups.map(function (g) {
+      const isOpen = groupIsOpen(g, stored);
+      const headActive = (active === g.key) ? ' is-active' : '';
+      const headLock = g.lock ? ' is-lockable' : '';
+      const items = g.items.map(function (it) { return '<li>' + linkHtml(it) + '</li>'; }).join('');
+      return '<li class="nav-group' + (isOpen ? ' is-open' : '') + '" data-group="' + g.id + '">' +
+               '<div class="nav-group__head">' +
+                 '<a class="nav-group__link' + headActive + headLock + '" href="' + g.href + '" data-key="' + g.key + '">' +
+                   '<span class="ico">' + g.ico + '</span>' + g.label + '</a>' +
+                 '<button class="nav-group__toggle" type="button" aria-label="펼치기/접기">▾</button>' +
+               '</div>' +
+               '<ul class="nav-group__items">' + items + '</ul>' +
+             '</li>';
+    }).join('');
+
+    return sidebarHtml(STUDENT, '<ul class="nav">' + top + groups + '</ul>');
+  }
+
+  function sidebarHtml(menu, navHtml) {
+    return '<aside class="sidebar">' +
+             '<div class="sidebar__brand"><h1>' + menu.brand.title + '</h1>' +
+               '<span>' + menu.brand.sub + '</span></div>' +
+             navHtml +
+             '<div class="sidebar__footer">' + menu.footer + '</div>' +
+           '</aside>';
+  }
+
+  const html = (area === 'admin') ? renderAdmin() : renderStudent();
   const mount = document.getElementById('sidebar');
   if (mount) mount.outerHTML = html;
 
-  // 학생 이름 + 발주&광고 잠금 표시 (등급 안 열린 학생은 🔒)
+  // ---------- 그룹 펼치기/접기 (우측 화살표) ----------
+  document.querySelectorAll('.nav-group__toggle').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      const grp = btn.closest('.nav-group');
+      if (!grp) return;
+      const opened = grp.classList.toggle('is-open');
+      const stored = openState();
+      stored[grp.dataset.group] = opened;
+      try { localStorage.setItem('nav.groups', JSON.stringify(stored)); } catch (e) {}
+    });
+  });
+
+  // ---------- 학생 이름 + 발주&광고 잠금 표시 ----------
   if (area !== 'admin' && typeof sb !== 'undefined') {
     (async function () {
       try {
