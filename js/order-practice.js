@@ -242,6 +242,7 @@
         issue: fraudSlots[i] ? issueTypes[issueAt++] : null,   // 사기(문제) 주문 4종 중 하나
         lowMargin: lowMargin,                                   // 역마진 — 사기와 별개
         level: settings.level,                                  // 생성 당시 난이도 (아마존 함정·옵션 빈도에 사용)
+        fromAd: Math.random() < 0.8,                            // 80% 확률로 광고 유입 (20% 직접 유입)
         missing: []
       };
 
@@ -413,11 +414,12 @@
       .map(function (c) { return c.name; });
   }
 
-  // 주문 하나가 어느 광고에서 왔는지 (약 80%만 광고 유입, 20%는 직접 유입=미설정). 결정적.
+  // 주문 하나가 어느 광고에서 왔는지. 광고 유입 여부(o.fromAd)는 생성 시 80% 확률로 결정됨.
   function campaignForOrder(o, names) {
     if (!names || !names.length) return null;
     var n = parseInt(String(o.no).replace(/\D/g, ''), 10) || 0;
-    if (n % 10 >= 8) return null;                 // 20% 미설정 (직접 유입)
+    var fromAd = (o.fromAd != null) ? o.fromAd : (n % 10 < 8);   // 구버전 주문은 결정적 폴백
+    if (!fromAd) return null;                                     // 직접 유입 = 미설정
     return names[n % names.length];
   }
 
