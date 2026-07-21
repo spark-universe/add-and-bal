@@ -80,6 +80,25 @@
   countEl.addEventListener('input', clampCount);
   countEl.addEventListener('blur', clampCount);
 
+  // ---- 난이도 안내 ----
+  var levelDesc = document.getElementById('levelDesc');
+  var LEVEL_INFO = {
+    '하': { title: '하 — 입문', body: '사기·역마진·문제 주문 비율이 낮습니다(약 15%). 아마존에서 잘못된 상품·옵션·비싼 리스팅을 담으려 하면 <b>담기 전에 경고</b>로 막아줍니다. 처음 연습하기 좋습니다.' },
+    '중': { title: '중 — 표준', body: '문제 주문 비율이 중간입니다(약 25%). 유사품·바가지·저가 느린배송 같은 소싱 함정이 등장하고, <b>잘못 담으면 체크리스트에 표시</b>됩니다.' },
+    '상': { title: '상 — 실전', body: '문제 주문 비율이 높습니다(약 35%). 함정이 많고 가격 차이가 작아 헷갈리며 옵션 함정도 늘어납니다. <b>실수해도 표시가 없고 최종 정산에서만</b> 드러납니다.' },
+    '최상': { title: '최상 — 종합 (준비중)', body: '🚧 사기성·허위 주문, 악조건(배송 지연 등)까지 종합한 최고 난이도입니다. <b>향후 업데이트 예정</b>입니다.' }
+  };
+  function updateLevelDesc() {
+    var v = levelEl.value;
+    var info = LEVEL_INFO[v];
+    if (!info) { levelDesc.hidden = true; startBtn.disabled = false; return; }
+    levelDesc.hidden = false;
+    levelDesc.className = 'level-desc' + (v === '최상' ? ' is-soon' : '');
+    levelDesc.innerHTML = '<b>' + info.title + '</b><br>' + info.body;
+    startBtn.disabled = (v === '최상');
+  }
+  levelEl.addEventListener('change', updateLevelDesc);
+
   async function loadSettings() {
     var res = await sb.from('practice_settings').select('*').eq('user_id', user.id).maybeSingle();
     var s = res.data;
@@ -88,6 +107,7 @@
     marginEl.value = s.margin != null ? s.margin : '';
     countEl.value = s.order_count || '';
     levelEl.value = s.level || '';
+    updateLevelDesc();
     await refreshMax();
   }
 
@@ -102,6 +122,7 @@
     if (!isFinite(margin)) { alert('설정 마진을 입력하세요.'); return; }
     if (!count || count < 1) { alert('받을 주문 건수를 입력하세요.'); return; }
     if (!level) { alert('난이도를 선택하세요.'); return; }
+    if (level === '최상') { alert('최상 난이도는 향후 업데이트 예정입니다.\n하 · 중 · 상 중에서 선택해 주세요.'); return; }
 
     if (count > maxCount) { clampCount(); count = maxCount; }
 
