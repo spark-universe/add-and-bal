@@ -241,6 +241,7 @@
         method: rand(['Economy', 'Economy', 'Standard', 'Express']),
         issue: fraudSlots[i] ? issueTypes[issueAt++] : null,   // 사기(문제) 주문 4종 중 하나
         lowMargin: lowMargin,                                   // 역마진 — 사기와 별개
+        level: settings.level,                                  // 생성 당시 난이도 (아마존 함정·옵션 빈도에 사용)
         missing: []
       };
 

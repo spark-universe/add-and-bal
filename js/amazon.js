@@ -29,10 +29,11 @@
   }
 
   // 결정적 옵션 (order-detail.js 의 optionOf 와 반드시 동일 로직!)
-  function optionOf(no, line) {
+  function optionOf(no, line, level) {
     if (line.oos) return null;
     var seed = h(no + line.pid + 'opt');
-    if (seed % 10 >= 4) return null;             // 40% 만 옵션 있음
+    var pth = level === '상' ? 6 : level === '하' ? 2 : 4;   // 옵션 빈도: 하 20% / 중 40% / 상 60%
+    if (seed % 10 >= pth) return null;
     var TYPES = [
       { label: '색상', choices: ['블랙', '화이트', '블루', '레드', '그린'] },
       { label: '사이즈', choices: ['S', 'M', 'L', 'XL'] },
@@ -64,18 +65,30 @@
   function buildListings() {
     listings = [];
     var inOrder = {};
+    var lv = order.level || '중';                    // 생성 당시 난이도
     (order.lines || []).forEach(function (l) {
       var C = Number(l.cost) || 0;
       var seed = h(order.no + l.pid);
-      var opt = optionOf(order.no, l);
+      var opt = optionOf(order.no, l, lv);
       var oos = lineOos(l);
       inOrder[l.pid] = true;
+      // 정답
       listings.push({ lid: l.pid + '-ok', pid: l.pid, kind: 'correct', name: l.name, images: l.images || [], image: l.image,
         price: C, seller: 'Amazon.com', prime: true, inStock: !oos, option: opt });
+      // 바가지 (하=확 비쌈/티남, 상=가격차 작아 헷갈림)
+      var hiMul = lv === '상' ? (1.10 + (seed % 12) / 100) : lv === '하' ? (1.30 + (seed % 20) / 100) : (1.18 + (seed % 22) / 100);
       listings.push({ lid: l.pid + '-hi', pid: l.pid, kind: 'overpriced', name: l.name, images: l.images || [], image: l.image,
-        price: round2(C * (1.2 + (seed % 25) / 100)), seller: SELLERS[seed % SELLERS.length], prime: false, inStock: !oos, option: opt });
-      listings.push({ lid: l.pid + '-cf', pid: l.pid, kind: 'counterfeit', name: l.name + ' (제네릭/호환)', images: l.images || [], image: l.image,
-        price: round2(C * (0.65 + (seed % 20) / 100)), seller: SELLERS[(seed + 2) % SELLERS.length], prime: false, inStock: !oos, option: opt });
+        price: round2(C * hiMul), seller: SELLERS[seed % SELLERS.length], prime: false, inStock: !oos, option: opt });
+      // 유사품 (하 난이도는 생략, 중/상만)
+      if (lv !== '하') {
+        listings.push({ lid: l.pid + '-cf', pid: l.pid, kind: 'counterfeit', name: l.name + ' (제네릭/호환)', images: l.images || [], image: l.image,
+          price: round2(C * (0.65 + (seed % 20) / 100)), seller: SELLERS[(seed + 2) % SELLERS.length], prime: false, inStock: !oos, option: opt });
+      }
+      // 상 난이도는 유사품 하나 더
+      if (lv === '상') {
+        listings.push({ lid: l.pid + '-cf2', pid: l.pid, kind: 'counterfeit', name: l.name + ' (호환형)', images: l.images || [], image: l.image,
+          price: round2(C * (0.72 + (seed % 15) / 100)), seller: SELLERS[(seed + 3) % SELLERS.length], prime: false, inStock: !oos, option: opt });
+      }
     });
     (catalog || []).forEach(function (p) {
       if (inOrder[p.id]) return;
@@ -129,7 +142,7 @@
       var oos = lineOos(l);
       var rec = bought[l.pid];
       var done = !!rec;
-      var opt = optionOf(order.no, l);
+      var opt = optionOf(order.no, l, order.level);
       var img = (imgsOf(l)[0]) ? '<img src="' + esc(imgsOf(l)[0]) + '" alt="">' : '<span class="az-noimg">?</span>';
       var status = oos ? '<span class="az-bad">🚫 아마존 품절 · 주문 불가 → 환불하세요</span>'
         : done ? boughtLabel(rec) : '<span class="az-todo">담아야 함</span>';

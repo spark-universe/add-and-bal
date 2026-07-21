@@ -25,10 +25,11 @@
   // 결정적 옵션/품절 (js/amazon.js 의 동일 함수와 반드시 로직 일치!)
   function h(s) { var n = 0; s = String(s); for (var i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) >>> 0; return n; }
   function lineOos(l) { return !!l.oos && (Number(l.stock) || 0) < l.qty; }
-  function optionOf(no, line) {
+  function optionOf(no, line, level) {
     if (line.oos) return null;
     var seed = h(no + line.pid + 'opt');
-    if (seed % 10 >= 4) return null;
+    var pth = level === '상' ? 6 : level === '하' ? 2 : 4;   // 하 20% / 중 40% / 상 60%
+    if (seed % 10 >= pth) return null;
     var TYPES = [
       { label: '색상', choices: ['블랙', '화이트', '블루', '레드', '그린'] },
       { label: '사이즈', choices: ['S', 'M', 'L', 'XL'] },
@@ -246,7 +247,7 @@
               ? '<span class="od-stock">' + (l.stock > 0 ? '재고 ' + l.stock + '개' : '품절') + '</span>'
               : '') +
           '</div>' +
-          (function () { var op = optionOf(o.no, l); return op ? '<div class="od-opt">🎨 옵션 · ' + esc(op.label) + ': <b>' + esc(op.correct) + '</b></div>' : ''; })() +
+          (function () { var op = optionOf(o.no, l, o.level); return op ? '<div class="od-opt">🎨 옵션 · ' + esc(op.label) + ': <b>' + esc(op.correct) + '</b></div>' : ''; })() +
         '</div>' +
         '<div class="od-line__qty">' + money(l.price) + ' × <span class="od-qty">' + l.qty + '</span></div>' +
         '<div class="od-line__sum">' + money(l.price * l.qty) + '</div>' +
