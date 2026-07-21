@@ -797,6 +797,35 @@ tbody tr:hover { background: #fafbff; }
 }
 .modal-card__body .field label { font-size: 0.82rem; }
 
+/* ---------- 차지백 이벤트 ---------- */
+.cb-card { max-width: 460px; border: 2px solid #e5484d; }
+.cb-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 20px 24px; background: #fdecec;
+  border-bottom: 1px solid #f3c2c4; border-radius: var(--radius) var(--radius) 0 0;
+}
+.cb-emoji { font-size: 1.9rem; line-height: 1; }
+.cb-head h3 { margin: 0; font-size: 1.15rem; font-weight: 800; color: #c0272d; }
+.cb-lead { margin: 0 0 14px; font-size: 0.9rem; line-height: 1.6; }
+.cb-signals {
+  background: #fff6f6; border: 1px solid #f3c2c4; color: #b02a2f;
+  border-radius: 10px; padding: 10px 12px; font-size: 0.82rem; margin-bottom: 16px;
+}
+.cb-money { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+.cb-money td { padding: 8px 4px; font-size: 0.88rem; border-bottom: 1px solid #f0f2f6; }
+.cb-money td.r { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.cb-money .cb-total td { border-bottom: none; border-top: 2px solid var(--text); padding-top: 12px; font-size: 1rem; }
+.cb-money .cb-total td.r { color: #c0272d; font-weight: 800; }
+.cb-tip {
+  background: #fffaf0; border: 1px solid #ffe6b8; border-radius: 10px;
+  padding: 12px 14px; font-size: 0.84rem; line-height: 1.6;
+}
+.cb-banner {
+  margin-top: 12px; padding: 10px 12px; border-radius: 10px;
+  background: #fdecec; border: 1px solid #f3c2c4; color: #b02a2f;
+  font-size: 0.85rem;
+}
+
 /* ---------- 로그인 / 회원가입 ---------- */
 .auth {
   min-height: 100vh;

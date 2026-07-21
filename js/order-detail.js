@@ -63,6 +63,76 @@
     localStorage.setItem(ORDERS, JSON.stringify(orders));
   }
 
+  /* ===== 차지백(Chargeback) 이벤트 =====
+     사기(도난 카드) 주문(issue==='chargeback')을 걸러내지 못하고 발주(fulfilled)하면
+     상품을 보낸 뒤 고객이 카드사에 결제를 취소해 판매대금이 강제 회수된다.
+     → 상품 원가 + 차지백 수수료만큼 순손실. 발주 처리가 완료된 순간 1회 발생. */
+  var CB_FEE = 15;   // 차지백 수수료 (USD)
+
+  function fireChargebackIfNeeded(o) {
+    if (!o || o.issue !== 'chargeback') return;
+    if (o.fulfillment !== 'fulfilled') return;
+    if (o.chargebackFired) return;                 // 이미 발생한 주문은 다시 뜨지 않음
+
+    var cost = Number(o.cost || 0);
+    var sale = Number(o.grandTotal || o.total || 0);
+    var loss = cost + CB_FEE;                       // 판매대금은 회수되어 0 → 실손실 = 원가 + 수수료
+
+    o.chargebackFired = true;
+    o.chargeback = { fee: CB_FEE, cost: cost, sale: sale, loss: loss, at: Date.now() };
+    saveOrder(o);
+
+    // 정산용 기록 (중복 방지)
+    try {
+      var log = JSON.parse(localStorage.getItem('practice_chargebacks')) || [];
+      if (!log.some(function (x) { return x.no === o.no; })) {
+        log.push({ no: o.no, cost: cost, sale: sale, fee: CB_FEE, loss: loss, at: o.chargeback.at });
+        localStorage.setItem('practice_chargebacks', JSON.stringify(log));
+      }
+    } catch (e) {}
+
+    showChargeback(o);
+  }
+
+  function showChargeback(o) {
+    var cb = o.chargeback || { fee: CB_FEE, cost: Number(o.cost || 0),
+      sale: Number(o.grandTotal || o.total || 0), loss: Number(o.cost || 0) + CB_FEE };
+
+    var box = document.createElement('div');
+    box.className = 'modal-overlay is-open';
+    box.innerHTML =
+      '<div class="modal-card cb-card">' +
+        '<div class="cb-head">' +
+          '<div class="cb-emoji">⚠️</div>' +
+          '<h3>차지백 발생! (Chargeback)</h3>' +
+        '</div>' +
+        '<div class="modal-card__body">' +
+          '<p class="cb-lead"><b>' + esc(o.no) + '</b> 주문은 <b>사기(도난 카드) 주문</b>이었습니다.<br>' +
+            '발주해서 상품을 보낸 뒤, 고객이 카드사에 결제를 취소(차지백)했습니다.</p>' +
+          '<div class="cb-signals">🚩 이 주문의 위험 신호: 청구자·수령자 이름 불일치' +
+            (o.risk === 'high' ? ' · 높은 위험도(High risk)' : '') + ' · 특급배송(Express) 요청</div>' +
+          '<table class="cb-money">' +
+            '<tr><td>결제금액 (차지백으로 전액 회수)</td><td class="r">-' + money(cb.sale) + '</td></tr>' +
+            '<tr><td>상품 원가 (이미 지출 · 회수 불가)</td><td class="r">-' + money(cb.cost) + '</td></tr>' +
+            '<tr><td>차지백 수수료</td><td class="r">-' + money(cb.fee) + '</td></tr>' +
+            '<tr class="cb-total"><td>순 손실</td><td class="r">-' + money(cb.loss) + '</td></tr>' +
+          '</table>' +
+          '<div class="cb-tip">💡 이런 주문은 <b>[환불하기 (주문 취소)]</b>로 걸렀어야 합니다.<br>' +
+            '청구지·수령지 이름이 다르거나, 위험도가 높은데 특급배송을 급히 요구하면 사기를 의심하세요.</div>' +
+        '</div>' +
+        '<div class="modal-card__foot">' +
+          '<button class="btn-sm is-danger" data-close>확인했습니다</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(box);
+    box.addEventListener('click', function (ev) {
+      if (ev.target === box || ev.target.closest('[data-close]')) {
+        box.remove();
+        render(o);          // 닫으면 상세 화면에 차지백 손실 배너가 반영됨
+      }
+    });
+  }
+
   /* ---------- 조각들 ---------- */
   function badges(o) {
     var pay = '<span class="ord-badge"><span class="dot"></span>' +
@@ -307,6 +377,10 @@
             '<div class="od-method">🚚 ' + esc(o.method) + '</div>' +
             stockBox(o) +
             '<div class="od-lines">' + lineRows(o) + '</div>' +
+            (o.chargebackFired
+              ? '<div class="cb-banner">⚠️ 이 주문은 <b>차지백</b>이 발생했습니다 · 순 손실 <b>-' +
+                money((o.chargeback && o.chargeback.loss) || 0) + '</b></div>'
+              : '') +
             (o.fulfillment === 'fulfilled'
               ? '<div class="od-done">✅ 발주 완료 — 배송번호 <b>' + esc((o.tracking && o.tracking.number) || '-') +
                 '</b> (' + esc((o.tracking && o.tracking.carrier) || '-') + ')</div>'
@@ -412,6 +486,9 @@
     });
 
     bindZoom(o);
+
+    // 사기 주문을 발주 처리했다면 차지백 이벤트 발생 (직접 처리·라벨 구매 모두 이 render 로 귀결)
+    fireChargebackIfNeeded(o);
   }
 
   /* ---------- 발주 처리 (Mark as fulfilled) ----------
