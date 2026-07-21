@@ -826,6 +826,79 @@ tbody tr:hover { background: #fafbff; }
   font-size: 0.85rem;
 }
 
+/* ---------- 시뮬 아마존 ---------- */
+.az-body { margin: 0; background: #eaeded; }
+.az-page { max-width: 1100px; margin: 0 auto; padding: 0 20px 80px; color: #0f1111;
+  font-family: 'Amazon Ember', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif; }
+.az-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  background: #131921; color: #fff; margin: 0 -20px 18px; padding: 12px 20px; }
+.az-logo { font-size: 1.5rem; font-weight: 800; color: #fff; text-decoration: none; letter-spacing: -.03em; }
+.az-logo span { color: #ff9900; }
+.az-deliver { font-size: 0.85rem; color: #ddd; }
+.az-deliver b { color: #fff; }
+
+.az-need { background: #fff; border: 1px solid #d5d9d9; border-radius: 10px; padding: 16px 18px; margin-bottom: 18px; }
+.az-need__h { font-weight: 800; font-size: 0.95rem; margin-bottom: 12px; }
+.az-need__item { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid #f0f2f2; }
+.az-need__item:first-of-type { border-top: none; }
+.az-need__item img { width: 42px; height: 42px; object-fit: contain; border: 1px solid #eee; border-radius: 6px; background: #fff; }
+.az-need__chk { font-size: 1.05rem; }
+.az-need__info { display: flex; flex-direction: column; }
+.az-need__info b { font-size: 0.9rem; }
+.az-need__info span { font-size: 0.8rem; color: #565959; }
+.az-need__item.is-done b { color: #007600; }
+
+.az-searchbar { display: flex; gap: 8px; margin-bottom: 16px; }
+.az-searchbar input { flex: 1; padding: 11px 14px; border: 1px solid #888c8c; border-radius: 8px; font-size: 0.95rem; }
+.az-searchbar input:focus { outline: 2px solid #ff9900; border-color: #ff9900; }
+.az-searchbar .btn-primary { background: #ffd814; color: #0f1111; border-radius: 8px; }
+
+.az-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+.az-card { background: #fff; border: 1px solid #e3e6e6; border-radius: 10px; padding: 14px; cursor: pointer; transition: box-shadow .12s; }
+.az-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.12); }
+.az-card__img { height: 150px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+.az-card__img img { max-width: 100%; max-height: 150px; object-fit: contain; }
+.az-noimg { color: #ccc; font-size: 1.6rem; }
+.az-card__title { font-size: 0.86rem; line-height: 1.4; height: 2.8em; overflow: hidden; margin-bottom: 6px; }
+.az-card__rate { font-size: 0.8rem; margin-bottom: 4px; }
+.az-stars { color: #de7921; letter-spacing: -1px; }
+.az-rate__n { color: #007185; }
+.az-rev { color: #565959; }
+.az-card__price { font-size: 1.15rem; font-weight: 800; }
+.az-prime { font-size: 0.78rem; color: #007185; font-weight: 700; margin-top: 4px; }
+.az-prime span { color: #565959; font-weight: 400; }
+.az-ship { font-size: 0.78rem; color: #565959; margin-top: 4px; }
+.az-empty { text-align: center; color: #565959; padding: 40px; background: #fff; border-radius: 10px; }
+
+/* 상품 상세 모달 */
+.az-prod { max-width: 720px; }
+.az-prod__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.az-prod__img { display: flex; align-items: center; justify-content: center; background: #fff; border-radius: 8px; min-height: 200px; }
+.az-prod__img img { max-width: 100%; max-height: 300px; object-fit: contain; }
+.az-prod__rate { font-size: 0.85rem; margin-bottom: 8px; }
+.az-prod__price { font-size: 1.8rem; font-weight: 800; margin-bottom: 6px; }
+.az-prod__deliver { font-size: 0.85rem; color: #007600; font-weight: 700; margin-top: 8px; }
+.az-prod__ship-to { font-size: 0.82rem; color: #333; margin: 10px 0; line-height: 1.5; }
+.az-prod__qty { margin: 12px 0; font-size: 0.9rem; }
+.az-prod__qty select { padding: 6px 10px; border: 1px solid #888c8c; border-radius: 8px; }
+.az-buy { width: 100%; background: #ffa41c; color: #0f1111; border-radius: 20px; }
+.az-about { margin-top: 18px; font-size: 0.88rem; }
+.az-about ul { margin: 8px 0 0; padding-left: 18px; line-height: 1.8; color: #333; }
+
+/* 소싱 완료 */
+.az-done { background: #e6f4ea; border: 1px solid #a6d8b6; border-radius: 10px; padding: 18px 20px; margin-bottom: 18px; }
+.az-done__h { font-weight: 800; color: #14814a; font-size: 1rem; }
+.az-done__warn { color: #c0272d; font-size: 0.85rem; margin-top: 8px; }
+.az-tba { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 14px 0; font-size: 0.85rem; color: #565959; }
+.az-tba b { font-size: 1.15rem; color: #0f1111; font-family: monospace; letter-spacing: .04em; }
+.az-done__tip { font-size: 0.85rem; color: #333; margin-bottom: 14px; line-height: 1.6; }
+
+/* 주문 소싱 상태 (주문 상세) */
+.od-src { margin-top: 10px; font-size: 0.85rem; color: var(--muted); }
+.od-src.ok { color: #14814a; font-weight: 700; }
+
+@media (max-width: 640px) { .az-prod__grid { grid-template-columns: 1fr; } }
+
 /* 발주 연습 완료 배너 */
 .done-bar {
   display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;

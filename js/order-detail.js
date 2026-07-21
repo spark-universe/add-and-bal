@@ -452,10 +452,14 @@
               : o.payment === 'refunded'
                 ? '<div class="od-done">환불된 주문입니다. 발주하지 않습니다.</div>'
                 : '<div class="od-actions">' +
+                    '<a class="btn-sm is-dark" href="amazon.html?no=' + encodeURIComponent(o.no) + '" target="_blank" rel="noopener" style="text-decoration:none;">🛒 아마존에서 주문하기</a>' +
                     '<button class="btn-sm" id="btnFulfill">Mark as fulfilled</button>' +
                     '<button class="btn-sm" id="btnLabel">Create shipping label</button>' +
-                    '<button class="btn-sm is-dark" id="btnBatch">Add to batch</button>' +
-                  '</div>') +
+                  '</div>' +
+                  (o.amazon && o.amazon.complete
+                    ? '<div class="od-src ok">✅ 아마존 주문 완료 · 배송번호 ' + esc(o.amazon.tracking) +
+                        (o.amazon.correct ? '' : ' <span style="color:#c0272d;">(주문에 없는 상품 포함)</span>') + '</div>'
+                    : '<div class="od-src">🛒 먼저 <b>아마존에서 상품을 주문</b>해 배송번호(TBA)를 받아오세요.</div>')) +
           '</div>' +
 
           '<div class="od-box">' +
@@ -574,7 +578,30 @@
      그 번호를 여기에 넣어야 고객이 배송 조회를 할 수 있다. */
   var CARRIERS = ['Amazon Logistics', 'UPS', 'USPS', 'FedEx', 'DHL eCommerce', 'Other'];
 
+  // 아직 아마존에서 주문(소싱)하지 않았을 때 안내
+  function showSourcePrompt(o) {
+    var box = document.createElement('div');
+    box.className = 'modal-overlay is-open';
+    box.innerHTML =
+      '<div class="modal-card" style="max-width:460px;">' +
+        '<div class="modal-card__head"><h3>먼저 아마존에서 주문하세요</h3><button class="modal-close" data-close>×</button></div>' +
+        '<div class="modal-card__body">' +
+          '<p style="margin:0;font-size:0.92rem;line-height:1.7;">드랍쉬핑은 내가 직접 배송하지 않습니다. ' +
+          '<b>아마존에서 이 주문의 상품을 고객 주소로 주문</b>하고, 아마존이 발급한 <b>배송번호(TBA)</b>를 받아와야 발주를 완료할 수 있습니다.</p>' +
+        '</div>' +
+        '<div class="modal-card__foot">' +
+          '<button class="btn-sm" data-close>취소</button>' +
+          '<a class="btn-sm is-dark" href="amazon.html?no=' + encodeURIComponent(o.no) + '" target="_blank" rel="noopener" style="text-decoration:none;">🛒 아마존에서 주문하기</a>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(box);
+    box.addEventListener('click', function (ev) { if (ev.target === box || ev.target.closest('[data-close]')) box.remove(); });
+  }
+
   function openFulfill(o) {
+    var fresh = load(); if (fresh) o = fresh;      // 아마존 탭에서의 소싱 반영
+    if (!o.amazon || !o.amazon.complete) { showSourcePrompt(o); return; }
+
     var count = (o.lines || []).reduce(function (a, l) { return a + l.qty; }, 0);
 
     var box = document.createElement('div');
@@ -648,6 +675,10 @@
       var num = box.querySelector('#ffTracking').value.trim();
       if (!num) {
         box.querySelector('#ffError').textContent = '배송번호를 입력해야 발주 처리를 완료할 수 있습니다.';
+        return;
+      }
+      if (o.amazon && o.amazon.tracking && num.toUpperCase() !== o.amazon.tracking.toUpperCase()) {
+        box.querySelector('#ffError').textContent = '아마존에서 받은 배송번호(TBA)와 일치하지 않습니다. 정확히 복사해 붙여넣으세요.';
         return;
       }
       o.fulfillment = 'fulfilled';
