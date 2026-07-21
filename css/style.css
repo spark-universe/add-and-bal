@@ -937,6 +937,12 @@ tbody tr:hover { background: #fafbff; }
 }
 .done-bar__txt { font-size: 0.95rem; }
 
+/* 난이도 배지 (발주 연습 헤더) */
+.diff-badge { display: inline-block; font-size: 0.72rem; font-weight: 800; padding: 3px 10px; border-radius: 20px; vertical-align: middle; margin-left: 6px; }
+.diff-badge.diff-lo { color: #14814a; background: #eaf6ee; border: 1px solid #bfe6cb; }
+.diff-badge.diff-mid { color: #2456cc; background: var(--primary-soft); border: 1px solid #d7e3ff; }
+.diff-badge.diff-hi { color: #c0272d; background: #fdecec; border: 1px solid #f3c2c4; }
+
 /* 주문 태그 (광고 캠페인 이름) */
 .ord-tags { white-space: nowrap; }
 .ord-tag2 {

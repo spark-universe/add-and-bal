@@ -33,9 +33,9 @@
      fraud/minPer10/fraudCap = 사기(문제) 주문 규칙 — 확정된 값
      lowMargin = 역마진 확률 (별도 카운트) — 잠정값이니 필요하면 이 숫자만 고치면 됨 */
   var LEVELS = {
-    '하': { fraud: 0.15, minPer10: 1, fraudCap: 0.30, lowMargin: 0.05, notFound: 0.04 },
-    '중': { fraud: 0.25, minPer10: 2, fraudCap: 0.35, lowMargin: 0.10, notFound: 0.07 },
-    '상': { fraud: 0.35, minPer10: 3, fraudCap: 0.45, lowMargin: 0.15, notFound: 0.10 },
+    '하': { fraud: 0.10, minPer10: 1, fraudCap: 0.22, lowMargin: 0.03, notFound: 0.03 },
+    '중': { fraud: 0.25, minPer10: 2, fraudCap: 0.38, lowMargin: 0.12, notFound: 0.07 },
+    '상': { fraud: 0.45, minPer10: 3, fraudCap: 0.60, lowMargin: 0.22, notFound: 0.13 },
   };
 
   // 사기(문제) 주문 4종 — 위 fraud 비율 안에서 고르게 섞임
@@ -424,6 +424,10 @@
   }
 
   function render() {
+    var db = document.getElementById('diffBadge');
+    if (db) db.innerHTML = settings
+      ? '<span class="diff-badge diff-' + (settings.level === '상' ? 'hi' : settings.level === '하' ? 'lo' : 'mid') + '">난이도 ' + esc(settings.level || '-') + '</span>'
+      : '';
     var body = document.getElementById('ordBody');
     if (!orders.length) {
       body.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:48px;">' +
