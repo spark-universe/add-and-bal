@@ -24,7 +24,16 @@
 
   // 결정적 옵션/품절 (js/amazon.js 의 동일 함수와 반드시 로직 일치!)
   function h(s) { var n = 0; s = String(s); for (var i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) >>> 0; return n; }
-  function lineOos(l) { return !!l.oos && (Number(l.stock) || 0) < l.qty; }
+  function lineOos(l) { return !!l.oos; }
+  function oosInfo(o) {
+    var l = (o.lines || []).find(function (x) { return x.oos; });
+    if (!l) return null;
+    var t = l.oosType || 'stock';
+    var reason = t === 'notfound' ? '단종 — 아마존에서 검색해도 나오지 않습니다'
+      : t === 'option' ? '요청 옵션(' + (l.reqOption ? l.reqOption.label + ' ' + l.reqOption.value : '') + ')이 아마존에 없습니다'
+      : '품절 — 아마존 재고 없음';
+    return { line: l, type: t, reason: reason };
+  }
   function optionOf(no, line, level) {
     if (line.oos) return null;
     var seed = h(no + line.pid + 'opt');
@@ -242,12 +251,13 @@
         '<div class="od-line__info">' +
           '<a class="od-line__name" href="' + (l.source ? esc(l.source) : '#') + '"' +
             (l.source ? ' target="_blank"' : '') + '>' + esc(l.name) + '</a>' +
-          '<div class="od-line__sku">' + esc(l.sku || '') +
-            (l.stock != null && l.stock < l.qty
-              ? '<span class="od-stock">' + (l.stock > 0 ? '재고 ' + l.stock + '개' : '품절') + '</span>'
-              : '') +
-          '</div>' +
-          (function () { var op = optionOf(o.no, l, o.level); return op ? '<div class="od-opt">🎨 옵션 · ' + esc(op.label) + ': <b>' + esc(op.correct) + '</b></div>' : ''; })() +
+          '<div class="od-line__sku">' + esc(l.sku || '') + '</div>' +
+          (function () {
+            var op = optionOf(o.no, l, o.level);
+            var label = op ? op.label : (l.reqOption ? l.reqOption.label : null);
+            var val = op ? op.correct : (l.reqOption ? l.reqOption.value : null);
+            return label ? '<div class="od-opt">🎨 옵션 · ' + esc(label) + ': <b>' + esc(val) + '</b></div>' : '';
+          })() +
         '</div>' +
         '<div class="od-line__qty">' + money(l.price) + ' × <span class="od-qty">' + l.qty + '</span></div>' +
         '<div class="od-line__sum">' + money(l.price * l.qty) + '</div>' +
@@ -258,44 +268,63 @@
   /* ---------- 재고 부족 안내 + 고객 문의 ----------
      아마존 재고가 주문 수량보다 적을 때 뜬다.
      [고객에게 문의하기] 를 눌러야 고객의 답장이 오고, 그 답장대로 처리해야 정답이다. */
+  // 상품 없음 안내 — 아마존에서 확인(o.amazon.unavailable) 한 뒤에만 노출(미리 스포일 안 함)
   function stockBox(o) {
-    var short = (o.lines || []).filter(function (l) {
-      return l.stock != null && l.stock < l.qty;
-    });
-    if (!short.length) return '';
+    var info = oosInfo(o);
+    if (!info) return '';
+    if (!(o.amazon && o.amazon.unavailable)) return '';   // 아직 아마존에서 확인 전
 
-    var l = short[0];
-    var head = l.stock > 0
-      ? '⚠️ 이 상품은 현재 재고가 <b>' + l.stock + '개</b>만 남았습니다. (주문 수량 ' + l.qty + '개)'
-      : '⚠️ 이 상품은 현재 <b>품절 · 단종</b> 되어 발주할 수 없습니다. (주문 수량 ' + l.qty + '개)';
-
+    var head = '⚠️ 이 상품은 아마존에서 구할 수 없습니다 — <b>' + esc(info.reason) + '</b>';
     var body;
-    if (!o.replied) {
-      body = '<p class="oos-p">주문한 수량을 모두 보낼 수 없습니다. 고객에게 어떻게 할지 물어보세요.</p>' +
-        '<button class="btn-sm is-primary" id="btnAsk">📧 고객에게 문의하기</button>';
+    if (!o.custNotified) {
+      body = '<p class="oos-p">발송할 수 없으니 <b>고객에게 안내 메일</b>을 보내고 <b>전액 환불</b>하세요.</p>' +
+        '<button class="btn-sm is-primary" id="btnEmailCust">📧 고객에게 안내 메일 보내기</button>';
     } else {
       body = '<div class="oos-mail">' +
-        '<div class="oos-mail__from">✉️ ' + esc(o.cust) +
-          (o.email ? ' &lt;' + esc(o.email) + '&gt;' : '') + '</div>' +
-        '<div class="oos-mail__body">' + replyText(o, l) + '</div>' +
-      '</div>';
+        '<div class="oos-mail__from">✅ 보낸 메일 → ' + esc(o.cust) + (o.email ? ' &lt;' + esc(o.email) + '&gt;' : '') + '</div>' +
+        '<div class="oos-mail__body">' + custEmailText(o, info) + '</div>' +
+      '</div>' +
+      '<p class="oos-p" style="margin-top:12px;">이제 <b>[환불하기(주문 취소)]</b> 로 전액 환불하세요.</p>';
     }
-
     return '<div class="oos-box"><div class="oos-head">' + head + '</div>' + body + '</div>';
   }
 
-  function replyText(o, l) {
-    if (o.reply === 'partial') {
-      return 'Hi, thanks for letting me know.<br>' +
-        'Please just send me the <b>' + l.stock + '</b> you have in stock and refund the rest. ' +
-        'I still want them!<br><br>' +
-        '<span class="od-muted">(재고 있는 ' + l.stock + '개만 보내주시고 나머지는 환불해 주세요. ' +
-        '→ <b>주문 편집</b>으로 수량을 ' + l.stock + '개로 줄이세요.)</span>';
-    }
-    return 'Hi, if you cannot send the full order, I do not want a partial shipment.<br>' +
-      'Please <b>cancel the order and refund me in full</b>.<br><br>' +
-      '<span class="od-muted">(전부 못 받으면 필요 없습니다. 전액 환불해 주세요. ' +
-      '→ <b>환불하기(주문 취소)</b> 를 하세요.)</span>';
+  function custEmailText(o, info) {
+    return 'Hi ' + esc(o.cust) + ',<br><br>' +
+      'Unfortunately the item in your order <b>' + esc(o.no) + '</b> is currently unavailable, so we are unable to ship it. ' +
+      'We sincerely apologize and will issue you a <b>full refund</b> right away.<br><br>' +
+      '<span class="od-muted">(주문하신 상품이 ' + esc(info.reason) + ' 으로 발송이 어려워, 전액 환불해 드리겠습니다.)</span>';
+  }
+
+  // 고객 안내 메일 작성/발송 모달
+  function openCustEmail(o) {
+    var info = oosInfo(o);
+    var box = document.createElement('div');
+    box.className = 'modal-overlay is-open';
+    box.innerHTML =
+      '<div class="modal-card" style="max-width:520px;">' +
+        '<div class="modal-card__head"><h3>고객에게 안내 메일 보내기</h3><button class="modal-close" data-close>×</button></div>' +
+        '<div class="modal-card__body">' +
+          '<div class="cust-mail">' +
+            '<div class="cust-mail__row"><span>받는 사람</span><b>' + esc(o.cust) + (o.email ? ' &lt;' + esc(o.email) + '&gt;' : '') + '</b></div>' +
+            '<div class="cust-mail__row"><span>제목</span><b>Regarding your order ' + esc(o.no) + '</b></div>' +
+            '<div class="cust-mail__body">' + custEmailText(o, info) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="modal-card__foot">' +
+          '<button class="btn-sm" data-close>취소</button>' +
+          '<button class="btn-sm is-dark" id="mailSend">📧 메일 보내기</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(box);
+    box.addEventListener('click', function (ev) { if (ev.target === box || ev.target.closest('[data-close]')) box.remove(); });
+    box.querySelector('#mailSend').addEventListener('click', function () {
+      o.custNotified = true;
+      o.notifiedAt = Date.now();
+      saveOrder(o);
+      box.remove();
+      render(o);
+    });
   }
 
   /* Order risk 카드의 아이콘을 누르면 뜨는 상세 분석.
@@ -575,14 +604,9 @@
     var rk = document.getElementById('btnRisk');
     if (rk) rk.addEventListener('click', function () { openRiskDetail(o); });
 
-    // 고객에게 문의 → 답장이 도착 (이미 정해져 있던 답장이 드러남)
-    var a = document.getElementById('btnAsk');
-    if (a) a.addEventListener('click', function () {
-      o.replied = true;
-      o.repliedAt = Date.now();
-      saveOrder(o);
-      render(o);
-    });
+    // 상품 없음 → 고객에게 안내 메일
+    var em = document.getElementById('btnEmailCust');
+    if (em) em.addEventListener('click', function () { openCustEmail(o); });
 
     bindZoom(o);
 

@@ -42,7 +42,20 @@
     var t = TYPES[seed % TYPES.length];
     return { label: t.label, choices: t.choices, correct: t.choices[Math.floor(seed / 7) % t.choices.length] };
   }
-  function lineOos(l) { return !!l.oos && (Number(l.stock) || 0) < l.qty; }
+  function lineOos(l) { return !!l.oos; }
+  function oosReason(l) {
+    var t = l.oosType || 'stock';
+    if (t === 'notfound') return '단종 — 아마존에서 검색해도 나오지 않습니다';
+    if (t === 'option') return '요청 옵션(' + (l.reqOption ? l.reqOption.label + ' ' + l.reqOption.value : '') + ')이 아마존에 없습니다';
+    return '품절 — 아마존 재고 없음';
+  }
+  function oosReasonShort(l) {
+    var t = l.oosType || 'stock';
+    if (t === 'notfound') return '🚫 단종 · 검색 안됨';
+    if (t === 'option') return '🚫 요청 옵션(' + (l.reqOption ? l.reqOption.value : '') + ') 없음';
+    return '🚫 품절 · 재고 없음';
+  }
+  function firstOos() { return (order.lines || []).find(lineOos); }
 
   var order = null, catalog = [], listings = [], bought = {};
 
@@ -69,25 +82,33 @@
     (order.lines || []).forEach(function (l) {
       var C = Number(l.cost) || 0;
       var seed = h(order.no + l.pid);
-      var opt = optionOf(order.no, l, lv);
-      var oos = lineOos(l);
+      var oosType = l.oos ? (l.oosType || 'stock') : null;
       inOrder[l.pid] = true;
+      if (oosType === 'notfound') return;              // 단종: 검색 결과에 아예 안 뜸
+      var inStock = oosType !== 'stock';               // 품절이면 재고 없음
+      // 옵션: 정상은 optionOf, oos-option 은 요청 옵션을 뺀 선택지(정답 없음)
+      var opt;
+      if (oosType === 'option' && l.reqOption) {
+        opt = { label: l.reqOption.label, choices: l.reqOption.choices.filter(function (c) { return c !== l.reqOption.value; }), correct: '__none__' };
+      } else {
+        opt = optionOf(order.no, l, lv);
+      }
       // 정답
       listings.push({ lid: l.pid + '-ok', pid: l.pid, kind: 'correct', name: l.name, images: l.images || [], image: l.image,
-        price: C, seller: 'Amazon.com', prime: true, inStock: !oos, option: opt });
+        price: C, seller: 'Amazon.com', prime: true, inStock: inStock, option: opt });
       // 바가지 (하=확 비쌈/티남, 상=가격차 작아 헷갈림)
       var hiMul = lv === '상' ? (1.10 + (seed % 12) / 100) : lv === '하' ? (1.30 + (seed % 20) / 100) : (1.18 + (seed % 22) / 100);
       listings.push({ lid: l.pid + '-hi', pid: l.pid, kind: 'overpriced', name: l.name, images: l.images || [], image: l.image,
-        price: round2(C * hiMul), seller: SELLERS[seed % SELLERS.length], prime: false, inStock: !oos, option: opt });
+        price: round2(C * hiMul), seller: SELLERS[seed % SELLERS.length], prime: false, inStock: inStock, option: opt });
       // 유사품 (하 난이도는 생략, 중/상만)
       if (lv !== '하') {
         listings.push({ lid: l.pid + '-cf', pid: l.pid, kind: 'counterfeit', name: l.name + ' (제네릭/호환)', images: l.images || [], image: l.image,
-          price: round2(C * (0.65 + (seed % 20) / 100)), seller: SELLERS[(seed + 2) % SELLERS.length], prime: false, inStock: !oos, option: opt });
+          price: round2(C * (0.65 + (seed % 20) / 100)), seller: SELLERS[(seed + 2) % SELLERS.length], prime: false, inStock: inStock, option: opt });
       }
       // 상 난이도는 유사품 하나 더
       if (lv === '상') {
         listings.push({ lid: l.pid + '-cf2', pid: l.pid, kind: 'counterfeit', name: l.name + ' (호환형)', images: l.images || [], image: l.image,
-          price: round2(C * (0.72 + (seed % 15) / 100)), seller: SELLERS[(seed + 3) % SELLERS.length], prime: false, inStock: !oos, option: opt });
+          price: round2(C * (0.72 + (seed % 15) / 100)), seller: SELLERS[(seed + 3) % SELLERS.length], prime: false, inStock: inStock, option: opt });
       }
     });
     (catalog || []).forEach(function (p) {
@@ -107,7 +128,7 @@
     order.amazon = {
       purchases: bought, complete: complete, tracking: tracking,
       sourcedCost: round2(sourcedCost), misship: misship, overpaid: round2(overpaid),
-      correct: complete && !misship && overpaid < 0.005, at: Date.now()
+      unavailable: anyOos(), correct: complete && !misship && overpaid < 0.005, at: Date.now()
     };
     saveOrder(order);
   }
@@ -144,7 +165,7 @@
       var done = !!rec;
       var opt = optionOf(order.no, l, order.level);
       var img = (imgsOf(l)[0]) ? '<img src="' + esc(imgsOf(l)[0]) + '" alt="">' : '<span class="az-noimg">?</span>';
-      var status = oos ? '<span class="az-bad">🚫 아마존 품절 · 주문 불가 → 환불하세요</span>'
+      var status = oos ? '<span class="az-bad">' + oosReasonShort(l) + ' → 고객 안내·환불</span>'
         : done ? boughtLabel(rec) : '<span class="az-todo">담아야 함</span>';
       return '<div class="az-need__item ' + (done && !oos ? 'is-done' : '') + (oos ? ' is-oos' : '') + '">' +
         '<span class="az-need__chk">' + (oos ? '🚫' : (done ? '✅' : '⬜')) + '</span>' + img +
@@ -191,9 +212,11 @@
         '<a class="btn-primary" href="order-detail.html?no=' + encodeURIComponent(order.no) + '" style="text-decoration:none;">← 쇼피파이 주문으로 돌아가기</a>' +
       '</div>';
     } else if (oos) {
+      var oinfo = firstOos();
       done = '<div class="az-done az-done--oos">' +
-        '<div class="az-done__h" style="color:#c0272d;">🚫 이 주문의 상품이 아마존에 품절입니다</div>' +
-        '<div class="az-done__tip">주문할 수 없는 상품이 있어 발주가 불가능합니다. 쇼피파이로 돌아가 <b>[환불하기(주문 취소)]</b> 로 처리하세요.</div>' +
+        '<div class="az-done__h" style="color:#c0272d;">🚫 이 상품은 아마존에서 주문할 수 없습니다</div>' +
+        '<div class="az-done__tip"><b>' + esc(oinfo ? oosReason(oinfo) : '상품 없음') + '</b><br>' +
+          '발송할 수 없는 상품입니다. 쇼피파이로 돌아가 <b>고객에게 안내 메일</b>을 보내고 <b>전액 환불</b>하세요.</div>' +
         '<a class="btn-primary" href="order-detail.html?no=' + encodeURIComponent(order.no) + '" style="text-decoration:none;">← 쇼피파이 주문으로 돌아가기</a>' +
       '</div>';
     }
@@ -304,6 +327,7 @@
 
     if (order.amazon && order.amazon.purchases) bought = order.amazon.purchases;
     buildListings();
+    persist();     // 방문 시점에 소싱 상태(품절/단종/옵션없음 포함) 기록 → 주문 상세에 반영
     render();
   })();
 })();

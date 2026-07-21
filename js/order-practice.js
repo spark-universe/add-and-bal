@@ -273,18 +273,26 @@
       return;
     }
     if (o.issue === 'oos') {
-      /* 아마존 재고 부족. 두 갈래로 갈린다.
-         - 부분 재고: 주문 3개인데 1개만 남음 → 고객에게 물어봐야 함
-         - 완전 품절: 아예 못 삼 → 전액 환불
-         고객의 답장은 미리 정해두고, 수강생이 [고객에게 문의하기] 를 눌러야 드러난다. */
+      /* 아마존에서 소싱할 때 발견되는 '상품 없음' 3종.
+         - stock    : 검색엔 뜨는데 품절(재고 없음)
+         - notfound : 단종 — 검색해도 안 나옴
+         - option   : 상품은 있으나 고객이 요청한 옵션이 없음
+         → 어느 경우든 발송 불가 → 고객에게 안내 메일 보내고 환불해야 함. */
       var l = o.lines[randInt(0, o.lines.length - 1)];
       l.oos = true;
-      l.stock = (l.qty >= 2 && Math.random() < 0.65) ? randInt(1, l.qty - 1) : 0;
-
-      o.reply = l.stock > 0
-        ? (Math.random() < 0.7 ? 'partial' : 'refund_all')   // 일부만 받겠다 / 다 안 되면 필요 없다
-        : 'refund_all';
-      o.replied = false;   // 아직 고객에게 문의하지 않음
+      l.oosType = rand(['stock', 'notfound', 'option']);
+      if (l.oosType === 'option') {
+        l.stock = l.qty;                         // 재고는 있으나 요청 옵션이 없음
+        var OPT = rand([
+          { label: '색상', choices: ['블랙', '화이트', '블루', '레드', '그린'] },
+          { label: '사이즈', choices: ['S', 'M', 'L', 'XL'] }
+        ]);
+        l.reqOption = { label: OPT.label, value: rand(OPT.choices), choices: OPT.choices };
+      } else {
+        l.stock = 0;                             // 품절/단종 = 재고 0
+      }
+      o.reply = 'refund_all';
+      o.replied = false;
       return;
     }
     if (o.issue === 'missing_info') {
