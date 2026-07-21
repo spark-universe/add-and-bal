@@ -98,7 +98,7 @@
               '구매자·대리 수령 증빙이나 약정/예상 배송일을 보여주는 자료를 제출해 보세요.</p>' +
             '<div class="cbr-reason">차지백 사유: <b>' + esc(cb.reason) + '</b></div>' +
             '<a class="btn-sm is-dark" href="chargeback-manual.html" target="_blank" rel="noopener" ' +
-              'style="text-decoration:none;margin-top:12px;">📕 차지백 대응 가이드 보기</a>' +
+              'style="text-decoration:none;display:inline-block;margin-top:14px;">📕 차지백 대응 가이드 보기</a>' +
           '</div>' +
 
           '<div class="od-box">' +
