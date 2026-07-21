@@ -480,7 +480,9 @@
     orders.forEach(function (o) {
       if (o.payment === 'refunded' && !o.custNotified && !o.nrcbProcessed) {
         o.nrcbProcessed = true; touched = true;
-        if (Math.random() < 0.6) {
+        // 난이도별 미배송 차지백 발생 확률 (상일수록 높음)
+        var nrProb = o.level === '상' ? 0.70 : o.level === '하' ? 0.40 : 0.55;
+        if (Math.random() < nrProb) {
           var amount = Number(o.grandTotal || o.total || 0);
           var days = (2 + Math.floor(Math.random() * 4)) * 86400000;
           var before = Math.random() < 0.5;                 // 접수 전 취소(유리) / 접수 후(확률)

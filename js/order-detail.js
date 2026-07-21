@@ -609,10 +609,13 @@
         '<h2 class="od-no">' + esc(o.no) + '</h2>' +
         badges(o) + riskBadge(o) +
         '<div class="od-top__actions">' +
-          (o.payment === 'refunded'
-            ? '<button class="btn-sm" disabled>환불 완료</button>'
-            : '<button class="btn-sm is-danger" id="btnRefund">환불하기 (주문 취소)</button>') +
-          '<button class="btn-sm" id="btnStockAlert">' + (o.stockAlertSent ? '✅ 품절 안내 보냄' : '📧 품절 안내 메일') + '</button>' +
+          // 차지백이 접수된 건은 환불하기·품절 안내 메일 액션을 숨긴다
+          ((o.chargeback || o.nrcb)
+            ? ''
+            : (o.payment === 'refunded'
+                ? '<button class="btn-sm" disabled>환불 완료</button>'
+                : '<button class="btn-sm is-danger" id="btnRefund">환불하기 (주문 취소)</button>') +
+              '<button class="btn-sm" id="btnStockAlert">' + (o.stockAlertSent ? '✅ 품절 안내 보냄' : '📧 품절 안내 메일') + '</button>') +
           '<button class="btn-sm" id="btnEdit">주문 편집하기</button>' +
         '</div>' +
       '</div>' +
