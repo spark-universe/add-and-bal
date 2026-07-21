@@ -217,6 +217,143 @@
       '</div>';
   }
 
+  /* ===== 미배송 클레임 차지백 (Product not received) =====
+     안내 없이 취소(환불)한 주문에서 고객이 "제품 안 왔다"며 차지백을 건다.
+     - 타임라인: 차지백 접수 '전' 취소 → 항소 시 승소 / 접수 '후' 취소 → 확률 싸움(최대 50%)
+     - 고객과 소통 → 취하 유도 + 승률↑ / 자료 제출 → 승률↑ */
+  function dayStr(ts) { return ts ? fmtFull(ts).split(' at ')[0] : '-'; }
+
+  function nrcbBanner(o) {
+    var cb = o.nrcb;
+    if (!cb) return '';
+    if (cb.status === 'open') {
+      return '<div class="cb-alert">' +
+          '<div class="cb-alert__title">⚠️ 미배송 클레임 차지백 — 고객: “주문한 제품이 안 왔어요” (' + money(cb.loss) + ')</div>' +
+          '<div class="cb-alert__desc">🗓 환불 처리: <b>' + dayStr(o.refundedAt) + '</b> · 차지백 접수: <b>' + dayStr(cb.filedAt) + '</b>' +
+            (cb.contacted ? ' · ✅ 고객 소통함' : '') + '<br>' +
+            '고객과 소통해 <b>취하</b>를 유도하거나, <b>증거를 제출해 항소</b>하세요. 소통·자료·타임라인에 따라 승률이 달라집니다.</div>' +
+          '<div class="cb-alert__btns">' +
+            '<button class="btn-sm is-dark" id="nrContact">📧 고객과 소통</button>' +
+            '<button class="btn-sm" id="nrDispute">📄 증거 제출·항소</button>' +
+            '<button class="btn-sm" id="nrAccept">차지백 수용</button>' +
+          '</div>' +
+        '</div>';
+    }
+    if (cb.status === 'won') {
+      return '<div class="cb-alert is-won">' +
+          '<div class="cb-alert__title">🎉 미배송 차지백 방어 성공 (' + (cb.resolution === 'withdrawn' ? '고객 취하' : '항소 승소') + ')</div>' +
+          '<div class="cb-alert__desc">추가 손실 없이 마무리됐습니다. 취소 시 <b>고객 안내</b>가 이런 분쟁을 막아줍니다.</div>' +
+        '</div>';
+    }
+    return '<div class="cb-alert is-lost">' +
+        '<div class="cb-alert__title">💸 미배송 차지백 확정 (' + (cb.resolution === 'accepted' ? '수용' : '항소 패소') + ') · 손실 -' + money(cb.loss) + '</div>' +
+        '<div class="cb-alert__desc">이미 환불한 금액에 더해 판매대금이 재차 회수되고 수수료가 부과됐습니다. ' +
+          '<b>취소할 때 고객에게 안내 메일만 보냈어도</b> 예방할 수 있었습니다.</div>' +
+      '</div>';
+  }
+
+  function resolveNrCb(o, status, resolution) {
+    if (!o.nrcb || o.nrcb.status !== 'open') return;
+    o.nrcb.status = status; o.nrcb.resolution = resolution; o.nrcb.resolvedAt = Date.now();
+    saveOrder(o);
+  }
+
+  function openNrContact(o) {
+    var cb = o.nrcb;
+    var box = document.createElement('div');
+    box.className = 'modal-overlay is-open';
+    box.innerHTML =
+      '<div class="modal-card" style="max-width:520px;">' +
+        '<div class="modal-card__head"><h3>고객과 소통 (해명 메일)</h3><button class="modal-close" data-close>×</button></div>' +
+        '<div class="modal-card__body">' +
+          '<div class="cust-mail"><div class="cust-mail__body">Hi ' + esc(o.cust) + ',<br><br>' +
+            'We are sorry for the confusion. Your order <b>' + esc(o.no) + '</b> was cancelled and <b>fully refunded</b> on ' + dayStr(o.refundedAt) + '. ' +
+            'Please check your statement — you should see the refund. We kindly ask you to withdraw the chargeback.<br><br>' +
+            '<span class="od-muted">(주문은 취소·전액 환불되었음을 안내하고, 차지백 취하를 정중히 요청합니다.)</span></div></div>' +
+        '</div>' +
+        '<div class="modal-card__foot"><button class="btn-sm" data-close>취소</button>' +
+          '<button class="btn-sm is-dark" id="nrSend">📧 메일 보내기</button></div>' +
+      '</div>';
+    document.body.appendChild(box);
+    box.addEventListener('click', function (ev) { if (ev.target === box || ev.target.closest('[data-close]')) box.remove(); });
+    box.querySelector('#nrSend').addEventListener('click', function () {
+      cb.contacted = true; saveOrder(o); box.remove();
+      var prob = cb.cancelBeforeFile ? 0.7 : 0.45;           // 소통 시 고객이 취하할 확률
+      if (Math.random() < prob) { resolveNrCb(o, 'won', 'withdrawn'); render(o); showNrResult(o, 'withdrawn'); }
+      else { render(o); showNrInfo(); }
+    });
+  }
+
+  function showNrInfo() {
+    var box = document.createElement('div');
+    box.className = 'modal-overlay is-open';
+    box.innerHTML = '<div class="modal-card" style="max-width:420px;">' +
+      '<div class="modal-card__body" style="padding:26px 24px;text-align:center;">' +
+        '<div style="font-size:2rem;">📭</div><p style="margin:10px 0 0;font-size:0.92rem;line-height:1.6;">' +
+        '고객이 아직 답이 없습니다.<br><b>증거를 제출해 항소</b>하세요. (소통 기록이 승률을 높여줍니다)</p></div>' +
+      '<div class="modal-card__foot"><button class="btn-sm is-dark" data-close>확인</button></div></div>';
+    document.body.appendChild(box);
+    box.addEventListener('click', function (ev) { if (ev.target === box || ev.target.closest('[data-close]')) box.remove(); });
+  }
+
+  function openNrDispute(o) {
+    var cb = o.nrcb;
+    var box = document.createElement('div');
+    box.className = 'modal-overlay is-open';
+    box.innerHTML =
+      '<div class="modal-card cb-card">' +
+        '<div class="cb-head"><div class="cb-emoji">📄</div><h3>미배송 차지백 항소</h3></div>' +
+        '<div class="modal-card__body">' +
+          '<div class="cb-signals">🗓 환불 처리 <b>' + dayStr(o.refundedAt) + '</b> · 차지백 접수 <b>' + dayStr(cb.filedAt) + '</b>' +
+            (cb.cancelBeforeFile ? ' — 취소가 접수보다 <b>빨라 유리</b>합니다' : ' — 접수 후 취소라 <b>확률 싸움</b>입니다') + '</div>' +
+          '<div class="cbr-h" style="margin:12px 0 6px;font-weight:800;">제출할 증거</div>' +
+          '<label class="nr-ev"><input type="checkbox" class="nrEv" checked> 환불 증빙 (타임라인)</label>' +
+          '<label class="nr-ev"><input type="checkbox" class="nrEv"' + (cb.contacted ? ' checked' : '') + '> 고객 소통 기록' + (cb.contacted ? '' : ' (소통해야 확보)') + '</label>' +
+          '<label class="nr-ev"><input type="checkbox" class="nrEv"> 주문·배송 세부 자료</label>' +
+          '<div class="cb-tip" style="margin-top:12px;">일방적 승리는 없습니다 — <b>최대 승률 50%</b>. 소통·자료·타임라인이 승률을 좌우합니다.</div>' +
+        '</div>' +
+        '<div class="modal-card__foot"><button class="btn-sm" data-close>취소</button>' +
+          '<button class="btn-sm is-dark" id="nrGo">Submit (항소 제출)</button></div>' +
+      '</div>';
+    document.body.appendChild(box);
+    box.addEventListener('click', function (ev) { if (ev.target === box || ev.target.closest('[data-close]')) box.remove(); });
+    box.querySelector('#nrGo').addEventListener('click', function () {
+      var ev = box.querySelectorAll('.nrEv:checked').length;
+      var win;
+      if (cb.cancelBeforeFile) { win = Math.random() < 0.9; }   // 접수 전 취소 → 거의 승소
+      else {
+        var p = 0.15 + (cb.contacted ? 0.20 : 0) + (ev >= 2 ? 0.15 : 0);
+        p = Math.min(0.5, p);                                   // 최대 5:5
+        win = Math.random() < p;
+      }
+      resolveNrCb(o, win ? 'won' : 'lost', win ? 'disputed_won' : 'disputed_lost');
+      box.remove(); render(o); showNrResult(o, win ? 'disputed_won' : 'disputed_lost');
+    });
+  }
+
+  function showNrResult(o, resolution) {
+    var cb = o.nrcb;
+    var won = resolution === 'withdrawn' || resolution === 'disputed_won';
+    var title = resolution === 'withdrawn' ? '고객이 차지백을 취하했습니다 🎉'
+      : resolution === 'disputed_won' ? '항소 승소 🎉'
+      : resolution === 'accepted' ? '차지백 수용 — 손실 확정' : '항소 패소 — 손실 확정';
+    var body = won
+      ? '<p class="cb-lead">추가 손실 없이 방어했습니다. 하지만 <b>취소 시 고객 안내</b>를 했다면 이 분쟁 자체가 없었을 것입니다.</p>'
+      : '<p class="cb-lead">패소로 <b>이미 환불한 금액이 재차 회수</b>되고 수수료가 부과됐습니다.</p>' +
+        '<table class="cb-money"><tr><td>판매대금 재회수</td><td class="r">-' + money(cb.amount) + '</td></tr>' +
+        '<tr><td>차지백 수수료</td><td class="r">-' + money(cb.fee) + '</td></tr>' +
+        '<tr class="cb-total"><td>손실</td><td class="r">-' + money(cb.loss) + '</td></tr></table>';
+    body += '<div class="cb-tip">💡 취소·환불할 때는 항상 <b>고객에게 안내 메일</b>을 보내세요. 소통이 미배송 차지백을 예방하고 승률도 올립니다.</div>';
+    var box = document.createElement('div');
+    box.className = 'modal-overlay is-open';
+    box.innerHTML = '<div class="modal-card cb-card"><div class="cb-head' + (won ? ' is-won' : '') + '">' +
+      '<div class="cb-emoji">' + (won ? '🎉' : '💸') + '</div><h3>' + title + '</h3></div>' +
+      '<div class="modal-card__body">' + body + '</div>' +
+      '<div class="modal-card__foot"><button class="btn-sm is-dark" data-close>확인</button></div></div>';
+    document.body.appendChild(box);
+    box.addEventListener('click', function (ev) { if (ev.target === box || ev.target.closest('[data-close]')) box.remove(); });
+  }
+
   /* ---------- 조각들 ---------- */
   function badges(o) {
     var pay = '<span class="ord-badge"><span class="dot"></span>' +
@@ -232,6 +369,12 @@
         : st === 'won'
           ? ' <span class="ord-badge cb-won"><span class="dot"></span>Chargeback won</span>'
           : ' <span class="ord-badge cb-lost"><span class="dot"></span>Chargeback lost</span>';
+    }
+    if (o.nrcb) {
+      var ns = o.nrcb.status;
+      cb += ns === 'open' ? ' <span class="ord-badge cb-open"><span class="dot"></span>Not received</span>'
+        : ns === 'won' ? ' <span class="ord-badge cb-won"><span class="dot"></span>Claim won</span>'
+          : ' <span class="ord-badge cb-lost"><span class="dot"></span>Claim lost</span>';
     }
     return pay + ' ' + ful + cb;
   }
@@ -476,6 +619,7 @@
       '<div class="od-sub">' + fmtFull(o.ts) + ' from ' + esc(o.channel) + '</div>' +
 
       cbBanner(o) +
+      nrcbBanner(o) +
 
       '<div class="od-grid">' +
         // ===== 왼쪽 =====
@@ -599,6 +743,16 @@
 
     var sa = document.getElementById('btnStockAlert');
     if (sa) sa.addEventListener('click', function () { openStockAlert(o); });
+
+    var nc = document.getElementById('nrContact');
+    if (nc) nc.addEventListener('click', function () { openNrContact(o); });
+    var nd = document.getElementById('nrDispute');
+    if (nd) nd.addEventListener('click', function () { openNrDispute(o); });
+    var na = document.getElementById('nrAccept');
+    if (na) na.addEventListener('click', function () {
+      if (!confirm('미배송 차지백을 수용하면 손실이 확정됩니다.\n손실 ' + money((o.nrcb && o.nrcb.loss) || 0) + '. 수용할까요?')) return;
+      resolveNrCb(o, 'lost', 'accepted'); render(o); showNrResult(o, 'accepted');
+    });
 
     bindZoom(o);
 

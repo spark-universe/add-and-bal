@@ -39,6 +39,7 @@
       negCount: 0, negLoss: 0,
       misCount: 0, misLoss: 0, overCount: 0, overTotal: 0,
       slowCount: 0, lateCount: 0, lateLoss: 0,
+      nrCount: 0, nrLoss: 0,
       refundGood: 0, refundBadCount: 0, refundBadMissed: 0,
       riskyCount: 0,
       optimal: 0, net: 0
@@ -76,6 +77,9 @@
       } else if (o.payment === 'refunded') {
         if (isProblem) r.refundGood++;
         else { r.refundBadCount++; if (margin > 0) r.refundBadMissed += margin; }
+        if (o.nrcb && o.nrcb.status !== 'won') {   // 미배송 차지백 패소 or 미대응
+          r.nrCount++; r.nrLoss += (o.nrcb.loss || 0); r.net -= (o.nrcb.loss || 0);
+        }
       }
     });
     r.cbFired = r.cbCount + r.cbWonCount;                 // 사기 주문을 발주해버린 총 건수
@@ -102,6 +106,7 @@
     if (r.riskyCount) notes.push('<li class="warn">⚠️ 품절·배송불가·정보누락 주문 발주 <b>' + r.riskyCount + '건</b> (배송/환불 분쟁 위험)</li>');
     if (r.slowCount) notes.push('<li class="warn">🚚 배송 기한 미준수 <b>' + r.slowCount + '건</b> (저가·느린 배송으로 발주)</li>');
     if (r.lateCount) notes.push('<li class="bad">↩️ 배송 지연 환불 요청 <b>' + r.lateCount + '건</b> · 손실 <b>' + money(-r.lateLoss) + '</b></li>');
+    if (r.nrCount) notes.push('<li class="bad">📮 미배송 클레임 차지백 <b>' + r.nrCount + '건</b> · 손실 <b>' + money(-r.nrLoss) + '</b> (취소 시 고객 안내를 안 함)</li>');
     if (r.refundBadCount) notes.push('<li class="warn">↩️ 정상 주문을 환불 <b>' + r.refundBadCount + '건</b> · 놓친 이익 <b>' + money(-r.refundBadMissed) + '</b></li>');
     if (r.refundGood) notes.push('<li class="good">🛡️ 문제 주문을 올바르게 환불(취소) <b>' + r.refundGood + '건</b></li>');
     if (r.adSpend > 0) {
@@ -156,6 +161,7 @@
           '<tr class="sub"><td>판매 이익</td><td class="r">' + money(r.saleProfit) + '</td></tr>' +
           (r.misCount ? '<tr><td>오배송 손실 (' + r.misCount + '건)</td><td class="r is-neg">' + money(-r.misLoss) + '</td></tr>' : '') +
           (r.lateCount ? '<tr><td>배송 지연 환불 손실 (' + r.lateCount + '건)</td><td class="r is-neg">' + money(-r.lateLoss) + '</td></tr>' : '') +
+          (r.nrCount ? '<tr><td>미배송 클레임 차지백 손실 (' + r.nrCount + '건)</td><td class="r is-neg">' + money(-r.nrLoss) + '</td></tr>' : '') +
           (r.cbWonCount ? '<tr><td>차지백 방어 성공 (' + r.cbWonCount + '건)</td><td class="r is-pos">' + money(r.cbWonProfit) + '</td></tr>' : '') +
           '<tr><td>차지백 손실 (' + r.cbCount + '건)</td><td class="r">' + money(-r.cbLoss) + '</td></tr>' +
           '<tr class="sub"><td>영업 손익 (광고 전)</td><td class="r ' + netCls + '">' + money(r.net) + '</td></tr>' +

@@ -470,8 +470,50 @@
         : '';
     }
 
-    // 모든 주문 처리 완료 순간 → 저가·느린 배송 주문에서 '배송 지연' 이벤트가 뒤늦게 발생
-    if (allDone) processLateEvents();
+    // 모든 주문 처리 완료 순간 → 지연 배송 / 미배송 클레임 차지백 이벤트가 뒤늦게 발생
+    if (allDone) { processLateEvents(); processNrChargebacks(); }
+  }
+
+  // 안내 없이 취소(환불)한 주문 → 고객이 '제품 안 왔다'며 미배송 차지백을 걺
+  function processNrChargebacks() {
+    var newCb = [], touched = false;
+    orders.forEach(function (o) {
+      if (o.payment === 'refunded' && !o.custNotified && !o.nrcbProcessed) {
+        o.nrcbProcessed = true; touched = true;
+        if (Math.random() < 0.6) {
+          var amount = Number(o.grandTotal || o.total || 0);
+          var days = (2 + Math.floor(Math.random() * 4)) * 86400000;
+          var before = Math.random() < 0.5;                 // 접수 전 취소(유리) / 접수 후(확률)
+          o.nrcb = {
+            status: 'open', amount: round2(amount), fee: 15, loss: round2(amount + 15),
+            cancelBeforeFile: before,
+            filedAt: (o.refundedAt || Date.now()) + (before ? days : -days),
+            contacted: false, openedAt: Date.now(), deadline: Date.now() + 15 * 86400000, resolution: null
+          };
+          newCb.push(o.no);
+        }
+      }
+    });
+    if (touched) save();
+    if (newCb.length) showNrCbPopup(newCb);
+  }
+
+  function showNrCbPopup(nos) {
+    var box = document.createElement('div');
+    box.className = 'modal-overlay is-open';
+    box.innerHTML =
+      '<div class="modal-card" style="max-width:480px;">' +
+        '<div class="modal-card__head"><h3>⚠️ 미배송 클레임 차지백</h3><button class="modal-close" data-close>×</button></div>' +
+        '<div class="modal-card__body">' +
+          '<p style="margin:0 0 12px;font-size:0.92rem;line-height:1.7;">고객 안내 <b>없이 취소</b>한 주문 중 <b>' + nos.length + '건</b>에서 ' +
+          '고객이 “제품을 못 받았다”며 <b>차지백</b>을 걸었습니다. 각 주문에서 <b>소통·항소</b>로 대응하세요.</p>' +
+          '<div style="font-size:0.85rem;color:var(--muted);">대상: ' + nos.map(function (n) { return esc(n); }).join(', ') + '</div>' +
+          '<p style="margin:12px 0 0;font-size:0.85rem;">👉 취소·환불 시 <b>품절 안내 메일</b>을 보냈다면 이런 차지백을 예방할 수 있습니다.</p>' +
+        '</div>' +
+        '<div class="modal-card__foot"><button class="btn-sm is-dark" data-close>확인</button></div>' +
+      '</div>';
+    document.body.appendChild(box);
+    box.addEventListener('click', function (ev) { if (ev.target === box || ev.target.closest('[data-close]')) box.remove(); });
   }
 
   // 저가·느린 배송으로 발주한 주문 → 일부는 '배송 기한 미준수 → 환불 요청' 이 뒤늦게 도착
