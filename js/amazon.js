@@ -74,33 +74,39 @@
       if (oosType === 'notfound') return;              // 단종: 검색 결과에 아예 안 뜸
       var inStock = oosType !== 'stock';               // 품절이면 재고 없음
       // 옵션: 정상은 optionOf, oos-option 은 요청 옵션을 뺀 선택지(정답 없음)
-      var opt;
+      var baseOpt;
       if (oosType === 'option' && l.reqOption) {
-        opt = { label: l.reqOption.label, choices: l.reqOption.choices.filter(function (c) { return c !== l.reqOption.value; }), correct: '__none__' };
+        baseOpt = { label: l.reqOption.label, choices: l.reqOption.choices.filter(function (c) { return c !== l.reqOption.value; }), correct: '__none__' };
       } else {
-        opt = optionOf(order.no, l, lv);
+        baseOpt = optionOf(order.no, l, lv);
+      }
+      // 같은 제품이라도 리스팅마다 옵션이 있기도/없기도 하다 (정답 리스팅은 항상 옵션 있음)
+      function optFor(lid, always) {
+        if (!baseOpt) return null;
+        if (always) return baseOpt;
+        return (h(lid + 'op') % 10 < 5) ? baseOpt : null;
       }
       // 정답
       listings.push({ lid: l.pid + '-ok', pid: l.pid, kind: 'correct', name: l.name, images: l.images || [], image: l.image,
-        price: C, seller: 'Amazon.com', prime: true, inStock: inStock, option: opt });
+        price: C, seller: 'Amazon.com', prime: true, inStock: inStock, option: optFor(l.pid + '-ok', true) });
       // 바가지 (하=확 비쌈/티남, 상=가격차 작아 헷갈림)
       var hiMul = lv === '상' ? (1.10 + (seed % 12) / 100) : lv === '하' ? (1.30 + (seed % 20) / 100) : (1.18 + (seed % 22) / 100);
       listings.push({ lid: l.pid + '-hi', pid: l.pid, kind: 'overpriced', name: l.name, images: l.images || [], image: l.image,
-        price: round2(C * hiMul), seller: SELLERS[seed % SELLERS.length], prime: false, inStock: inStock, option: opt });
+        price: round2(C * hiMul), seller: SELLERS[seed % SELLERS.length], prime: false, inStock: inStock, option: optFor(l.pid + '-hi') });
       // 유사품 (하 난이도는 생략, 중/상만)
       if (lv !== '하') {
         listings.push({ lid: l.pid + '-cf', pid: l.pid, kind: 'counterfeit', name: l.name + ' (제네릭/호환)', images: l.images || [], image: l.image,
-          price: round2(C * (0.65 + (seed % 20) / 100)), seller: SELLERS[(seed + 2) % SELLERS.length], prime: false, inStock: inStock, option: opt });
+          price: round2(C * (0.65 + (seed % 20) / 100)), seller: SELLERS[(seed + 2) % SELLERS.length], prime: false, inStock: inStock, option: optFor(l.pid + '-cf') });
       }
       // 상 난이도는 유사품 하나 더
       if (lv === '상') {
         listings.push({ lid: l.pid + '-cf2', pid: l.pid, kind: 'counterfeit', name: l.name + ' (호환형)', images: l.images || [], image: l.image,
-          price: round2(C * (0.72 + (seed % 15) / 100)), seller: SELLERS[(seed + 3) % SELLERS.length], prime: false, inStock: inStock, option: opt });
+          price: round2(C * (0.72 + (seed % 15) / 100)), seller: SELLERS[(seed + 3) % SELLERS.length], prime: false, inStock: inStock, option: optFor(l.pid + '-cf2') });
       }
       // 저가·느린 배송 (같은 상품이지만 배송이 오래 걸림 → 나중에 '배송 지연' 위험)
       if (inStock) {
         listings.push({ lid: l.pid + '-slow', pid: l.pid, kind: 'slow', name: l.name + ' (해외직배송)', images: l.images || [], image: l.image,
-          price: round2(C * (0.80 + (seed % 12) / 100)), seller: SELLERS[(seed + 4) % SELLERS.length], prime: false, slow: true, inStock: true, option: opt });
+          price: round2(C * (0.80 + (seed % 12) / 100)), seller: SELLERS[(seed + 4) % SELLERS.length], prime: false, slow: true, inStock: true, option: optFor(l.pid + '-slow') });
       }
     });
     (catalog || []).forEach(function (p) {
@@ -128,12 +134,26 @@
 
   function buy(L, qty, selOpt) {
     if (!L.inStock) return;
-    if (L.kind === 'filler') { alert('이 상품은 이 주문에 없습니다.\n주문에 필요한 상품을 검색해 담으세요.'); return; }
-    var C = (lineByPid(L.pid) || {}).cost || 0;
-    bought[L.pid] = {
+    var targetPid = L.pid;
+    var wrongProduct = L.kind === 'counterfeit';
+    if (L.kind === 'filler') {
+      // 주문에 없는 '비슷한' 상품도 담을 수 있음 → 미해결 라인에 오배송으로 귀속
+      targetPid = Object.keys(neededMap()).filter(function (pid) { return !bought[pid]; })[0];
+      if (!targetPid) { alert('이 주문에 필요한 상품은 이미 모두 담았습니다.'); return; }
+      wrongProduct = true;
+    }
+    var line = lineByPid(targetPid);
+    var C = (line || {}).cost || 0;
+    // 이 라인이 특정 옵션(색상/사이즈)을 필요로 하나?
+    var lineOpt = line ? (optionOf(order.no, line, order.level) || (line.reqOption ? { correct: line.reqOption.value } : null)) : null;
+    var wrongOption = false;
+    if (lineOpt) {
+      if (!L.option) wrongOption = true;                     // 옵션 없는 리스팅으로 삼 → 변형 지정 못함
+      else if (selOpt !== L.option.correct) wrongOption = true;
+    }
+    bought[targetPid] = {
       kind: L.kind, unit: L.price, qty: qty, lineCost: round2(L.price * qty),
-      wrongProduct: L.kind === 'counterfeit',
-      wrongOption: !!(L.option && selOpt !== L.option.correct),
+      wrongProduct: wrongProduct, wrongOption: wrongOption,
       overpaid: L.kind === 'overpriced' ? round2((L.price - C) * qty) : 0,
       slow: !!L.slow,
       name: L.name
