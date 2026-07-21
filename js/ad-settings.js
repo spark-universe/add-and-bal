@@ -85,7 +85,9 @@
     var box = document.getElementById('pnlSummary');
     if (!box) return;
     var pn = practiceNet();
-    var mine = practiceTopic ? campaigns.filter(function (c) { return c.category === practiceTopic; }) : campaigns;
+    var pl = null; try { pl = JSON.parse(localStorage.getItem('practice_plan')); } catch (e) {}
+    var planSig = pl ? pl.sig : null;
+    var mine = practiceTopic ? campaigns.filter(function (c) { return c.category === practiceTopic && (c.status === 'active' || c.runSig === planSig); }) : campaigns;
     var adSpend = round2(mine.reduce(function (a, c) { return a + (Number(c.spend) || 0); }, 0));
     var finalNet = round2(pn.net - adSpend);
     var fcls = finalNet >= 0 ? 'is-pos' : 'is-neg';

@@ -222,9 +222,10 @@
 
     var r = settle(orders);
 
-    // 광고비 연계 — 이 주제로 만든 광고 캠페인의 지출을 순이익에서 차감
+    // 광고비 연계 — 이번 연습에 반영된 광고(진행 중 or 이번 런에 반영)의 지출만 차감
     var camps = load('ad_campaigns') || [];
-    var mine = topic ? camps.filter(function (c) { return c.category === topic; }) : camps;
+    var planSig = plan ? plan.sig : null;
+    var mine = topic ? camps.filter(function (c) { return c.category === topic && (c.status === 'active' || c.runSig === planSig); }) : camps;
     r.adCount = mine.length;
     r.adSpend = Math.round(mine.reduce(function (a, c) { return a + (Number(c.spend) || 0); }, 0) * 100) / 100;
     r.finalNet = Math.round((r.net - r.adSpend) * 100) / 100;

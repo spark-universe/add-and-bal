@@ -441,7 +441,9 @@
     var s = settings || {};
     var camps = [];
     try { camps = JSON.parse(localStorage.getItem('ad_campaigns')) || []; } catch (e) {}
-    var mine = s.topic ? camps.filter(function (c) { return c.category === s.topic; }) : camps;
+    var planSig = plan ? plan.sig : null;
+    // 이번 연습에 반영되는 광고 = 진행 중(Active)이거나 이번 런에 반영된 캠페인
+    var mine = s.topic ? camps.filter(function (c) { return c.category === s.topic && (c.status === 'active' || c.runSig === planSig); }) : camps;
     var adSpend = mine.reduce(function (a, c) { return a + (Number(c.spend) || 0); }, 0);
 
     var setRows =
@@ -507,8 +509,56 @@
         : '';
     }
 
-    // 모든 주문 처리 완료 순간 → 지연 배송 / 미배송 클레임 차지백 이벤트가 뒤늦게 발생
-    if (allDone) { processLateEvents(); processNrChargebacks(); }
+    // 모든 주문 처리 완료 순간 → 지연 배송 / 미배송 클레임 차지백 이벤트 + 광고 성과 반영
+    if (allDone) { processLateEvents(); processNrChargebacks(); processAdSettlement(); }
+  }
+
+  // 주문 처리 완료 시 → 진행 중 광고 캠페인을 실제 연습 성과로 갱신하고 완료 처리
+  function processAdSettlement() {
+    if (!settings || !settings.topic || !plan) return;
+    var camps = [];
+    try { camps = JSON.parse(localStorage.getItem('ad_campaigns')) || []; } catch (e) { return; }
+    if (camps.some(function (c) { return c.runSig === plan.sig; })) return;   // 이미 이 런에 반영됨
+    var active = camps.filter(function (c) { return c.category === settings.topic && c.status === 'active'; });
+    if (!active.length) return;
+
+    var fulfilled = orders.filter(function (o) { return o.fulfillment === 'fulfilled'; });
+    var sales = round2(fulfilled.reduce(function (a, o) { return a + Number(o.grandTotal != null ? o.grandTotal : o.total || 0); }, 0));
+    var customers = fulfilled.length;
+    var totalSpend = active.reduce(function (a, c) { return a + (Number(c.spend) || 0); }, 0);
+
+    active.forEach(function (c) {
+      var share = totalSpend > 0 ? (Number(c.spend) || 0) / totalSpend : 1 / active.length;
+      var cSales = round2(sales * share);
+      var cCust = Math.round(customers * share);
+      c.sales = cSales;
+      c.customers = cCust;
+      c.aov = cCust ? round2(cSales / cCust) : 0;
+      c.roas = c.spend ? round2(cSales / c.spend) : 0;
+      c.cac = cCust ? round2(c.spend / cCust) : 0;
+      c.status = 'completed';
+      c.runSig = plan.sig;
+    });
+    localStorage.setItem('ad_campaigns', JSON.stringify(camps));
+    showAdSettlePopup(active, sales, customers);
+    renderApplied();
+  }
+
+  function showAdSettlePopup(active, sales, customers) {
+    var box = document.createElement('div');
+    box.className = 'modal-overlay is-open';
+    box.innerHTML =
+      '<div class="modal-card" style="max-width:460px;">' +
+        '<div class="modal-card__head"><h3>📢 광고 성과 반영됨</h3><button class="modal-close" data-close>×</button></div>' +
+        '<div class="modal-card__body">' +
+          '<p style="margin:0 0 10px;font-size:0.92rem;line-height:1.7;">진행 중이던 광고 캠페인 <b>' + active.length + '개</b>의 성과가 ' +
+          '이번 발주 연습의 <b>실제 결과</b>로 갱신되고 <b>완료(Completed)</b> 처리되었습니다.</p>' +
+          '<div style="font-size:0.86rem;color:var(--muted);">실제 매출 ' + money(sales) + ' · 고객 ' + customers + '명 기준</div>' +
+        '</div>' +
+        '<div class="modal-card__foot"><button class="btn-sm is-dark" data-close>확인</button></div>' +
+      '</div>';
+    document.body.appendChild(box);
+    box.addEventListener('click', function (ev) { if (ev.target === box || ev.target.closest('[data-close]')) box.remove(); });
   }
 
   // 안내 없이 취소(환불)한 주문 → 고객이 '제품 안 왔다'며 미배송 차지백을 걺
