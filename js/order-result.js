@@ -87,6 +87,7 @@
   function render(root, r, meta) {
     var g = grade(r.achieve, r.cbFired);
     var netCls = r.net >= 0 ? 'is-pos' : 'is-neg';
+    var finalCls = r.finalNet >= 0 ? 'is-pos' : 'is-neg';
 
     var notes = [];
     notes.push(r.cbFired
@@ -103,6 +104,13 @@
     if (r.lateCount) notes.push('<li class="bad">↩️ 배송 지연 환불 요청 <b>' + r.lateCount + '건</b> · 손실 <b>' + money(-r.lateLoss) + '</b></li>');
     if (r.refundBadCount) notes.push('<li class="warn">↩️ 정상 주문을 환불 <b>' + r.refundBadCount + '건</b> · 놓친 이익 <b>' + money(-r.refundBadMissed) + '</b></li>');
     if (r.refundGood) notes.push('<li class="good">🛡️ 문제 주문을 올바르게 환불(취소) <b>' + r.refundGood + '건</b></li>');
+    if (r.adSpend > 0) {
+      var adBad = r.adSpend >= r.saleProfit;
+      notes.push('<li class="' + (adBad ? 'bad' : 'warn') + '">📢 광고비 <b>' + money(-r.adSpend) + '</b> (' + r.adCount + '개 캠페인) · ROAS <b>' + r.roas.toFixed(1) + 'x</b>' +
+        (adBad ? ' — 광고비가 판매 이익보다 커서 적자입니다' : '') + '</li>');
+    } else {
+      notes.push('<li class="warn">📢 광고 캠페인이 없어 광고비 $0 입니다. <b>광고 설정</b>에서 이 주제로 캠페인을 만들면 광고비가 정산에 반영됩니다.</li>');
+    }
 
     var cbRows = r.cbList.length
       ? '<div class="panel" style="margin-top:18px;"><div class="panel__head"><span>차지백 발생 주문</span></div>' +
@@ -120,9 +128,9 @@
       '</div>' +
 
       '<div class="result-top">' +
-        '<div class="result-net ' + netCls + '">' +
-          '<div class="l">최종 순이익</div>' +
-          '<div class="v">' + money(r.net) + '</div>' +
+        '<div class="result-net ' + finalCls + '">' +
+          '<div class="l">최종 순이익 (광고비 반영)</div>' +
+          '<div class="v">' + money(r.finalNet) + '</div>' +
         '</div>' +
         '<div class="grade-badge ' + g.c + '">' +
           '<div class="g">' + g.g + '</div>' +
@@ -130,13 +138,14 @@
         '</div>' +
       '</div>' +
       '<p class="result-comment">' + g.m + '</p>' +
-      '<p class="result-basis">📐 <b>달성률</b> = 최종 순이익 ÷ <b>이론상 최선 이익</b>(정상이면서 이익 나는 주문만 발주하고, 사기·역마진·문제 주문은 모두 거절했을 때). 최대 100%.</p>' +
+      '<p class="result-basis">📐 <b>달성률</b> = 영업 손익(광고 전) ÷ <b>이론상 최선 이익</b>(정상이면서 이익 나는 주문만 발주하고, 사기·역마진·문제 주문은 모두 거절했을 때). 주문 처리 정확도를 나타냅니다. 최대 100%.</p>' +
 
       '<div class="stat-row">' +
         '<div class="stat"><div class="label">총 주문</div><div class="value">' + r.total + '<span style="font-size:0.9rem;font-weight:600;">건</span></div></div>' +
         '<div class="stat"><div class="label">정상 발주</div><div class="value">' + r.saleCount + '<span style="font-size:0.9rem;font-weight:600;">건</span></div></div>' +
         '<div class="stat"><div class="label">판매 이익</div><div class="value" style="font-size:1.3rem;color:var(--ok);">' + money(r.saleProfit) + '</div></div>' +
-        '<div class="stat"><div class="label">차지백 손실</div><div class="value" style="font-size:1.3rem;color:#c0272d;">' + money(-r.cbLoss) + '</div></div>' +
+        '<div class="stat"><div class="label">광고비 (' + r.adCount + '개)</div><div class="value" style="font-size:1.3rem;color:#c0272d;">' + money(-r.adSpend) + '</div></div>' +
+        '<div class="stat"><div class="label">ROAS (매출÷광고비)</div><div class="value" style="font-size:1.3rem;">' + (r.adSpend > 0 ? r.roas.toFixed(1) + 'x' : '-') + '</div></div>' +
       '</div>' +
 
       '<div class="panel">' +
@@ -149,7 +158,9 @@
           (r.lateCount ? '<tr><td>배송 지연 환불 손실 (' + r.lateCount + '건)</td><td class="r is-neg">' + money(-r.lateLoss) + '</td></tr>' : '') +
           (r.cbWonCount ? '<tr><td>차지백 방어 성공 (' + r.cbWonCount + '건)</td><td class="r is-pos">' + money(r.cbWonProfit) + '</td></tr>' : '') +
           '<tr><td>차지백 손실 (' + r.cbCount + '건)</td><td class="r">' + money(-r.cbLoss) + '</td></tr>' +
-          '<tr class="total"><td>최종 순이익</td><td class="r ' + netCls + '">' + money(r.net) + '</td></tr>' +
+          '<tr class="sub"><td>영업 손익 (광고 전)</td><td class="r ' + netCls + '">' + money(r.net) + '</td></tr>' +
+          '<tr><td>광고비 (' + r.adCount + '개 캠페인)</td><td class="r is-neg">' + money(-r.adSpend) + '</td></tr>' +
+          '<tr class="total"><td>최종 순이익 (광고비 반영)</td><td class="r ' + finalCls + '">' + money(r.finalNet) + '</td></tr>' +
         '</table>' +
       '</div>' +
 
@@ -163,6 +174,7 @@
       '<div style="display:flex;gap:10px;margin-top:22px;flex-wrap:wrap;">' +
         '<a class="btn-primary" href="order-setup.html" style="text-decoration:none;">🔄 새 세팅으로 다시 하기</a>' +
         '<a class="btn-sm" href="order-practice.html" style="text-decoration:none;">발주 연습으로</a>' +
+        '<a class="btn-sm" href="ad-settings.html" style="text-decoration:none;">📢 광고 설정</a>' +
         '<a class="btn-sm" href="chargeback-manual.html" target="_blank" rel="noopener" style="text-decoration:none;">📕 차지백 대응 가이드</a>' +
       '</div>';
   }
@@ -196,12 +208,22 @@
     }
 
     // 세팅 정보(주제·난이도·마진) — 표시용
-    var meta = '';
+    var meta = '', topic = '';
     try {
       var s = await sb.from('practice_settings').select('topic, level, margin').eq('user_id', user.id).maybeSingle();
-      if (s.data) meta = [s.data.topic, '난이도 ' + (s.data.level || '-'), '마진 ' + s.data.margin + '%'].join(' · ');
+      if (s.data) { topic = s.data.topic || ''; meta = [topic, '난이도 ' + (s.data.level || '-'), '마진 ' + s.data.margin + '%'].join(' · '); }
     } catch (e) {}
 
-    render(root, settle(orders), meta);
+    var r = settle(orders);
+
+    // 광고비 연계 — 이 주제로 만든 광고 캠페인의 지출을 순이익에서 차감
+    var camps = load('ad_campaigns') || [];
+    var mine = topic ? camps.filter(function (c) { return c.category === topic; }) : camps;
+    r.adCount = mine.length;
+    r.adSpend = Math.round(mine.reduce(function (a, c) { return a + (Number(c.spend) || 0); }, 0) * 100) / 100;
+    r.finalNet = Math.round((r.net - r.adSpend) * 100) / 100;
+    r.roas = r.adSpend > 0 ? (r.sales / r.adSpend) : 0;
+
+    render(root, r, meta);
   })();
 })();
