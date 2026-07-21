@@ -1317,6 +1317,12 @@ tbody tr:hover { background: #fafbff; }
 
 .ord-table th.r, .ord-table td.r { text-align: right; }
 
+/* 발주 연습 표: 가운데 정렬 + 세로 구분선 */
+.ord-center th, .ord-center td { text-align: center; vertical-align: middle; }
+.ord-center th { border-right: 1px solid #e7e9ee; }
+.ord-center td { border-right: 1px solid #eef0f4; border-bottom: 1px solid #e7e9ee; }
+.ord-center th:last-child, .ord-center td:last-child { border-right: none; }
+
 /* 캠페인 만들기 */
 .cac-row {
   display: flex; align-items: center; gap: 10px;
