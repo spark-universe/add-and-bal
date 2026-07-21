@@ -132,11 +132,23 @@
     saveOrder(order);
   }
 
+  // 난이도 하에서 잘못/비효율 선택 시 담기 전에 보여줄 경고 (없으면 null)
+  function warnMsg(L, isFiller, wrongProduct, wrongOption) {
+    if (isFiller) return '이 상품은 고객이 주문한 상품이 아닙니다.\n검색해서 정확한 상품을 담으세요.';
+    if (wrongProduct) return '유사품(제네릭/호환)입니다.\n정확한 정품 상품을 담으세요.';
+    if (wrongOption) return '고객이 요청한 옵션과 맞지 않습니다.\n요청 옵션이 있는 리스팅에서 맞는 옵션을 선택하세요.';
+    if (L.kind === 'overpriced') return '더 비싼 리스팅(제3자 판매)입니다.\n정상가(Amazon.com 발송)를 담으세요.';
+    if (L.slow) return '배송이 느린 리스팅입니다.\n배송 빠른(Prime) 리스팅을 담으세요.';
+    return null;
+  }
+
   function buy(L, qty, selOpt) {
     if (!L.inStock) return;
+    var fb = order.level || '중';
     var targetPid = L.pid;
+    var isFiller = L.kind === 'filler';
     var wrongProduct = L.kind === 'counterfeit';
-    if (L.kind === 'filler') {
+    if (isFiller) {
       // 주문에 없는 '비슷한' 상품도 담을 수 있음 → 미해결 라인에 오배송으로 귀속
       targetPid = Object.keys(neededMap()).filter(function (pid) { return !bought[pid]; })[0];
       if (!targetPid) { alert('이 주문에 필요한 상품은 이미 모두 담았습니다.'); return; }
@@ -151,6 +163,13 @@
       if (!L.option) wrongOption = true;                     // 옵션 없는 리스팅으로 삼 → 변형 지정 못함
       else if (selOpt !== L.option.correct) wrongOption = true;
     }
+
+    // 난이도 하: 잘못/비효율 선택은 담기 전에 경고하고 막는다
+    if (fb === '하') {
+      var w = warnMsg(L, isFiller, wrongProduct, wrongOption);
+      if (w) { alert(w); return; }
+    }
+
     bought[targetPid] = {
       kind: L.kind, unit: L.price, qty: qty, lineCost: round2(L.price * qty),
       wrongProduct: wrongProduct, wrongOption: wrongOption,
@@ -166,6 +185,7 @@
   /* ---------- 렌더 ---------- */
   function boughtLabel(rec) {
     if (!rec) return '';
+    if ((order.level || '중') === '상') return '<span class="az-ok">담음</span>';   // 상: 실수 힌트 없음
     if (rec.wrongProduct) return '<span class="az-bad">⚠️ 유사품 · 오배송</span>';
     if (rec.wrongOption) return '<span class="az-bad">⚠️ 옵션 틀림 · 오배송</span>';
     if (rec.overpaid > 0) return '<span class="az-warn">⚠️ 바가지 (+' + money(rec.overpaid) + ')</span>';
