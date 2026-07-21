@@ -21,6 +21,7 @@
     });
   }
   function money(n) { return '$' + Number(n || 0).toFixed(2); }
+  function round2(n) { return Math.round(Number(n || 0) * 100) / 100; }
 
   // 결정적 옵션/품절 (js/amazon.js 의 동일 함수와 반드시 로직 일치!)
   function h(s) { var n = 0; s = String(s); for (var i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) >>> 0; return n; }
@@ -319,6 +320,82 @@
     });
   }
 
+  // 남은 라인 기준으로 금액 재계산 (부분 취소 후)
+  function recalcOrder(o) {
+    var rate = o.total ? (Number(o.tax || 0) / o.total) : 0;
+    o.total = round2((o.lines || []).reduce(function (a, l) { return a + l.price * l.qty; }, 0));
+    o.cost = round2((o.lines || []).reduce(function (a, l) { return a + l.cost * l.qty; }, 0));
+    o.items = (o.lines || []).reduce(function (a, l) { return a + l.qty; }, 0);
+    o.tax = round2(o.total * rate);
+    o.grandTotal = round2(o.total + (o.shipping || 0) + o.tax);
+    // 아마존 소싱 기록도 남은 라인에 맞춰 정리
+    if (o.amazon && o.amazon.purchases) {
+      var keep = {}; (o.lines || []).forEach(function (l) { keep[l.pid] = true; });
+      Object.keys(o.amazon.purchases).forEach(function (pid) { if (!keep[pid]) delete o.amazon.purchases[pid]; });
+      var ps = Object.keys(o.amazon.purchases);
+      o.amazon.sourcedCost = round2(ps.reduce(function (a, p) { return a + (o.amazon.purchases[p].lineCost || 0); }, 0));
+      o.amazon.misship = ps.some(function (p) { return o.amazon.purchases[p].wrongProduct || o.amazon.purchases[p].wrongOption; });
+      o.amazon.complete = (o.lines || []).every(function (l) { return o.amazon.purchases[l.pid]; });
+    }
+  }
+
+  // 일부 취소 (품절 상품만 취소하고 나머지는 배송)
+  function openPartialCancel(o) {
+    var box = document.createElement('div');
+    box.className = 'modal-overlay is-open';
+    box.innerHTML =
+      '<div class="modal-card" style="max-width:520px;">' +
+        '<div class="modal-card__head"><h3>일부 취소 (품절 상품 제외)</h3><button class="modal-close" data-close>×</button></div>' +
+        '<div class="modal-card__body">' +
+          '<p style="margin:0 0 14px;font-size:0.9rem;line-height:1.6;">발송할 수 없는(품절 등) 상품을 선택하세요. ' +
+            '선택한 상품만 <b>취소·부분 환불</b>하고, 나머지는 그대로 발주(배송)합니다.</p>' +
+          (o.lines || []).map(function (l, i) {
+            var img = (l.image ? '<img src="' + esc(l.image) + '" style="width:34px;height:34px;object-fit:contain;border:1px solid var(--border);border-radius:6px;">' : '');
+            return '<label style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:0.9rem;cursor:pointer;">' +
+              '<input type="checkbox" data-i="' + i + '">' + img +
+              '<span style="flex:1;">' + esc(l.name) + ' <span style="color:var(--muted);">×' + l.qty + '</span></span>' +
+              '<b>' + money(l.price * l.qty) + '</b></label>';
+          }).join('') +
+          '<label style="display:inline-flex;align-items:center;gap:7px;font-size:0.85rem;margin-top:12px;">' +
+            '<input type="checkbox" id="pcMail" checked> 📧 고객에게 부분 취소 안내 메일 보내기' +
+          '</label>' +
+          '<div id="pcErr" style="color:var(--danger);font-size:0.82rem;margin-top:10px;"></div>' +
+        '</div>' +
+        '<div class="modal-card__foot">' +
+          '<button class="btn-sm" data-close>취소</button>' +
+          '<button class="btn-sm is-danger" id="pcGo">선택 상품 취소하기</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(box);
+    box.addEventListener('click', function (ev) { if (ev.target === box || ev.target.closest('[data-close]')) box.remove(); });
+
+    box.querySelector('#pcGo').addEventListener('click', function () {
+      var idx = [].slice.call(box.querySelectorAll('input[data-i]:checked')).map(function (c) { return Number(c.dataset.i); });
+      if (!idx.length) { box.querySelector('#pcErr').textContent = '취소할 상품을 선택하세요.'; return; }
+      var mail = box.querySelector('#pcMail').checked;
+      var oldGrand = Number(o.grandTotal || 0);
+
+      if (idx.length >= (o.lines || []).length) {
+        // 전부 선택 → 전체 취소와 동일
+        o.payment = 'refunded'; o.fulfillment = 'not_required';
+        o.refundReason = 'oos_stock'; o.refundedAt = Date.now();
+        if (mail) { o.custNotified = true; o.notifiedAt = Date.now(); }
+        saveOrder(o); box.remove(); render(o);
+        return;
+      }
+
+      // 선택 라인 제거 후 재계산
+      o.lines = (o.lines || []).filter(function (l, i) { return idx.indexOf(i) === -1; });
+      recalcOrder(o);
+      o.partialRefund = round2((o.partialRefund || 0) + (oldGrand - o.grandTotal));
+      o.partialCancelled = true;
+      if (mail) { o.custNotified = true; o.notifiedAt = Date.now(); }
+      saveOrder(o);
+      box.remove();
+      render(o);
+    });
+  }
+
   /* Order risk 카드의 아이콘을 누르면 뜨는 상세 분석.
      감지된 신호만 나열하고 결론은 내려주지 않는다 (판단은 수강생 몫) */
   function riskSignals(o) {
@@ -469,11 +546,15 @@
           (o.payment === 'refunded'
             ? '<button class="btn-sm" disabled>환불 완료</button>'
             : '<button class="btn-sm is-danger" id="btnRefund">환불하기 (주문 취소)</button>') +
+          ((o.lines && o.lines.length > 1 && o.payment !== 'refunded' && o.fulfillment !== 'fulfilled')
+            ? '<button class="btn-sm" id="btnPartial">일부 취소 (품절)</button>' : '') +
           '<button class="btn-sm" id="btnStockAlert">' + (o.stockAlertSent ? '✅ 품절 안내 보냄' : '📧 품절 안내 메일') + '</button>' +
           '<button class="btn-sm" id="btnEdit">주문 편집하기</button>' +
         '</div>' +
       '</div>' +
       '<div class="od-sub">' + fmtFull(o.ts) + ' from ' + esc(o.channel) + '</div>' +
+
+      (o.partialCancelled ? '<div class="od-src ok" style="background:#eef4ff;border:1px solid #d6e4ff;border-radius:8px;padding:8px 12px;">✂️ 일부 상품 취소됨 · 부분 환불 ' + money(o.partialRefund) + ' — 남은 상품을 소싱해 발주하세요.</div>' : '') +
 
       cbBanner(o) +
 
@@ -599,6 +680,9 @@
 
     var sa = document.getElementById('btnStockAlert');
     if (sa) sa.addEventListener('click', function () { openStockAlert(o); });
+
+    var pc = document.getElementById('btnPartial');
+    if (pc) pc.addEventListener('click', function () { openPartialCancel(o); });
 
     bindZoom(o);
 
