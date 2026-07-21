@@ -188,11 +188,15 @@
     return r < 0.82 ? 'low' : (r < 0.97 ? 'medium' : 'high');
   }
 
-  // 사기 슬롯마다 어떤 종류의 문제를 넣을지 — 4종이 고르게 나오도록 섞어서 순서대로 배정
+  // 사기 슬롯마다 어떤 종류의 문제를 넣을지 — 4종이 고르게 나오도록 섞어서 순서대로 배정.
+  // 단, 차지백(핵심 학습 함정)은 사기 주문이 1건이라도 있으면 반드시 최소 1건 포함시킨다.
   function assignIssueTypes(slotCount) {
+    if (slotCount <= 0) return [];
     var out = [];
     while (out.length < slotCount) out = out.concat(shuffle(ISSUES.slice()));
-    return out.slice(0, slotCount);
+    out = out.slice(0, slotCount);
+    if (out.indexOf('chargeback') === -1) out[randInt(0, slotCount - 1)] = 'chargeback';
+    return out;
   }
 
   // N건 시나리오 생성 (아직 시각은 없음 — 받을 때 찍힘)
