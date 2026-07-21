@@ -65,72 +65,118 @@
 
   /* ===== 차지백(Chargeback) 이벤트 =====
      사기(도난 카드) 주문(issue==='chargeback')을 걸러내지 못하고 발주(fulfilled)하면
-     상품을 보낸 뒤 고객이 카드사에 결제를 취소해 판매대금이 강제 회수된다.
-     → 상품 원가 + 차지백 수수료만큼 순손실. 발주 처리가 완료된 순간 1회 발생. */
-  var CB_FEE = 15;   // 차지백 수수료 (USD)
+     차지백이 '열린다(open)'. 판매자는 마감일까지 증거를 제출해 항소하거나 수용할 수 있으나,
+     사기 주문은 항상 패소 → 판매대금 회수 + 수수료 + 이미 지출한 원가만큼 순손실.
+     (order-chargeback.html 이 항소 화면. resolveChargeback 은 두 파일이 같은 규칙 사용) */
+  var CB_FEE = 15;                 // 차지백 수수료 (USD)
+  var CB_DAYS = 15;                // 증거 제출 마감(일)
+
+  function cbAmounts(o) {
+    var cost = Number(o.cost || 0);
+    var amount = Number(o.grandTotal || o.total || 0);   // 분쟁 금액(고객 결제액)
+    return { cost: cost, amount: amount, fee: CB_FEE, total: amount + CB_FEE, loss: cost + CB_FEE };
+  }
+
+  function logChargeback(o) {
+    try {
+      var cb = o.chargeback || {};
+      var log = JSON.parse(localStorage.getItem('practice_chargebacks')) || [];
+      var rec = { no: o.no, amount: cb.amount, fee: cb.fee, loss: cb.loss,
+        status: cb.status, resolution: cb.resolution, at: cb.openedAt };
+      var i = log.findIndex(function (x) { return x.no === o.no; });
+      if (i === -1) log.push(rec); else log[i] = rec;
+      localStorage.setItem('practice_chargebacks', JSON.stringify(log));
+    } catch (e) {}
+  }
 
   function fireChargebackIfNeeded(o) {
     if (!o || o.issue !== 'chargeback') return;
     if (o.fulfillment !== 'fulfilled') return;
     if (o.chargebackFired) return;                 // 이미 발생한 주문은 다시 뜨지 않음
 
-    var cost = Number(o.cost || 0);
-    var sale = Number(o.grandTotal || o.total || 0);
-    var loss = cost + CB_FEE;                       // 판매대금은 회수되어 0 → 실손실 = 원가 + 수수료
-
+    var a = cbAmounts(o);
+    var now = Date.now();
     o.chargebackFired = true;
-    o.chargeback = { fee: CB_FEE, cost: cost, sale: sale, loss: loss, at: Date.now() };
+    o.chargeback = {
+      status: 'open', reason: 'Product not received',
+      amount: a.amount, fee: a.fee, total: a.total, loss: a.loss,
+      openedAt: now, deadline: now + CB_DAYS * 86400000,
+      resolvedAt: null, resolution: null
+    };
     saveOrder(o);
-
-    // 정산용 기록 (중복 방지)
-    try {
-      var log = JSON.parse(localStorage.getItem('practice_chargebacks')) || [];
-      if (!log.some(function (x) { return x.no === o.no; })) {
-        log.push({ no: o.no, cost: cost, sale: sale, fee: CB_FEE, loss: loss, at: o.chargeback.at });
-        localStorage.setItem('practice_chargebacks', JSON.stringify(log));
-      }
-    } catch (e) {}
-
+    logChargeback(o);
     showChargeback(o);
   }
 
-  function showChargeback(o) {
-    var cb = o.chargeback || { fee: CB_FEE, cost: Number(o.cost || 0),
-      sale: Number(o.grandTotal || o.total || 0), loss: Number(o.cost || 0) + CB_FEE };
+  // 차지백 확정 (수용 or 항소 패소). 사기 주문이라 결과는 항상 손실 확정.
+  function resolveChargeback(o, resolution) {
+    if (!o.chargeback || o.chargeback.status !== 'open') return;
+    o.chargeback.status = 'lost';
+    o.chargeback.resolution = resolution;          // 'accepted' | 'disputed_lost'
+    o.chargeback.resolvedAt = Date.now();
+    saveOrder(o);
+    logChargeback(o);
+  }
 
+  // 발주 직후 뜨는 안내 팝업 (항소 페이지로 안내)
+  function showChargeback(o) {
+    var cb = o.chargeback;
     var box = document.createElement('div');
     box.className = 'modal-overlay is-open';
     box.innerHTML =
       '<div class="modal-card cb-card">' +
         '<div class="cb-head">' +
           '<div class="cb-emoji">⚠️</div>' +
-          '<h3>차지백 발생! (Chargeback)</h3>' +
+          '<h3>차지백이 열렸습니다 (Chargeback opened)</h3>' +
         '</div>' +
         '<div class="modal-card__body">' +
           '<p class="cb-lead"><b>' + esc(o.no) + '</b> 주문은 <b>사기(도난 카드) 주문</b>이었습니다.<br>' +
             '발주해서 상품을 보낸 뒤, 고객이 카드사에 결제를 취소(차지백)했습니다.</p>' +
-          '<div class="cb-signals">🚩 이 주문의 위험 신호: 청구자·수령자 이름 불일치' +
+          '<div class="cb-signals">🚩 위험 신호: 청구자·수령자 이름 불일치' +
             (o.risk === 'high' ? ' · 높은 위험도(High risk)' : '') + ' · 특급배송(Express) 요청</div>' +
           '<table class="cb-money">' +
-            '<tr><td>결제금액 (차지백으로 전액 회수)</td><td class="r">-' + money(cb.sale) + '</td></tr>' +
-            '<tr><td>상품 원가 (이미 지출 · 회수 불가)</td><td class="r">-' + money(cb.cost) + '</td></tr>' +
-            '<tr><td>차지백 수수료</td><td class="r">-' + money(cb.fee) + '</td></tr>' +
-            '<tr class="cb-total"><td>순 손실</td><td class="r">-' + money(cb.loss) + '</td></tr>' +
+            '<tr><td>분쟁 금액 (Dispute amount)</td><td class="r">' + money(cb.amount) + '</td></tr>' +
+            '<tr><td>차지백 수수료 (Fee)</td><td class="r">' + money(cb.fee) + '</td></tr>' +
+            '<tr class="cb-total"><td>차지백 총액 (Total)</td><td class="r">' + money(cb.total) + '</td></tr>' +
           '</table>' +
-          '<div class="cb-tip">💡 이런 주문은 <b>[환불하기 (주문 취소)]</b>로 걸렀어야 합니다.<br>' +
-            '청구지·수령지 이름이 다르거나, 위험도가 높은데 특급배송을 급히 요구하면 사기를 의심하세요.</div>' +
+          '<div class="cb-tip">📄 마감일까지 <b>증거를 제출해 항소</b>하거나 <b>차지백을 수용</b>할 수 있습니다. ' +
+            '다만 <b>사기 차지백은 거의 이길 수 없습니다.</b> 이런 주문은 원래 <b>[환불하기(주문 취소)]</b>로 걸렀어야 합니다.</div>' +
         '</div>' +
         '<div class="modal-card__foot">' +
-          '<button class="btn-sm is-danger" data-close>확인했습니다</button>' +
+          '<button class="btn-sm" data-close>나중에</button>' +
+          '<button class="btn-sm is-dark" id="cbGoResp">증거 제출 / 항소하기</button>' +
         '</div>' +
       '</div>';
     document.body.appendChild(box);
     box.addEventListener('click', function (ev) {
-      if (ev.target === box || ev.target.closest('[data-close]')) {
-        box.remove();
-        render(o);          // 닫으면 상세 화면에 차지백 손실 배너가 반영됨
-      }
+      if (ev.target === box || ev.target.closest('[data-close]')) { box.remove(); render(o); }
     });
+    box.querySelector('#cbGoResp').addEventListener('click', function () {
+      location.href = 'order-chargeback.html?no=' + encodeURIComponent(o.no);
+    });
+  }
+
+  // 상세 화면 상단 차지백 배너
+  function cbBanner(o) {
+    var cb = o.chargeback;
+    if (!cb) return '';
+    if (cb.status === 'open') {
+      return '<div class="cb-alert">' +
+          '<div class="cb-alert__title">⚠️ Chargeback opened for ' + money(cb.total) + '</div>' +
+          '<div class="cb-alert__desc">' + fmtFull(cb.deadline) + '까지 증거를 제출해 항소할 수 있습니다. ' +
+            '이후 자동 제출됩니다. <b>사기(도난 카드) 주문은 항소해도 거의 이길 수 없습니다.</b></div>' +
+          '<div class="cb-alert__btns">' +
+            '<button class="btn-sm is-dark" id="cbEvidence">증거 제출하기 (항소)</button>' +
+            '<button class="btn-sm" id="cbAccept">차지백 수용</button>' +
+          '</div>' +
+        '</div>';
+    }
+    var res = cb.resolution === 'accepted' ? '차지백 수용' : '항소 패소';
+    return '<div class="cb-alert is-lost">' +
+        '<div class="cb-alert__title">💸 차지백 확정 (' + res + ') · 순 손실 -' + money(cb.loss) + '</div>' +
+        '<div class="cb-alert__desc">판매대금 ' + money(cb.amount) + ' 회수 + 수수료 ' + money(cb.fee) +
+          '. 이미 지출한 상품 원가도 회수할 수 없습니다.</div>' +
+      '</div>';
   }
 
   /* ---------- 조각들 ---------- */
@@ -140,7 +186,13 @@
     var ful = o.fulfillment === 'fulfilled'
       ? '<span class="ord-badge"><span class="dot"></span>Fulfilled</span>'
       : '<span class="ord-badge attn"><span class="dot"></span>Unfulfilled</span>';
-    return pay + ' ' + ful;
+    var cb = '';
+    if (o.chargeback) {
+      cb = o.chargeback.status === 'open'
+        ? ' <span class="ord-badge cb-open"><span class="dot"></span>Chargeback open</span>'
+        : ' <span class="ord-badge cb-lost"><span class="dot"></span>Chargeback lost</span>';
+    }
+    return pay + ' ' + ful + cb;
   }
 
   function lineRows(o) {
@@ -368,6 +420,8 @@
       '</div>' +
       '<div class="od-sub">' + fmtFull(o.ts) + ' from ' + esc(o.channel) + '</div>' +
 
+      cbBanner(o) +
+
       '<div class="od-grid">' +
         // ===== 왼쪽 =====
         '<div>' +
@@ -377,10 +431,6 @@
             '<div class="od-method">🚚 ' + esc(o.method) + '</div>' +
             stockBox(o) +
             '<div class="od-lines">' + lineRows(o) + '</div>' +
-            (o.chargebackFired
-              ? '<div class="cb-banner">⚠️ 이 주문은 <b>차지백</b>이 발생했습니다 · 순 손실 <b>-' +
-                money((o.chargeback && o.chargeback.loss) || 0) + '</b></div>'
-              : '') +
             (o.fulfillment === 'fulfilled'
               ? '<div class="od-done">✅ 발주 완료 — 배송번호 <b>' + esc((o.tracking && o.tracking.number) || '-') +
                 '</b> (' + esc((o.tracking && o.tracking.carrier) || '-') + ')</div>'
@@ -472,6 +522,18 @@
 
     var r = document.getElementById('btnRefund');
     if (r) r.addEventListener('click', function () { openRefund(o); });
+
+    var ce = document.getElementById('cbEvidence');
+    if (ce) ce.addEventListener('click', function () {
+      location.href = 'order-chargeback.html?no=' + encodeURIComponent(o.no);
+    });
+    var ca = document.getElementById('cbAccept');
+    if (ca) ca.addEventListener('click', function () {
+      if (!confirm('차지백을 수용하면 항소 없이 손실이 확정됩니다.\n순 손실 ' +
+        money((o.chargeback && o.chargeback.loss) || 0) + '. 수용할까요?')) return;
+      resolveChargeback(o, 'accepted');
+      render(o);
+    });
 
     var rk = document.getElementById('btnRisk');
     if (rk) rk.addEventListener('click', function () { openRiskDetail(o); });
