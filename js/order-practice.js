@@ -413,6 +413,14 @@
       .map(function (c) { return c.name; });
   }
 
+  // 주문 하나가 어느 광고에서 왔는지 (약 80%만 광고 유입, 20%는 직접 유입=미설정). 결정적.
+  function campaignForOrder(o, names) {
+    if (!names || !names.length) return null;
+    var n = parseInt(String(o.no).replace(/\D/g, ''), 10) || 0;
+    if (n % 10 >= 8) return null;                 // 20% 미설정 (직접 유입)
+    return names[n % names.length];
+  }
+
   function render() {
     var body = document.getElementById('ordBody');
     if (!orders.length) {
@@ -421,11 +429,8 @@
     } else {
       var adNames = activeAdNames();
       body.innerHTML = orders.map(function (o) {
-        var tag = '';
-        if (adNames.length) {
-          var idx = parseInt(String(o.no).replace(/\D/g, ''), 10) % adNames.length;
-          tag = '<span class="ord-tag2">' + esc(adNames[idx]) + '</span>';
-        }
+        var camp = campaignForOrder(o, adNames);
+        var tag = camp ? '<span class="ord-tag2">' + esc(camp) + '</span>' : '';
         return '<tr class="' + rowClass(o) + '" data-no="' + esc(o.no) + '">' +
           '<td class="ord-no">' + esc(o.no) + '</td>' +
           '<td>' + riskHtml(o) + '</td>' +
@@ -500,15 +505,13 @@
     var active = camps.filter(function (c) { return c.category === settings.topic && c.status === 'active'; });
     if (!active.length) return;
 
-    var fulfilled = orders.filter(function (o) { return o.fulfillment === 'fulfilled'; });
-    var sales = round2(fulfilled.reduce(function (a, o) { return a + Number(o.grandTotal != null ? o.grandTotal : o.total || 0); }, 0));
-    var customers = fulfilled.length;
-    var totalSpend = active.reduce(function (a, c) { return a + (Number(c.spend) || 0); }, 0);
-
+    var names = active.map(function (c) { return c.name; });
+    // 각 캠페인에 실제로 귀속된(태그된) 발주 완료 주문만 성과로 집계
+    var totSales = 0, totCust = 0;
     active.forEach(function (c) {
-      var share = totalSpend > 0 ? (Number(c.spend) || 0) / totalSpend : 1 / active.length;
-      var cSales = round2(sales * share);
-      var cCust = Math.round(customers * share);
+      var attr = orders.filter(function (o) { return o.fulfillment === 'fulfilled' && campaignForOrder(o, names) === c.name; });
+      var cSales = round2(attr.reduce(function (a, o) { return a + Number(o.grandTotal != null ? o.grandTotal : o.total || 0); }, 0));
+      var cCust = attr.length;
       c.sales = cSales;
       c.customers = cCust;
       c.aov = cCust ? round2(cSales / cCust) : 0;
@@ -516,9 +519,10 @@
       c.cac = cCust ? round2(c.spend / cCust) : 0;
       c.status = 'completed';
       c.runSig = plan.sig;
+      totSales += cSales; totCust += cCust;
     });
     localStorage.setItem('ad_campaigns', JSON.stringify(camps));
-    showAdSettlePopup(active, sales, customers);
+    showAdSettlePopup(active, round2(totSales), totCust);
   }
 
   function showAdSettlePopup(active, sales, customers) {
