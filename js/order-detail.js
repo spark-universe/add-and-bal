@@ -462,6 +462,57 @@
     });
   }
 
+  /* ===== 일부 품절 → 고객 문의 =====
+     여러 상품 주문에서 일부만 품절일 때, 고객에게 상황을 알리고
+     '재고 있는 것만 받을지 / 전부 취소할지' 답변을 받아 처리한다. */
+  function openPartialInquiry(o) {
+    var box = document.createElement('div');
+    box.className = 'modal-overlay is-open';
+    box.innerHTML =
+      '<div class="modal-card" style="max-width:540px;">' +
+        '<div class="modal-card__head"><h3>고객에게 문의 (일부 품절)</h3><button class="modal-close" data-close>×</button></div>' +
+        '<div class="modal-card__body">' +
+          '<div class="cust-mail"><div class="cust-mail__body">Hi ' + esc(o.cust) + ',<br><br>' +
+            'One of the items in your order <b>' + esc(o.no) + '</b> is currently <b>out of stock</b>. ' +
+            'Would you like us to:<br>' +
+            '&nbsp;&nbsp;① <b>ship the in-stock item now</b> and refund the out-of-stock one, or<br>' +
+            '&nbsp;&nbsp;② <b>cancel the whole order</b> for a full refund?<br><br>' +
+            'Please let us know and we will proceed right away.<br><br>' +
+            '<span class="od-muted">(주문 상품 중 하나가 품절입니다. ① 재고 있는 것만 발송+나머지 환불 / ② 전체 취소·환불 중 어떻게 할지 여쭙니다.)</span></div></div>' +
+        '</div>' +
+        '<div class="modal-card__foot"><button class="btn-sm" data-close>취소</button>' +
+          '<button class="btn-sm is-dark" id="paSend">📧 메일 보내기</button></div>' +
+      '</div>';
+    document.body.appendChild(box);
+    box.addEventListener('click', function (ev) { if (ev.target === box || ev.target.closest('[data-close]')) box.remove(); });
+    box.querySelector('#paSend').addEventListener('click', function () {
+      o.custAsked = true;
+      o.custNotified = true;                      // 소통함 → 미배송 차지백 예방
+      o.notifiedAt = Date.now();
+      var oosL = (o.lines || []).filter(lineOos);
+      var okL = (o.lines || []).filter(function (l) { return !lineOos(l); });
+      o.custReply = (oosL.length && okL.length) ? (Math.random() < 0.6 ? 'partial' : 'cancel')
+        : (oosL.length ? 'cancel' : 'all');       // 전부 품절→취소 / 품절 없음→그대로 발송
+      saveOrder(o);
+      box.remove();
+      render(o);
+    });
+  }
+
+  function partialReplyBanner(o) {
+    if (!o.custAsked || !o.custReply) return '';
+    var st = 'background:#eef4ff;border:1px solid #d6e4ff;border-radius:12px;padding:14px 18px;margin:14px 0 6px;';
+    if (o.custReply === 'partial') {
+      return '<div style="' + st + '"><div style="font-weight:800;margin-bottom:4px;">📩 고객 답변: 재고 있는 상품만 받겠습니다.</div>' +
+        '<div style="font-size:0.85rem;line-height:1.6;"><b>[주문 편집하기]</b> 에서 품절 상품의 수량을 0으로 만들어 빼고(부분 환불됨), 남은 상품을 아마존에서 소싱해 발주하세요.</div></div>';
+    }
+    if (o.custReply === 'cancel') {
+      return '<div style="' + st + '"><div style="font-weight:800;margin-bottom:4px;">📩 고객 답변: 전부 취소하고 환불해 주세요.</div>' +
+        '<div style="font-size:0.85rem;line-height:1.6;"><b>[환불하기(주문 취소)]</b> 로 전액 환불하세요.</div></div>';
+    }
+    return '<div style="' + st + '"><div style="font-weight:800;">📩 고객 답변: 주문한 상품 그대로 다 보내주세요.</div></div>';
+  }
+
   /* Order risk 카드의 아이콘을 누르면 뜨는 상세 분석.
      감지된 신호만 나열하고 결론은 내려주지 않는다 (판단은 수강생 몫) */
   function riskSignals(o) {
@@ -615,7 +666,10 @@
             : (o.payment === 'refunded'
                 ? '<button class="btn-sm" disabled>환불 완료</button>'
                 : '<button class="btn-sm is-danger" id="btnRefund">환불하기 (주문 취소)</button>') +
-              '<button class="btn-sm" id="btnStockAlert">' + (o.stockAlertSent ? '✅ 품절 안내 보냄' : '📧 품절 안내 메일') + '</button>') +
+              '<button class="btn-sm" id="btnStockAlert">' + (o.stockAlertSent ? '✅ 품절 안내 보냄' : '📧 품절 안내 메일') + '</button>' +
+              // 여러 상품 주문은 일부 품절 시 고객에게 문의
+              ((o.lines && o.lines.length > 1 && o.payment !== 'refunded' && o.fulfillment !== 'fulfilled')
+                ? '<button class="btn-sm" id="btnPartialAsk">' + (o.custAsked ? '✅ 고객 문의함' : '📧 일부 품절 문의') + '</button>' : '')) +
           '<button class="btn-sm" id="btnEdit">주문 편집하기</button>' +
         '</div>' +
       '</div>' +
@@ -623,6 +677,7 @@
 
       cbBanner(o) +
       nrcbBanner(o) +
+      partialReplyBanner(o) +
 
       '<div class="od-grid">' +
         // ===== 왼쪽 =====
@@ -746,6 +801,9 @@
 
     var sa = document.getElementById('btnStockAlert');
     if (sa) sa.addEventListener('click', function () { openStockAlert(o); });
+
+    var pa = document.getElementById('btnPartialAsk');
+    if (pa) pa.addEventListener('click', function () { openPartialInquiry(o); });
 
     var nc = document.getElementById('nrContact');
     if (nc) nc.addEventListener('click', function () { openNrContact(o); });
