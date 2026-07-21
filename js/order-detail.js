@@ -140,7 +140,8 @@
             '<tr class="cb-total"><td>차지백 총액 (Total)</td><td class="r">' + money(cb.total) + '</td></tr>' +
           '</table>' +
           '<div class="cb-tip">📄 마감일까지 <b>증거를 제출해 항소</b>하거나 <b>차지백을 수용</b>할 수 있습니다. ' +
-            '다만 <b>사기 차지백은 거의 이길 수 없습니다.</b> 이런 주문은 원래 <b>[환불하기(주문 취소)]</b>로 걸렀어야 합니다.<br>' +
+            '다만 <b>최종 판단은 카드사·은행</b>이 하고 대개 고객 편을 들어 <b>승소율은 약 30%뿐</b>입니다. ' +
+            '이런 주문은 원래 <b>[환불하기(주문 취소)]</b>로 걸렀어야 합니다.<br>' +
             '실제 대응 방법은 <a href="chargeback-manual.html" target="_blank" rel="noopener" style="color:var(--primary);">📕 차지백 대응 가이드</a>를 참고하세요.</div>' +
         '</div>' +
         '<div class="modal-card__foot">' +
@@ -165,12 +166,20 @@
       return '<div class="cb-alert">' +
           '<div class="cb-alert__title">⚠️ Chargeback opened for ' + money(cb.total) + '</div>' +
           '<div class="cb-alert__desc">' + fmtFull(cb.deadline) + '까지 증거를 제출해 항소할 수 있습니다. ' +
-            '이후 자동 제출됩니다. <b>사기(도난 카드) 주문은 항소해도 거의 이길 수 없습니다.</b></div>' +
+            '이후 자동 제출됩니다. <b>최종 판단은 카드사·은행이 하며, 대개 고객 편을 들어 승소율은 약 30%뿐입니다.</b></div>' +
           '<div class="cb-alert__btns">' +
             '<button class="btn-sm is-dark" id="cbEvidence">증거 제출하기 (항소)</button>' +
             '<button class="btn-sm" id="cbAccept">차지백 수용</button>' +
             '<a class="btn-sm" href="chargeback-manual.html" target="_blank" rel="noopener" style="text-decoration:none;">📕 대응 가이드</a>' +
           '</div>' +
+        '</div>';
+    }
+    if (cb.status === 'won') {
+      return '<div class="cb-alert is-won">' +
+          '<div class="cb-alert__title">🎉 차지백 방어 성공 (항소 승소) · 판매대금 유지</div>' +
+          '<div class="cb-alert__desc">이번엔 운 좋게 방어했지만, 최종 판단은 카드사·은행이라 사기 차지백은 대부분 패소합니다. ' +
+            '이런 주문은 애초에 받지 않는 것이 안전합니다. ' +
+            '<a href="chargeback-manual.html" target="_blank" rel="noopener" style="color:var(--primary);">📕 차지백 대응 가이드</a></div>' +
         '</div>';
     }
     var res = cb.resolution === 'accepted' ? '차지백 수용' : '항소 패소';
@@ -191,9 +200,12 @@
       : '<span class="ord-badge attn"><span class="dot"></span>Unfulfilled</span>';
     var cb = '';
     if (o.chargeback) {
-      cb = o.chargeback.status === 'open'
+      var st = o.chargeback.status;
+      cb = st === 'open'
         ? ' <span class="ord-badge cb-open"><span class="dot"></span>Chargeback open</span>'
-        : ' <span class="ord-badge cb-lost"><span class="dot"></span>Chargeback lost</span>';
+        : st === 'won'
+          ? ' <span class="ord-badge cb-won"><span class="dot"></span>Chargeback won</span>'
+          : ' <span class="ord-badge cb-lost"><span class="dot"></span>Chargeback lost</span>';
     }
     return pay + ' ' + ful + cb;
   }

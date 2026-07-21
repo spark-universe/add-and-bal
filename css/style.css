@@ -888,6 +888,18 @@ tbody tr:hover { background: #fafbff; }
 .ord-badge.cb-open .dot { background: #f5a623; }
 .ord-badge.cb-lost { background: #fdecec; color: #b02a2f; }
 .ord-badge.cb-lost .dot { background: #e5484d; }
+.ord-badge.cb-won { background: #eaf6ee; color: #14814a; }
+.ord-badge.cb-won .dot { background: #1aab5b; }
+
+/* 차지백 방어 성공(승소) 표시 */
+.cb-alert.is-won { background: #eef8f1; border-color: #bfe6cb; border-left-color: #1aab5b; }
+.cb-alert.is-won .cb-alert__title { color: #14814a; }
+.cb-head.is-won { background: #eef8f1; border-bottom-color: #bfe6cb; }
+.cb-head.is-won h3 { color: #14814a; }
+.cbr-odds {
+  background: #fff8e6; border: 1px solid #ffd976; border-radius: 8px;
+  padding: 8px 11px; font-size: 0.8rem; color: #8a5a00; margin-bottom: 10px;
+}
 
 /* 차지백 항소 페이지 (Chargeback response) */
 .cbr-grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; margin-top: 16px; align-items: start; }

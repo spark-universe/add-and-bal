@@ -53,10 +53,10 @@
   }
 
   // 사기 주문 → 결과는 항상 손실 확정
-  function resolve(o, resolution) {
+  function resolve(o, resolution, won) {
     if (!o.chargeback || o.chargeback.status !== 'open') return;
-    o.chargeback.status = 'lost';
-    o.chargeback.resolution = resolution;    // 'accepted' | 'disputed_lost'
+    o.chargeback.status = won ? 'won' : 'lost';
+    o.chargeback.resolution = resolution;    // 'accepted' | 'disputed_lost' | 'disputed_won'
     o.chargeback.resolvedAt = Date.now();
     saveOrder(o);
     updateLog(o);
@@ -151,14 +151,20 @@
               '<tr class="cbr-total"><td>Total</td><td class="r">' + money(cb.total) + '</td></tr>' +
             '</table>' +
             (resolved
-              ? '<div class="cb-alert is-lost" style="margin-top:14px;">' +
-                  '<div class="cb-alert__title">💸 차지백 확정 (' +
-                    (cb.resolution === 'accepted' ? '수용' : '항소 패소') + ')</div>' +
-                  '<div class="cb-alert__desc">순 손실 -' + money(cb.loss) + '</div>' +
-                '</div>' +
+              ? (cb.status === 'won'
+                  ? '<div class="cb-alert is-won" style="margin-top:14px;">' +
+                      '<div class="cb-alert__title">🎉 차지백 방어 성공 (항소 승소)</div>' +
+                      '<div class="cb-alert__desc">판매대금 ' + money(cb.amount) + ' 을 지켰습니다.</div>' +
+                    '</div>'
+                  : '<div class="cb-alert is-lost" style="margin-top:14px;">' +
+                      '<div class="cb-alert__title">💸 차지백 확정 (' +
+                        (cb.resolution === 'accepted' ? '수용' : '항소 패소') + ')</div>' +
+                      '<div class="cb-alert__desc">순 손실 -' + money(cb.loss) + '</div>' +
+                    '</div>') +
                 '<a class="btn-primary" href="order-detail.html?no=' + encodeURIComponent(o.no) +
                   '" style="display:block;text-align:center;text-decoration:none;margin-top:14px;">주문 상세로 돌아가기</a>'
-              : '<label class="cbr-insight"><input type="checkbox" checked> Shopify 분석 자료 포함(권장)</label>' +
+              : '<div class="cbr-odds">⚖️ 항소 승소율 약 <b>30%</b> · 최종 판단은 카드사·은행이 합니다</div>' +
+                '<label class="cbr-insight"><input type="checkbox" checked> Shopify 분석 자료 포함(권장)</label>' +
                 '<button class="btn-primary" id="cbrSubmit" style="width:100%;margin-top:8px;">Submit now (항소 제출)</button>' +
                 '<button class="btn-sm" id="cbrAccept" style="width:100%;margin-top:8px;">Accept chargeback (수용)</button>') +
           '</div>' +
@@ -168,40 +174,61 @@
     if (resolved) return;
 
     document.getElementById('cbrSubmit').addEventListener('click', function () {
-      resolve(o, 'disputed_lost');
-      showResult(o, 'disputed_lost');
+      var won = Math.random() < 0.30;                 // 사기 차지백은 정확히 소명해도 30%만 승소
+      var resn = won ? 'disputed_won' : 'disputed_lost';
+      resolve(o, resn, won);
+      showResult(o, resn);
     });
     document.getElementById('cbrAccept').addEventListener('click', function () {
       if (!confirm('차지백을 수용하면 항소 없이 손실이 확정됩니다.\n순 손실 ' + money(cb.loss) + '. 수용할까요?')) return;
-      resolve(o, 'accepted');
+      resolve(o, 'accepted', false);
       showResult(o, 'accepted');
     });
   }
 
   function showResult(o, resolution) {
     var cb = o.chargeback;
-    var lost = resolution === 'disputed_lost';
+    var won = resolution === 'disputed_won';
+    var accepted = resolution === 'accepted';
+    var profit = Number(o.total || 0) - Number(o.cost || 0);
+
+    var edu = '<div class="cb-tip">⚖️ 차지백의 <b>최종 판단은 카드사·은행</b>이 합니다. ' +
+      '아무리 정확하게, 모든 정보를 제출해도 <b>대개 고객 편</b>을 들기 때문에 승소가 어렵습니다(약 30%). ' +
+      '그래서 이런 주문은 <b>애초에 받지(발주하지) 않는 것이 가장 안전</b>합니다. ' +
+      '청구지·수령지 이름 불일치, 높은 위험도, 급한 특급배송은 대표적인 사기 신호입니다.</div>';
+
+    var body;
+    if (won) {
+      body =
+        '<p class="cb-lead">증거가 인정되어 이번엔 <b>차지백을 방어</b>했습니다. 판매대금을 지켰어요. ' +
+          '다만 <b>운이 좋았을 뿐</b> — 사기 차지백은 대부분 패소합니다.</p>' +
+        '<table class="cb-money">' +
+          '<tr><td>판매대금 (유지)</td><td class="r">' + money(o.total) + '</td></tr>' +
+          '<tr><td>상품 원가</td><td class="r">-' + money(o.cost || 0) + '</td></tr>' +
+          '<tr class="cb-total"><td>이 주문 이익</td><td class="r">' + money(profit) + '</td></tr>' +
+        '</table>' + edu;
+    } else {
+      body =
+        '<p class="cb-lead">' + (accepted
+          ? '차지백을 수용했습니다.'
+          : '증거를 제출했지만 <b>사기(도난 카드) 차지백</b>은 판매자가 이기기 매우 어렵습니다. 결국 <b>패소</b>했습니다.') + '</p>' +
+        '<table class="cb-money">' +
+          '<tr><td>판매대금 (회수)</td><td class="r">-' + money(cb.amount) + '</td></tr>' +
+          '<tr><td>상품 원가 (이미 지출)</td><td class="r">-' + money(o.cost || 0) + '</td></tr>' +
+          '<tr><td>차지백 수수료</td><td class="r">-' + money(cb.fee) + '</td></tr>' +
+          '<tr class="cb-total"><td>순 손실</td><td class="r">-' + money(cb.loss) + '</td></tr>' +
+        '</table>' + edu;
+    }
+
     var box = document.createElement('div');
     box.className = 'modal-overlay is-open';
     box.innerHTML =
       '<div class="modal-card cb-card">' +
-        '<div class="cb-head">' +
-          '<div class="cb-emoji">' + (lost ? '❌' : '💸') + '</div>' +
-          '<h3>' + (lost ? '항소 패소 — 손실 확정' : '차지백 수용 — 손실 확정') + '</h3>' +
+        '<div class="cb-head' + (won ? ' is-won' : '') + '">' +
+          '<div class="cb-emoji">' + (won ? '🎉' : (accepted ? '💸' : '❌')) + '</div>' +
+          '<h3>' + (won ? '항소 승소! (운이 좋았어요)' : (accepted ? '차지백 수용 — 손실 확정' : '항소 패소 — 손실 확정')) + '</h3>' +
         '</div>' +
-        '<div class="modal-card__body">' +
-          '<p class="cb-lead">' + (lost
-            ? '증거를 제출했지만 <b>사기(도난 카드) 차지백</b>은 판매자가 이기기 매우 어렵습니다. 결국 <b>패소</b>했습니다.'
-            : '차지백을 수용했습니다.') + '</p>' +
-          '<table class="cb-money">' +
-            '<tr><td>판매대금 (회수)</td><td class="r">-' + money(cb.amount) + '</td></tr>' +
-            '<tr><td>상품 원가 (이미 지출)</td><td class="r">-' + money((o.cost || 0)) + '</td></tr>' +
-            '<tr><td>차지백 수수료</td><td class="r">-' + money(cb.fee) + '</td></tr>' +
-            '<tr class="cb-total"><td>순 손실</td><td class="r">-' + money(cb.loss) + '</td></tr>' +
-          '</table>' +
-          '<div class="cb-tip">💡 사기 주문은 처리 전에 <b>[환불하기(주문 취소)]</b>로 걸러야 합니다. ' +
-            '청구지·수령지 이름 불일치, 높은 위험도, 급한 특급배송은 대표적인 사기 신호입니다.</div>' +
-        '</div>' +
+        '<div class="modal-card__body">' + body + '</div>' +
         '<div class="modal-card__foot">' +
           '<a class="btn-sm is-dark" href="order-detail.html?no=' + encodeURIComponent(o.no) +
             '" style="text-decoration:none;">주문 상세로</a>' +

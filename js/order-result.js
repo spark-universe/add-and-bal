@@ -35,6 +35,7 @@
       total: orders.length,
       sales: 0, costSum: 0, saleProfit: 0, saleCount: 0,
       cbCount: 0, cbLoss: 0, cbList: [],
+      cbWonCount: 0, cbWonProfit: 0,
       negCount: 0, negLoss: 0,
       refundGood: 0, refundBadCount: 0, refundBadMissed: 0,
       riskyCount: 0,
@@ -48,9 +49,13 @@
       var isCb = o.chargebackFired || o.issue === 'chargeback';
       if (o.fulfillment === 'fulfilled') {
         if (isCb) {
-          var loss = (o.chargeback && o.chargeback.loss) || (cost + CB_FEE);
-          r.cbCount++; r.cbLoss += loss; r.net -= loss;
-          r.cbList.push({ no: o.no, cust: o.cust, loss: loss });
+          if (o.chargeback && o.chargeback.status === 'won') {
+            r.cbWonCount++; r.cbWonProfit += margin; r.net += margin;   // 항소 승소 → 판매 유지(운 좋음)
+          } else {
+            var loss = (o.chargeback && o.chargeback.loss) || (cost + CB_FEE);
+            r.cbCount++; r.cbLoss += loss; r.net -= loss;
+            r.cbList.push({ no: o.no, cust: o.cust, loss: loss });
+          }
         } else {
           r.saleCount++; r.sales += tot; r.costSum += cost; r.saleProfit += margin; r.net += margin;
           if (margin < 0) { r.negCount++; r.negLoss += (-margin); }
@@ -61,18 +66,22 @@
         else { r.refundBadCount++; if (margin > 0) r.refundBadMissed += margin; }
       }
     });
+    r.cbFired = r.cbCount + r.cbWonCount;                 // 사기 주문을 발주해버린 총 건수
     r.achieve = r.optimal > 0 ? Math.round(r.net / r.optimal * 100) : (r.net >= 0 ? 100 : 0);
     return r;
   }
 
   function render(root, r, meta) {
-    var g = grade(r.achieve, r.cbCount);
+    var g = grade(r.achieve, r.cbFired);
     var netCls = r.net >= 0 ? 'is-pos' : 'is-neg';
 
     var notes = [];
-    notes.push(r.cbCount
-      ? '<li class="bad">💸 사기(차지백) 주문 발주 <b>' + r.cbCount + '건</b> · 손실 <b>' + money(-r.cbLoss) + '</b></li>'
+    notes.push(r.cbFired
+      ? '<li class="bad">💸 사기(차지백) 주문 발주 <b>' + r.cbFired + '건</b>' +
+          (r.cbCount ? ' · 패소 ' + r.cbCount + '건 손실 <b>' + money(-r.cbLoss) + '</b>' : '') +
+          (r.cbWonCount ? ' · 승소 ' + r.cbWonCount + '건(운 좋게 방어)' : '') + '</li>'
       : '<li class="good">✅ 사기(차지백) 주문을 <b>모두 걸러냈습니다</b></li>');
+    if (r.cbWonCount) notes.push('<li class="warn">🎲 항소 승소는 <b>운</b>입니다 — 최종 판단은 카드사·은행이라 대개 패소(승소율 약 30%). 사기 주문은 애초에 받지 않는 게 안전합니다.</li>');
     if (r.negCount) notes.push('<li class="bad">📉 역마진 주문 발주 <b>' + r.negCount + '건</b> · 손실 <b>' + money(-r.negLoss) + '</b></li>');
     if (r.riskyCount) notes.push('<li class="warn">⚠️ 품절·배송불가·정보누락 주문 발주 <b>' + r.riskyCount + '건</b> (배송/환불 분쟁 위험)</li>');
     if (r.refundBadCount) notes.push('<li class="warn">↩️ 정상 주문을 환불 <b>' + r.refundBadCount + '건</b> · 놓친 이익 <b>' + money(-r.refundBadMissed) + '</b></li>');
@@ -118,6 +127,7 @@
           '<tr><td>매출 (정상 판매 ' + r.saleCount + '건)</td><td class="r">' + money(r.sales) + '</td></tr>' +
           '<tr><td>상품 원가</td><td class="r">' + money(-r.costSum) + '</td></tr>' +
           '<tr class="sub"><td>판매 이익' + (r.negCount ? ' <span style="color:#c0272d;font-weight:600;">(역마진 ' + r.negCount + '건 포함)</span>' : '') + '</td><td class="r">' + money(r.saleProfit) + '</td></tr>' +
+          (r.cbWonCount ? '<tr><td>차지백 방어 성공 (' + r.cbWonCount + '건)</td><td class="r is-pos">' + money(r.cbWonProfit) + '</td></tr>' : '') +
           '<tr><td>차지백 손실 (' + r.cbCount + '건)</td><td class="r">' + money(-r.cbLoss) + '</td></tr>' +
           '<tr class="total"><td>최종 순이익</td><td class="r ' + netCls + '">' + money(r.net) + '</td></tr>' +
         '</table>' +
