@@ -438,6 +438,20 @@
     document.getElementById('mRefund').innerHTML = rfRate + '<small>%</small>';
     document.getElementById('mProgress').innerHTML = progress + '<small>%</small>';
     document.getElementById('mBar').style.width = progress + '%';
+
+    // 모든 주문을 받고 전부 처리(발주 or 환불)했으면 정산 배너 노출
+    var received = orders.length;
+    var processed = orders.filter(function (o) { return o.fulfillment !== 'unfulfilled'; }).length;
+    var allDone = total > 0 && received === total && processed === total;
+    var bar = document.getElementById('doneBar');
+    if (bar) {
+      bar.innerHTML = allDone
+        ? '<div class="done-bar">' +
+            '<div class="done-bar__txt">🎉 <b>모든 주문 처리 완료!</b> 최종 이익을 확인해 보세요.</div>' +
+            '<a class="btn-primary" href="order-result.html" style="text-decoration:none;">정산하기 →</a>' +
+          '</div>'
+        : '';
+    }
   }
 
   /* ---------- 동작 ---------- */
