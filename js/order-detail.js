@@ -280,6 +280,45 @@
       '<span class="od-muted">(주문하신 상품을 발송해 드릴 수 없어 전액 환불 처리했습니다. 불편을 드려 죄송합니다.)</span>';
   }
 
+  // 품절 안내 메일 (재고 유무와 무관하게 언제든 보낼 수 있음 — 판단은 학생 몫)
+  function stockAlertText(o) {
+    return 'Hi ' + esc(o.cust) + ',<br><br>' +
+      'We are sorry to inform you that an item in your order <b>' + esc(o.no) + '</b> is currently <b>out of stock</b> and cannot be shipped. ' +
+      'We will issue you a full refund shortly. We sincerely apologize for the inconvenience.<br><br>' +
+      '<span class="od-muted">(주문하신 상품이 품절되어 발송이 어렵습니다. 곧 전액 환불해 드리겠습니다. 불편을 드려 죄송합니다.)</span>';
+  }
+
+  function openStockAlert(o) {
+    var box = document.createElement('div');
+    box.className = 'modal-overlay is-open';
+    box.innerHTML =
+      '<div class="modal-card" style="max-width:520px;">' +
+        '<div class="modal-card__head"><h3>고객에게 품절 안내 메일</h3><button class="modal-close" data-close>×</button></div>' +
+        '<div class="modal-card__body">' +
+          '<div class="cust-mail">' +
+            '<div class="cust-mail__row"><span>받는 사람</span><b>' + esc(o.cust) + (o.email ? ' &lt;' + esc(o.email) + '&gt;' : '') + '</b></div>' +
+            '<div class="cust-mail__row"><span>제목</span><b>Regarding your order ' + esc(o.no) + '</b></div>' +
+            '<div class="cust-mail__body">' + stockAlertText(o) + '</div>' +
+          '</div>' +
+          '<p style="margin:12px 0 0;font-size:0.82rem;color:var(--muted);">품절·단종·옵션 없음 등 발송이 어려운 경우 고객에게 먼저 안내하고, [환불하기]로 전액 환불하세요.</p>' +
+        '</div>' +
+        '<div class="modal-card__foot">' +
+          '<button class="btn-sm" data-close>취소</button>' +
+          '<button class="btn-sm is-dark" id="alertSend">📧 메일 보내기</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(box);
+    box.addEventListener('click', function (ev) { if (ev.target === box || ev.target.closest('[data-close]')) box.remove(); });
+    box.querySelector('#alertSend').addEventListener('click', function () {
+      o.stockAlertSent = true;
+      o.custNotified = true;
+      o.notifiedAt = Date.now();
+      saveOrder(o);
+      box.remove();
+      render(o);
+    });
+  }
+
   /* Order risk 카드의 아이콘을 누르면 뜨는 상세 분석.
      감지된 신호만 나열하고 결론은 내려주지 않는다 (판단은 수강생 몫) */
   function riskSignals(o) {
@@ -430,6 +469,7 @@
           (o.payment === 'refunded'
             ? '<button class="btn-sm" disabled>환불 완료</button>'
             : '<button class="btn-sm is-danger" id="btnRefund">환불하기 (주문 취소)</button>') +
+          '<button class="btn-sm" id="btnStockAlert">' + (o.stockAlertSent ? '✅ 품절 안내 보냄' : '📧 품절 안내 메일') + '</button>' +
           '<button class="btn-sm" id="btnEdit">주문 편집하기</button>' +
         '</div>' +
       '</div>' +
@@ -556,6 +596,9 @@
 
     var rk = document.getElementById('btnRisk');
     if (rk) rk.addEventListener('click', function () { openRiskDetail(o); });
+
+    var sa = document.getElementById('btnStockAlert');
+    if (sa) sa.addEventListener('click', function () { openStockAlert(o); });
 
     bindZoom(o);
 
