@@ -12,6 +12,7 @@
 
   var campaigns = [];
   var tab = 'all';
+  var practiceTopic = '';
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
@@ -51,6 +52,75 @@
     document.getElementById('mSpend').textContent = money(spend, 0);
     document.getElementById('mCac').textContent = money(cac);
     document.getElementById('mRoas').textContent = roas ? roas.toFixed(1) : '0';
+  }
+
+  /* ---------- 발주 연습 손익 (order-result 의 net 계산과 동일 규칙) ---------- */
+  function practiceNet() {
+    var orders = [], plan = null;
+    try { orders = JSON.parse(localStorage.getItem('practice_orders')) || []; } catch (e) {}
+    try { plan = JSON.parse(localStorage.getItem('practice_plan')); } catch (e) {}
+    var total = plan ? plan.total : orders.length;
+    var processed = orders.filter(function (o) { return o.fulfillment !== 'unfulfilled'; }).length;
+    var net = 0, sales = 0;
+    orders.forEach(function (o) {
+      if (o.fulfillment !== 'fulfilled') return;   // 환불/미처리는 손익 0
+      var cost = Number(o.cost) || 0, tot = Number(o.total) || 0;
+      var sourced = (o.amazon && typeof o.amazon.sourcedCost === 'number') ? o.amazon.sourcedCost : cost;
+      var isCb = o.chargebackFired || o.issue === 'chargeback';
+      if (isCb) {
+        if (o.chargeback && o.chargeback.status === 'won') { net += (tot - sourced); sales += tot; }
+        else { net -= (o.chargeback && o.chargeback.loss) || (cost + 15); }
+      } else if (o.amazon && o.amazon.misship) { net -= sourced; }
+      else if (o.lateRefund) { net -= sourced; }
+      else { net += (tot - sourced); sales += tot; }
+    });
+    return {
+      net: round2(net), sales: round2(sales),
+      hasData: orders.length > 0, total: total, processed: processed,
+      allDone: total > 0 && orders.length === total && processed === total
+    };
+  }
+
+  function renderSummary() {
+    var box = document.getElementById('pnlSummary');
+    if (!box) return;
+    var pn = practiceNet();
+    var mine = practiceTopic ? campaigns.filter(function (c) { return c.category === practiceTopic; }) : campaigns;
+    var adSpend = round2(mine.reduce(function (a, c) { return a + (Number(c.spend) || 0); }, 0));
+    var finalNet = round2(pn.net - adSpend);
+    var fcls = finalNet >= 0 ? 'is-pos' : 'is-neg';
+
+    var body;
+    if (!pn.hasData) {
+      body = '<div style="padding:16px 20px;color:var(--muted);font-size:0.9rem;">아직 발주 연습 기록이 없습니다. ' +
+        '광고비를 쓰면 여기서 <b>광고 반영 손익</b>을 볼 수 있습니다.</div>';
+    } else {
+      body = '<table class="breakdown">' +
+        '<tr><td>발주 연습 영업 손익' + (pn.allDone ? '' : ' <span style="color:var(--muted);font-weight:600;">(처리중 ' + pn.processed + '/' + pn.total + ')</span>') + '</td>' +
+          '<td class="r ' + (pn.net >= 0 ? 'is-pos' : 'is-neg') + '">' + money(pn.net) + '</td></tr>' +
+        '<tr><td>광고비 (' + (practiceTopic ? '이 주제 ' : '') + mine.length + '개 캠페인)</td><td class="r is-neg">' + money(-adSpend) + '</td></tr>' +
+        '<tr class="total"><td>최종 순이익 (광고비 반영)</td><td class="r ' + fcls + '">' + money(finalNet) + '</td></tr>' +
+        '</table>';
+    }
+
+    box.className = 'panel';
+    box.style.marginBottom = '18px';
+    box.innerHTML =
+      '<div class="panel__head"><span>발주 연습 손익 (광고비 반영)' + (practiceTopic ? ' · ' + esc(practiceTopic) : '') + '</span>' +
+        '<button class="btn-sm is-danger" id="resetRecordsBtn">🗑 기록 초기화</button></div>' +
+      body;
+
+    document.getElementById('resetRecordsBtn').addEventListener('click', resetRecords);
+  }
+
+  function resetRecords() {
+    if (!confirm('광고 캠페인과 발주 연습 기록을 모두 지웁니다.\n(캠페인 · 받은 주문 · 소싱/차지백 기록)\n정말 초기화할까요?')) return;
+    ['ad_campaigns', 'practice_orders', 'practice_plan', 'practice_chargebacks'].forEach(function (k) {
+      localStorage.removeItem(k);
+    });
+    campaigns = [];
+    save();
+    render();
   }
 
   /* ---------- 캠페인 표 ---------- */
@@ -98,6 +168,7 @@
     document.getElementById('advUpdated').textContent = campaigns.length
       ? 'Last updated ' + new Date().toLocaleDateString() : '';
     renderMetrics();
+    renderSummary();
   }
 
   /* ---------- 캠페인 만들기 → 별도 화면 ---------- */
@@ -136,6 +207,10 @@
   (async function init() {
     var user = await Auth.require();
     if (!user) return;
+    try {
+      var s = await sb.from('practice_settings').select('topic').eq('user_id', user.id).maybeSingle();
+      practiceTopic = (s.data && s.data.topic) || '';
+    } catch (e) {}
     load();
     render();
   })();
