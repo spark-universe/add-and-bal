@@ -268,63 +268,16 @@
   /* ---------- 재고 부족 안내 + 고객 문의 ----------
      아마존 재고가 주문 수량보다 적을 때 뜬다.
      [고객에게 문의하기] 를 눌러야 고객의 답장이 오고, 그 답장대로 처리해야 정답이다. */
-  // 상품 없음 안내 — 아마존에서 확인(o.amazon.unavailable) 한 뒤에만 노출(미리 스포일 안 함)
-  function stockBox(o) {
-    var info = oosInfo(o);
-    if (!info) return '';
-    if (!(o.amazon && o.amazon.unavailable)) return '';   // 아직 아마존에서 확인 전
+  // 품절/단종/옵션없음은 화면에서 미리 알려주지 않는다 (학생이 아마존에서 직접 판단).
+  // 발송 불가라고 판단되면 [환불하기]에서 사유를 직접 고르고 고객 메일을 보낸다.
+  function stockBox(o) { return ''; }
 
-    var head = '⚠️ 이 상품은 아마존에서 구할 수 없습니다 — <b>' + esc(info.reason) + '</b>';
-    var body;
-    if (!o.custNotified) {
-      body = '<p class="oos-p">발송할 수 없으니 <b>고객에게 안내 메일</b>을 보내고 <b>전액 환불</b>하세요.</p>' +
-        '<button class="btn-sm is-primary" id="btnEmailCust">📧 고객에게 안내 메일 보내기</button>';
-    } else {
-      body = '<div class="oos-mail">' +
-        '<div class="oos-mail__from">✅ 보낸 메일 → ' + esc(o.cust) + (o.email ? ' &lt;' + esc(o.email) + '&gt;' : '') + '</div>' +
-        '<div class="oos-mail__body">' + custEmailText(o, info) + '</div>' +
-      '</div>' +
-      '<p class="oos-p" style="margin-top:12px;">이제 <b>[환불하기(주문 취소)]</b> 로 전액 환불하세요.</p>';
-    }
-    return '<div class="oos-box"><div class="oos-head">' + head + '</div>' + body + '</div>';
-  }
-
-  function custEmailText(o, info) {
+  // 환불 시 고객에게 보내는 안내 메일(사유는 드러내지 않는 일반 문구)
+  function refundEmailText(o) {
     return 'Hi ' + esc(o.cust) + ',<br><br>' +
-      'Unfortunately the item in your order <b>' + esc(o.no) + '</b> is currently unavailable, so we are unable to ship it. ' +
-      'We sincerely apologize and will issue you a <b>full refund</b> right away.<br><br>' +
-      '<span class="od-muted">(주문하신 상품이 ' + esc(info.reason) + ' 으로 발송이 어려워, 전액 환불해 드리겠습니다.)</span>';
-  }
-
-  // 고객 안내 메일 작성/발송 모달
-  function openCustEmail(o) {
-    var info = oosInfo(o);
-    var box = document.createElement('div');
-    box.className = 'modal-overlay is-open';
-    box.innerHTML =
-      '<div class="modal-card" style="max-width:520px;">' +
-        '<div class="modal-card__head"><h3>고객에게 안내 메일 보내기</h3><button class="modal-close" data-close>×</button></div>' +
-        '<div class="modal-card__body">' +
-          '<div class="cust-mail">' +
-            '<div class="cust-mail__row"><span>받는 사람</span><b>' + esc(o.cust) + (o.email ? ' &lt;' + esc(o.email) + '&gt;' : '') + '</b></div>' +
-            '<div class="cust-mail__row"><span>제목</span><b>Regarding your order ' + esc(o.no) + '</b></div>' +
-            '<div class="cust-mail__body">' + custEmailText(o, info) + '</div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="modal-card__foot">' +
-          '<button class="btn-sm" data-close>취소</button>' +
-          '<button class="btn-sm is-dark" id="mailSend">📧 메일 보내기</button>' +
-        '</div>' +
-      '</div>';
-    document.body.appendChild(box);
-    box.addEventListener('click', function (ev) { if (ev.target === box || ev.target.closest('[data-close]')) box.remove(); });
-    box.querySelector('#mailSend').addEventListener('click', function () {
-      o.custNotified = true;
-      o.notifiedAt = Date.now();
-      saveOrder(o);
-      box.remove();
-      render(o);
-    });
+      'Unfortunately we are unable to fulfill your order <b>' + esc(o.no) + '</b>, so we have issued you a <b>full refund</b>. ' +
+      'We sincerely apologize for the inconvenience.<br><br>' +
+      '<span class="od-muted">(주문하신 상품을 발송해 드릴 수 없어 전액 환불 처리했습니다. 불편을 드려 죄송합니다.)</span>';
   }
 
   /* Order risk 카드의 아이콘을 누르면 뜨는 상세 분석.
@@ -604,10 +557,6 @@
     var rk = document.getElementById('btnRisk');
     if (rk) rk.addEventListener('click', function () { openRiskDetail(o); });
 
-    // 상품 없음 → 고객에게 안내 메일
-    var em = document.getElementById('btnEmailCust');
-    if (em) em.addEventListener('click', function () { openCustEmail(o); });
-
     bindZoom(o);
 
     // 사기 주문을 발주 처리했다면 차지백 이벤트 발생 (직접 처리·라벨 구매 모두 이 render 로 귀결)
@@ -620,30 +569,25 @@
      그 번호를 여기에 넣어야 고객이 배송 조회를 할 수 있다. */
   var CARRIERS = ['Amazon Logistics', 'UPS', 'USPS', 'FedEx', 'DHL eCommerce', 'Other'];
 
-  // 아직 아마존에서 주문(소싱)하지 않았을 때 안내
+  // 아직 아마존에서 주문(소싱)하지 않았을 때 안내 (품절/단종이라고 알려주지 않음 — 판단은 학생 몫)
   function showSourcePrompt(o) {
-    var oos = (o.lines || []).some(lineOos);
     var box = document.createElement('div');
     box.className = 'modal-overlay is-open';
     box.innerHTML =
       '<div class="modal-card" style="max-width:460px;">' +
-        '<div class="modal-card__head"><h3>' + (oos ? '아마존 품절 — 발주 불가' : '먼저 아마존에서 주문하세요') + '</h3><button class="modal-close" data-close>×</button></div>' +
+        '<div class="modal-card__head"><h3>먼저 아마존에서 주문하세요</h3><button class="modal-close" data-close>×</button></div>' +
         '<div class="modal-card__body">' +
-          '<p style="margin:0;font-size:0.92rem;line-height:1.7;">' + (oos
-            ? '이 주문의 상품이 <b>아마존에 품절</b>이라 발주할 수 없습니다. <b>[환불하기(주문 취소)]</b> 로 처리하세요.'
-            : '드랍쉬핑은 내가 직접 배송하지 않습니다. <b>아마존에서 이 주문의 상품을 고객 주소로 주문</b>하고, 아마존이 발급한 <b>배송번호(TBA)</b>를 받아와야 발주를 완료할 수 있습니다.') + '</p>' +
+          '<p style="margin:0;font-size:0.92rem;line-height:1.7;">드랍쉬핑은 내가 직접 배송하지 않습니다. ' +
+          '<b>아마존에서 이 주문의 상품을 고객 주소로 주문</b>하고, 아마존이 발급한 <b>배송번호(TBA)</b>를 받아와야 발주를 완료할 수 있습니다.<br>' +
+          '<span class="od-muted">아마존에서 상품을 찾을 수 없다면(품절·단종·옵션 없음) 발송하지 말고 [환불하기]로 처리하세요.</span></p>' +
         '</div>' +
         '<div class="modal-card__foot">' +
           '<button class="btn-sm" data-close>취소</button>' +
-          (oos
-            ? '<button class="btn-sm is-danger" id="srcRefund">환불하기 (주문 취소)</button>'
-            : '<a class="btn-sm is-dark" href="amazon.html?no=' + encodeURIComponent(o.no) + '" target="_blank" rel="noopener" style="text-decoration:none;">🛒 아마존에서 주문하기</a>') +
+          '<a class="btn-sm is-dark" href="amazon.html?no=' + encodeURIComponent(o.no) + '" target="_blank" rel="noopener" style="text-decoration:none;">🛒 아마존에서 주문하기</a>' +
         '</div>' +
       '</div>';
     document.body.appendChild(box);
     box.addEventListener('click', function (ev) { if (ev.target === box || ev.target.closest('[data-close]')) box.remove(); });
-    var rf = box.querySelector('#srcRefund');
-    if (rf) rf.addEventListener('click', function () { box.remove(); openRefund(o); });
   }
 
   function openFulfill(o) {
@@ -759,15 +703,24 @@
             '<tr><td>환불 금액</td><td></td><td class="r">' + money(o.grandTotal) + '</td></tr>' +
           '</table>' +
           '<div class="field">' +
-            '<label>환불 사유</label>' +
+            '<label>환불 사유 (직접 판단해 선택하세요)</label>' +
             '<select id="refundReason" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;">' +
+              '<option value="">사유 선택…</option>' +
               '<option value="fraud">사기 의심 주문 (차지백 위험)</option>' +
-              '<option value="oos">상품 품절 · 단종으로 발주 불가</option>' +
+              '<option value="oos_stock">아마존 품절 (재고 없음)</option>' +
+              '<option value="oos_discontinued">아마존 단종 (검색해도 없음)</option>' +
+              '<option value="oos_option">요청 옵션 없음</option>' +
               '<option value="no_ship">배송 불가 지역</option>' +
               '<option value="etc">기타 (고객 요청 등)</option>' +
             '</select>' +
           '</div>' +
-          '<p style="margin:14px 0 0;font-weight:700;font-size:0.9rem;">정말로 환불하시겠습니까?</p>' +
+          '<label style="display:inline-flex;align-items:center;gap:7px;font-size:0.85rem;margin-top:6px;">' +
+            '<input type="checkbox" id="refundMail" checked> 📧 고객에게 환불 안내 메일 보내기' +
+          '</label>' +
+          '<div class="cust-mail" style="margin-top:8px;">' +
+            '<div class="cust-mail__body">' + refundEmailText(o) + '</div>' +
+          '</div>' +
+          '<div id="refundErr" style="color:var(--danger);font-size:0.82rem;margin-top:10px;"></div>' +
         '</div>' +
         '<div class="modal-card__foot">' +
           '<button class="btn-sm" data-close>취소</button>' +
@@ -782,10 +735,13 @@
     });
 
     box.querySelector('#refundGo').addEventListener('click', function () {
+      var reason = box.querySelector('#refundReason').value;
+      if (!reason) { box.querySelector('#refundErr').textContent = '환불 사유를 선택하세요.'; return; }
       o.payment = 'refunded';
       o.fulfillment = 'not_required';    // 발주하지 않는 주문
-      o.refundReason = box.querySelector('#refundReason').value;
+      o.refundReason = reason;
       o.refundedAt = Date.now();
+      if (box.querySelector('#refundMail').checked) { o.custNotified = true; o.notifiedAt = Date.now(); }
       saveOrder(o);
       close();
       render(o);                         // 화면 갱신 (뱃지가 Refunded 로 바뀜)

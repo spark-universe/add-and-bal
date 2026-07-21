@@ -43,19 +43,6 @@
     return { label: t.label, choices: t.choices, correct: t.choices[Math.floor(seed / 7) % t.choices.length] };
   }
   function lineOos(l) { return !!l.oos; }
-  function oosReason(l) {
-    var t = l.oosType || 'stock';
-    if (t === 'notfound') return '단종 — 아마존에서 검색해도 나오지 않습니다';
-    if (t === 'option') return '요청 옵션(' + (l.reqOption ? l.reqOption.label + ' ' + l.reqOption.value : '') + ')이 아마존에 없습니다';
-    return '품절 — 아마존 재고 없음';
-  }
-  function oosReasonShort(l) {
-    var t = l.oosType || 'stock';
-    if (t === 'notfound') return '🚫 단종 · 검색 안됨';
-    if (t === 'option') return '🚫 요청 옵션(' + (l.reqOption ? l.reqOption.value : '') + ') 없음';
-    return '🚫 품절 · 재고 없음';
-  }
-  function firstOos() { return (order.lines || []).find(lineOos); }
 
   var order = null, catalog = [], listings = [], bought = {};
 
@@ -168,17 +155,18 @@
 
   function needList() {
     return (order.lines || []).map(function (l) {
-      var oos = lineOos(l);
       var rec = bought[l.pid];
       var done = !!rec;
-      var opt = optionOf(order.no, l, order.level);
+      var op = optionOf(order.no, l, order.level);
+      var optLabel = op ? op.label : (l.reqOption ? l.reqOption.label : null);
+      var optVal = op ? op.correct : (l.reqOption ? l.reqOption.value : null);
       var img = (imgsOf(l)[0]) ? '<img src="' + esc(imgsOf(l)[0]) + '" alt="">' : '<span class="az-noimg">?</span>';
-      var status = oos ? '<span class="az-bad">' + oosReasonShort(l) + ' → 고객 안내·환불</span>'
-        : done ? boughtLabel(rec) : '<span class="az-todo">담아야 함</span>';
-      return '<div class="az-need__item ' + (done && !oos ? 'is-done' : '') + (oos ? ' is-oos' : '') + '">' +
-        '<span class="az-need__chk">' + (oos ? '🚫' : (done ? '✅' : '⬜')) + '</span>' + img +
+      // 품절/단종 여부는 표시하지 않음 — 학생이 검색해서 직접 확인
+      var status = done ? boughtLabel(rec) : '<span class="az-todo">담아야 함</span>';
+      return '<div class="az-need__item ' + (done ? 'is-done' : '') + '">' +
+        '<span class="az-need__chk">' + (done ? '✅' : '⬜') + '</span>' + img +
         '<div class="az-need__info"><b>' + esc(l.name) + '</b>' +
-          '<span>수량 ' + l.qty + '개' + (opt ? ' · ' + esc(opt.label) + ': <b>' + esc(opt.correct) + '</b>' : '') + '</span>' +
+          '<span>수량 ' + l.qty + '개' + (optLabel ? ' · ' + esc(optLabel) + ': <b>' + esc(optVal) + '</b>' : '') + '</span>' +
           '<span class="az-need__st">' + status + '</span>' +
         '</div></div>';
     }).join('');
@@ -219,15 +207,8 @@
         '<div class="az-done__tip">이 번호를 복사해 쇼피파이 주문의 <b>[Mark as fulfilled]</b> 에 붙여넣으면 발주가 완료됩니다.</div>' +
         '<a class="btn-primary" href="order-detail.html?no=' + encodeURIComponent(order.no) + '" style="text-decoration:none;">← 쇼피파이 주문으로 돌아가기</a>' +
       '</div>';
-    } else if (oos) {
-      var oinfo = firstOos();
-      done = '<div class="az-done az-done--oos">' +
-        '<div class="az-done__h" style="color:#c0272d;">🚫 이 상품은 아마존에서 주문할 수 없습니다</div>' +
-        '<div class="az-done__tip"><b>' + esc(oinfo ? oosReason(oinfo) : '상품 없음') + '</b><br>' +
-          '발송할 수 없는 상품입니다. 쇼피파이로 돌아가 <b>고객에게 안내 메일</b>을 보내고 <b>전액 환불</b>하세요.</div>' +
-        '<a class="btn-primary" href="order-detail.html?no=' + encodeURIComponent(order.no) + '" style="text-decoration:none;">← 쇼피파이 주문으로 돌아가기</a>' +
-      '</div>';
     }
+    // 품절/단종/옵션없음은 배너로 알려주지 않는다 — 학생이 검색·상품페이지에서 직접 판단해야 함
 
     document.getElementById('azRoot').innerHTML =
       '<div class="az-top">' +
