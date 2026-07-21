@@ -945,24 +945,6 @@ tbody tr:hover { background: #fafbff; }
   padding: 2px 8px; white-space: nowrap;
 }
 
-/* 발주 연습 2열 (표 + 적용된 설정 패널) */
-.ord-layout { display: flex; gap: 20px; align-items: flex-start; }
-.ord-main { flex: 1; min-width: 0; }
-.ord-aside { width: 280px; flex: 0 0 280px; }
-.aset { background: var(--content-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px; }
-.aset__head { font-weight: 800; font-size: 0.9rem; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
-.aset__head a { font-size: 0.78rem; color: var(--primary); font-weight: 600; }
-.aset__row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; font-size: 0.86rem; border-bottom: 1px solid #f0f2f6; }
-.aset__row:last-child { border-bottom: none; }
-.aset__row span { color: var(--muted); }
-.aset__total { border-top: 1px solid var(--border); border-bottom: none; margin-top: 6px; padding-top: 9px; }
-.aset__ad { padding: 8px 0; border-bottom: 1px solid #f0f2f6; }
-.aset__ad-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 0.86rem; }
-.aset__ad-sub { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
-.aset__on { font-size: 0.7rem; font-weight: 700; color: #14814a; background: #eaf6ee; padding: 1px 7px; border-radius: 20px; white-space: nowrap; }
-.aset__off { font-size: 0.7rem; font-weight: 700; color: var(--muted); background: #eef1f6; padding: 1px 7px; border-radius: 20px; white-space: nowrap; }
-.aset__empty { font-size: 0.84rem; color: var(--muted); line-height: 1.7; }
-@media (max-width: 1100px) { .ord-layout { flex-direction: column; } .ord-aside { width: 100%; flex: none; } }
 
 /* 정산 결과 */
 .result-top { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; }

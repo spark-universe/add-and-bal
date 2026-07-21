@@ -448,45 +448,6 @@
     btn.disabled = !left;
     btn.textContent = left ? '＋ 주문 받기' : '주문 모두 받음';
     renderStats();
-    renderApplied();
-  }
-
-  // 오른쪽 패널 — 적용된 발주 세팅 + 들어간 광고
-  function renderApplied() {
-    var box = document.getElementById('appliedSettings');
-    if (!box) return;
-    var s = settings || {};
-    var camps = [];
-    try { camps = JSON.parse(localStorage.getItem('ad_campaigns')) || []; } catch (e) {}
-    var planSig = plan ? plan.sig : null;
-    // 이번 연습에 반영되는 광고 = 진행 중(Active)이거나 이번 런에 반영된 캠페인
-    var mine = s.topic ? camps.filter(function (c) { return c.category === s.topic && (c.status === 'active' || c.runSig === planSig); }) : camps;
-    var adSpend = mine.reduce(function (a, c) { return a + (Number(c.spend) || 0); }, 0);
-
-    var setRows =
-      '<div class="aset__row"><span>주제</span><b>' + esc(s.topic || '-') + '</b></div>' +
-      '<div class="aset__row"><span>마진</span><b>' + (s.margin != null ? s.margin + '%' : '-') + '</b></div>' +
-      '<div class="aset__row"><span>주문 수</span><b>' + (s.order_count || '-') + '건</b></div>' +
-      '<div class="aset__row"><span>난이도</span><b>' + esc(s.level || '-') + '</b></div>';
-
-    var adRows = mine.length
-      ? mine.map(function (c) {
-          return '<div class="aset__ad">' +
-            '<div class="aset__ad-top"><b>' + esc(c.name) + '</b>' +
-              '<span class="' + (c.status === 'active' ? 'aset__on' : 'aset__off') + '">' + (c.status === 'active' ? 'Active' : 'Done') + '</span></div>' +
-            '<div class="aset__ad-sub">광고비 ' + money(c.spend) + ' · ROAS ' + (c.roas ? c.roas.toFixed(1) : '0') + 'x</div>' +
-          '</div>';
-        }).join('') +
-        '<div class="aset__row aset__total"><span>광고비 합계</span><b>' + money(adSpend) + '</b></div>'
-      : '<div class="aset__empty">이 주제로 적용된 광고가 없습니다.<br><a href="ad-settings.html" style="color:var(--primary);">광고 설정 →</a></div>';
-
-    box.innerHTML =
-      '<div class="aset">' +
-        '<div class="aset__head">⚙️ 적용된 발주 세팅 <a href="order-setup.html">수정</a></div>' + setRows +
-      '</div>' +
-      '<div class="aset">' +
-        '<div class="aset__head">📢 들어간 광고 <a href="ad-settings.html">관리</a></div>' + adRows +
-      '</div>';
   }
 
   function renderStats() {
@@ -558,7 +519,6 @@
     });
     localStorage.setItem('ad_campaigns', JSON.stringify(camps));
     showAdSettlePopup(active, sales, customers);
-    renderApplied();
   }
 
   function showAdSettlePopup(active, sales, customers) {

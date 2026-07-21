@@ -51,33 +51,28 @@
       </div>
     </div>
 
-    <!-- 주문 표 + 적용된 설정 -->
-    <div class="ord-layout">
-      <div class="ord-main">
-        <div class="ord-panel">
-          <div class="ord-toolbar">
-            <span class="ord-tab">All</span>
-            <span class="ord-search">🔍 Search and filter</span>
-          </div>
-          <div class="ord-head2">
-            <span>Orders</span>
-            <span style="font-weight:600;color:var(--muted);font-size:0.82rem;" id="ordCount"></span>
-          </div>
-          <div class="ord-scroll">
-            <table class="ord-table">
-              <thead>
-                <tr>
-                  <th>Order</th><th>Risk</th><th>Date</th><th>Customer</th>
-                  <th>Total</th><th>Payment status</th><th>Fulfillment status</th>
-                  <th>Items</th><th>Delivery method</th><th>Tags</th>
-                </tr>
-              </thead>
-              <tbody id="ordBody"></tbody>
-            </table>
-          </div>
-        </div>
+    <!-- 주문 표 -->
+    <div class="ord-panel">
+      <div class="ord-toolbar">
+        <span class="ord-tab">All</span>
+        <span class="ord-search">🔍 Search and filter</span>
       </div>
-      <aside class="ord-aside" id="appliedSettings"></aside>
+      <div class="ord-head2">
+        <span>Orders</span>
+        <span style="font-weight:600;color:var(--muted);font-size:0.82rem;" id="ordCount"></span>
+      </div>
+      <div class="ord-scroll">
+        <table class="ord-table">
+          <thead>
+            <tr>
+              <th>Order</th><th>Risk</th><th>Date</th><th>Customer</th>
+              <th>Total</th><th>Payment status</th><th>Fulfillment status</th>
+              <th>Items</th><th>Delivery method</th><th>Tags</th>
+            </tr>
+          </thead>
+          <tbody id="ordBody"></tbody>
+        </table>
+      </div>
     </div>
   </main>
 </div>
