@@ -140,7 +140,8 @@
             '<tr class="cb-total"><td>차지백 총액 (Total)</td><td class="r">' + money(cb.total) + '</td></tr>' +
           '</table>' +
           '<div class="cb-tip">📄 마감일까지 <b>증거를 제출해 항소</b>하거나 <b>차지백을 수용</b>할 수 있습니다. ' +
-            '다만 <b>사기 차지백은 거의 이길 수 없습니다.</b> 이런 주문은 원래 <b>[환불하기(주문 취소)]</b>로 걸렀어야 합니다.</div>' +
+            '다만 <b>사기 차지백은 거의 이길 수 없습니다.</b> 이런 주문은 원래 <b>[환불하기(주문 취소)]</b>로 걸렀어야 합니다.<br>' +
+            '실제 대응 방법은 <a href="chargeback-manual.html" target="_blank" rel="noopener" style="color:var(--primary);">📕 차지백 대응 가이드</a>를 참고하세요.</div>' +
         '</div>' +
         '<div class="modal-card__foot">' +
           '<button class="btn-sm" data-close>나중에</button>' +
@@ -168,6 +169,7 @@
           '<div class="cb-alert__btns">' +
             '<button class="btn-sm is-dark" id="cbEvidence">증거 제출하기 (항소)</button>' +
             '<button class="btn-sm" id="cbAccept">차지백 수용</button>' +
+            '<a class="btn-sm" href="chargeback-manual.html" target="_blank" rel="noopener" style="text-decoration:none;">📕 대응 가이드</a>' +
           '</div>' +
         '</div>';
     }
@@ -175,7 +177,8 @@
     return '<div class="cb-alert is-lost">' +
         '<div class="cb-alert__title">💸 차지백 확정 (' + res + ') · 순 손실 -' + money(cb.loss) + '</div>' +
         '<div class="cb-alert__desc">판매대금 ' + money(cb.amount) + ' 회수 + 수수료 ' + money(cb.fee) +
-          '. 이미 지출한 상품 원가도 회수할 수 없습니다.</div>' +
+          '. 이미 지출한 상품 원가도 회수할 수 없습니다. ' +
+          '<a href="chargeback-manual.html" target="_blank" rel="noopener" style="color:var(--primary);">📕 차지백 대응 가이드</a></div>' +
       '</div>';
   }
 
