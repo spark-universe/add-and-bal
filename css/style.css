@@ -828,7 +828,7 @@ tbody tr:hover { background: #fafbff; }
 
 /* 난이도 안내 박스 (발주 세팅) */
 .level-desc {
-  margin-top: 10px; padding: 12px 14px; border-radius: 10px;
+  grid-column: 2; margin-top: 4px; padding: 12px 16px; border-radius: 10px;
   background: var(--primary-soft); border: 1px solid #d7e3ff;
   font-size: 0.85rem; line-height: 1.6; color: var(--text);
 }
