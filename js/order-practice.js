@@ -403,13 +403,29 @@
     return 'is-done';
   }
 
+  // 이번 연습에 반영되는(진행 중/이번 런) 광고 캠페인 이름들 — 주문 태그로 표시
+  function activeAdNames() {
+    if (!settings || !settings.topic) return [];
+    var camps = [];
+    try { camps = JSON.parse(localStorage.getItem('ad_campaigns')) || []; } catch (e) { return []; }
+    var planSig = plan ? plan.sig : null;
+    return camps.filter(function (c) { return c.category === settings.topic && (c.status === 'active' || c.runSig === planSig); })
+      .map(function (c) { return c.name; });
+  }
+
   function render() {
     var body = document.getElementById('ordBody');
     if (!orders.length) {
-      body.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:48px;">' +
+      body.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:48px;">' +
         '아직 주문이 없습니다. 우측 상단 <b>[＋ 주문 받기]</b> 를 눌러 주문을 받아보세요.</td></tr>';
     } else {
+      var adNames = activeAdNames();
       body.innerHTML = orders.map(function (o) {
+        var tag = '';
+        if (adNames.length) {
+          var idx = parseInt(String(o.no).replace(/\D/g, ''), 10) % adNames.length;
+          tag = '<span class="ord-tag2">' + esc(adNames[idx]) + '</span>';
+        }
         return '<tr class="' + rowClass(o) + '" data-no="' + esc(o.no) + '">' +
           '<td class="ord-no">' + esc(o.no) + '</td>' +
           '<td>' + riskHtml(o) + '</td>' +
@@ -420,6 +436,7 @@
           '<td>' + fulfillBadge(o.fulfillment) + '</td>' +
           '<td>' + itemsHtml(o) + '</td>' +
           '<td>' + esc(o.method) + '</td>' +
+          '<td class="ord-tags">' + tag + '</td>' +
         '</tr>';
       }).join('');
     }
@@ -673,7 +690,7 @@
 
   function needSetup(msg) {
     document.getElementById('ordBody').innerHTML =
-      '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:48px;">' + msg +
+      '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:48px;">' + msg +
       '<br><br><a class="btn-primary" href="order-setup.html" style="text-decoration:none;padding:9px 16px;">발주 연습 세팅하러 가기</a>' +
       '</td></tr>';
     document.getElementById('receiveBtn').disabled = true;

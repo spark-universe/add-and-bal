@@ -937,6 +937,14 @@ tbody tr:hover { background: #fafbff; }
 }
 .done-bar__txt { font-size: 0.95rem; }
 
+/* 주문 태그 (광고 캠페인 이름) */
+.ord-tags { white-space: nowrap; }
+.ord-tag2 {
+  display: inline-block; font-size: 0.74rem; font-weight: 600; color: #4b5563;
+  background: #eef1f6; border: 1px solid #e2e6ec; border-radius: 8px;
+  padding: 2px 8px; white-space: nowrap;
+}
+
 /* 발주 연습 2열 (표 + 적용된 설정 패널) */
 .ord-layout { display: flex; gap: 20px; align-items: flex-start; }
 .ord-main { flex: 1; min-width: 0; }
