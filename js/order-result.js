@@ -37,6 +37,7 @@
       cbCount: 0, cbLoss: 0, cbList: [],
       cbWonCount: 0, cbWonProfit: 0,
       negCount: 0, negLoss: 0,
+      misCount: 0, misLoss: 0, overCount: 0, overTotal: 0,
       refundGood: 0, refundBadCount: 0, refundBadMissed: 0,
       riskyCount: 0,
       optimal: 0, net: 0
@@ -46,19 +47,26 @@
       var isProblem = !!o.issue;                 // 걸러야 하는 주문(사기/품절/배송불가/정보누락)
       if (!isProblem && margin > 0) r.optimal += margin;   // 최선(이론) 이익
 
+      var sourced = (o.amazon && typeof o.amazon.sourcedCost === 'number') ? o.amazon.sourcedCost : cost;  // 실제 아마존 지출
+      var misship = !!(o.amazon && o.amazon.misship);          // 유사품·옵션틀림 = 오배송
+      var overpaid = (o.amazon && o.amazon.overpaid) || 0;     // 바가지로 더 낸 돈
       var isCb = o.chargebackFired || o.issue === 'chargeback';
       if (o.fulfillment === 'fulfilled') {
         if (isCb) {
           if (o.chargeback && o.chargeback.status === 'won') {
-            r.cbWonCount++; r.cbWonProfit += margin; r.net += margin;   // 항소 승소 → 판매 유지(운 좋음)
+            r.cbWonCount++; r.cbWonProfit += (tot - sourced); r.net += (tot - sourced);   // 항소 승소 → 판매 유지(운 좋음)
           } else {
             var loss = (o.chargeback && o.chargeback.loss) || (cost + CB_FEE);
             r.cbCount++; r.cbLoss += loss; r.net -= loss;
             r.cbList.push({ no: o.no, cust: o.cust, loss: loss });
           }
+        } else if (misship) {
+          r.misCount++; r.misLoss += sourced; r.net -= sourced;   // 오배송: 상품값 날리고 매출 회수(환불)
         } else {
-          r.saleCount++; r.sales += tot; r.costSum += cost; r.saleProfit += margin; r.net += margin;
-          if (margin < 0) { r.negCount++; r.negLoss += (-margin); }
+          var prof = tot - sourced;
+          r.saleCount++; r.sales += tot; r.costSum += sourced; r.saleProfit += prof; r.net += prof;
+          if (prof < 0) { r.negCount++; r.negLoss += (-prof); }
+          if (overpaid > 0) { r.overCount++; r.overTotal += overpaid; }
           if (isProblem) r.riskyCount++;         // 사기는 아니지만 문제(품절/배송불가/정보누락) 발주
         }
       } else if (o.payment === 'refunded') {
@@ -83,7 +91,9 @@
           (r.cbWonCount ? ' · 승소 ' + r.cbWonCount + '건(운 좋게 방어)' : '') + '</li>'
       : '<li class="good">✅ 사기(차지백) 주문을 <b>모두 걸러냈습니다</b></li>');
     if (r.cbWonCount) notes.push('<li class="warn">🎲 항소 승소는 <b>운</b>입니다 — 최종 판단은 카드사·은행이라 대개 패소(승소율 약 30%). 사기 주문은 애초에 받지 않는 게 안전합니다.</li>');
-    if (r.negCount) notes.push('<li class="bad">📉 역마진 주문 발주 <b>' + r.negCount + '건</b> · 손실 <b>' + money(-r.negLoss) + '</b></li>');
+    if (r.misCount) notes.push('<li class="bad">📦 오배송(유사품·옵션 틀림) 발주 <b>' + r.misCount + '건</b> · 손실 <b>' + money(-r.misLoss) + '</b></li>');
+    if (r.overCount) notes.push('<li class="warn">💸 바가지 구매(더 비싼 리스팅) <b>' + r.overCount + '건</b> · 추가 지출 <b>' + money(-r.overTotal) + '</b></li>');
+    if (r.negCount) notes.push('<li class="bad">📉 손해 발주(역마진 등) <b>' + r.negCount + '건</b> · 손실 <b>' + money(-r.negLoss) + '</b></li>');
     if (r.riskyCount) notes.push('<li class="warn">⚠️ 품절·배송불가·정보누락 주문 발주 <b>' + r.riskyCount + '건</b> (배송/환불 분쟁 위험)</li>');
     if (r.refundBadCount) notes.push('<li class="warn">↩️ 정상 주문을 환불 <b>' + r.refundBadCount + '건</b> · 놓친 이익 <b>' + money(-r.refundBadMissed) + '</b></li>');
     if (r.refundGood) notes.push('<li class="good">🛡️ 문제 주문을 올바르게 환불(취소) <b>' + r.refundGood + '건</b></li>');
@@ -127,8 +137,9 @@
         '<div class="panel__head"><span>손익 상세</span></div>' +
         '<table class="breakdown">' +
           '<tr><td>매출 (정상 판매 ' + r.saleCount + '건)</td><td class="r">' + money(r.sales) + '</td></tr>' +
-          '<tr><td>상품 원가</td><td class="r">' + money(-r.costSum) + '</td></tr>' +
-          '<tr class="sub"><td>판매 이익' + (r.negCount ? ' <span style="color:#c0272d;font-weight:600;">(역마진 ' + r.negCount + '건 포함)</span>' : '') + '</td><td class="r">' + money(r.saleProfit) + '</td></tr>' +
+          '<tr><td>상품 원가 (아마존 실제 지출' + (r.overCount ? ' · 바가지 ' + r.overCount + '건 포함' : '') + ')</td><td class="r">' + money(-r.costSum) + '</td></tr>' +
+          '<tr class="sub"><td>판매 이익</td><td class="r">' + money(r.saleProfit) + '</td></tr>' +
+          (r.misCount ? '<tr><td>오배송 손실 (' + r.misCount + '건)</td><td class="r is-neg">' + money(-r.misLoss) + '</td></tr>' : '') +
           (r.cbWonCount ? '<tr><td>차지백 방어 성공 (' + r.cbWonCount + '건)</td><td class="r is-pos">' + money(r.cbWonProfit) + '</td></tr>' : '') +
           '<tr><td>차지백 손실 (' + r.cbCount + '건)</td><td class="r">' + money(-r.cbLoss) + '</td></tr>' +
           '<tr class="total"><td>최종 순이익</td><td class="r ' + netCls + '">' + money(r.net) + '</td></tr>' +

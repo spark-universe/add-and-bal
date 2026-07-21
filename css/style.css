@@ -869,6 +869,20 @@ tbody tr:hover { background: #fafbff; }
 .az-prime span { color: #565959; font-weight: 400; }
 .az-ship { font-size: 0.78rem; color: #565959; margin-top: 4px; }
 .az-empty { text-align: center; color: #565959; padding: 40px; background: #fff; border-radius: 10px; }
+.az-seller { font-size: 0.76rem; color: #565959; margin-top: 3px; }
+.az-card__img { position: relative; }
+.az-oosbadge { position: absolute; top: 6px; left: 6px; background: #c0272d; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 2px 7px; border-radius: 6px; }
+.az-card.is-oos { opacity: 0.65; }
+.az-need__st { font-size: 0.8rem; margin-top: 2px; }
+.az-bad { color: #c0272d; font-weight: 700; }
+.az-warn { color: #9a5b00; font-weight: 700; }
+.az-ok { color: #007600; font-weight: 700; }
+.az-todo { color: #565959; }
+.az-need__item.is-oos { background: #fdecec; border-radius: 8px; padding-left: 6px; }
+.az-prod__oos { color: #c0272d; font-weight: 800; margin: 8px 0; }
+.az-prod__opt { margin: 12px 0; font-size: 0.9rem; }
+.az-prod__opt select { padding: 6px 10px; border: 1px solid #888c8c; border-radius: 8px; margin-left: 6px; }
+.od-opt { font-size: 0.8rem; color: var(--primary); margin-top: 3px; font-weight: 600; }
 
 /* 상품 상세 모달 */
 .az-prod { max-width: 720px; }

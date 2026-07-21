@@ -22,6 +22,22 @@
   }
   function money(n) { return '$' + Number(n || 0).toFixed(2); }
 
+  // 결정적 옵션/품절 (js/amazon.js 의 동일 함수와 반드시 로직 일치!)
+  function h(s) { var n = 0; s = String(s); for (var i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) >>> 0; return n; }
+  function lineOos(l) { return !!l.oos && (Number(l.stock) || 0) < l.qty; }
+  function optionOf(no, line) {
+    if (line.oos) return null;
+    var seed = h(no + line.pid + 'opt');
+    if (seed % 10 >= 4) return null;
+    var TYPES = [
+      { label: '색상', choices: ['블랙', '화이트', '블루', '레드', '그린'] },
+      { label: '사이즈', choices: ['S', 'M', 'L', 'XL'] },
+      { label: '용량', choices: ['소형', '중형', '대형'] }
+    ];
+    var t = TYPES[seed % TYPES.length];
+    return { label: t.label, choices: t.choices, correct: t.choices[Math.floor(seed / 7) % t.choices.length] };
+  }
+
   function fmtFull(ts) {
     if (!ts) return '';
     var d = new Date(ts);
@@ -230,6 +246,7 @@
               ? '<span class="od-stock">' + (l.stock > 0 ? '재고 ' + l.stock + '개' : '품절') + '</span>'
               : '') +
           '</div>' +
+          (function () { var op = optionOf(o.no, l); return op ? '<div class="od-opt">🎨 옵션 · ' + esc(op.label) + ': <b>' + esc(op.correct) + '</b></div>' : ''; })() +
         '</div>' +
         '<div class="od-line__qty">' + money(l.price) + ' × <span class="od-qty">' + l.qty + '</span></div>' +
         '<div class="od-line__sum">' + money(l.price * l.qty) + '</div>' +
@@ -580,22 +597,28 @@
 
   // 아직 아마존에서 주문(소싱)하지 않았을 때 안내
   function showSourcePrompt(o) {
+    var oos = (o.lines || []).some(lineOos);
     var box = document.createElement('div');
     box.className = 'modal-overlay is-open';
     box.innerHTML =
       '<div class="modal-card" style="max-width:460px;">' +
-        '<div class="modal-card__head"><h3>먼저 아마존에서 주문하세요</h3><button class="modal-close" data-close>×</button></div>' +
+        '<div class="modal-card__head"><h3>' + (oos ? '아마존 품절 — 발주 불가' : '먼저 아마존에서 주문하세요') + '</h3><button class="modal-close" data-close>×</button></div>' +
         '<div class="modal-card__body">' +
-          '<p style="margin:0;font-size:0.92rem;line-height:1.7;">드랍쉬핑은 내가 직접 배송하지 않습니다. ' +
-          '<b>아마존에서 이 주문의 상품을 고객 주소로 주문</b>하고, 아마존이 발급한 <b>배송번호(TBA)</b>를 받아와야 발주를 완료할 수 있습니다.</p>' +
+          '<p style="margin:0;font-size:0.92rem;line-height:1.7;">' + (oos
+            ? '이 주문의 상품이 <b>아마존에 품절</b>이라 발주할 수 없습니다. <b>[환불하기(주문 취소)]</b> 로 처리하세요.'
+            : '드랍쉬핑은 내가 직접 배송하지 않습니다. <b>아마존에서 이 주문의 상품을 고객 주소로 주문</b>하고, 아마존이 발급한 <b>배송번호(TBA)</b>를 받아와야 발주를 완료할 수 있습니다.') + '</p>' +
         '</div>' +
         '<div class="modal-card__foot">' +
           '<button class="btn-sm" data-close>취소</button>' +
-          '<a class="btn-sm is-dark" href="amazon.html?no=' + encodeURIComponent(o.no) + '" target="_blank" rel="noopener" style="text-decoration:none;">🛒 아마존에서 주문하기</a>' +
+          (oos
+            ? '<button class="btn-sm is-danger" id="srcRefund">환불하기 (주문 취소)</button>'
+            : '<a class="btn-sm is-dark" href="amazon.html?no=' + encodeURIComponent(o.no) + '" target="_blank" rel="noopener" style="text-decoration:none;">🛒 아마존에서 주문하기</a>') +
         '</div>' +
       '</div>';
     document.body.appendChild(box);
     box.addEventListener('click', function (ev) { if (ev.target === box || ev.target.closest('[data-close]')) box.remove(); });
+    var rf = box.querySelector('#srcRefund');
+    if (rf) rf.addEventListener('click', function () { box.remove(); openRefund(o); });
   }
 
   function openFulfill(o) {

@@ -1,12 +1,16 @@
 /* =========================================================
-   시뮬 아마존 (드랍쉬핑 소싱 연습)
-   - order-detail 의 [🛒 아마존에서 주문하기] → amazon.html?no=#1083 (새 탭)
-   - 주문에 담긴 상품을 검색해서 '정답 상품'을 찾아 고객 주소로 주문
-   - 모두 주문하면 TBA 배송번호가 발급됨 → 학생이 복사해 쇼피파이 [Mark as fulfilled] 에 붙여넣음
-   - 가격은 상품 원가를 그대로 '아마존 가격'으로 표시 (판매가 = 아마존가 × (1+마진))
+   시뮬 아마존 (드랍쉬핑 소싱 연습) — 함정 포함판
+   - 주문의 각 상품마다 검색 결과에 정답 + 함정 리스팅을 생성:
+     · 정답: 정확한 이름 · Amazon.com 발송 · Prime · 정상가
+     · 바가지: 같은 상품인데 제3자 판매자 · 더 비쌈 (사면 원가↑)
+     · 유사품: 이름 변형(제네릭/호환) · 쌈 (사면 오배송)
+   - 옵션(색상/사이즈)이 있는 상품은 맞는 옵션을 골라야 함 (틀리면 오배송)
+   - 품절(oos) 주문은 모든 리스팅이 재고 없음 → 주문 불가 → 환불해야 함
+   - 소싱 결과(실제 지출·오배송·바가지)는 order.amazon 에 기록 → 정산에 반영
    ========================================================= */
 (function () {
   var ORDERS = 'practice_orders';
+  var SELLERS = ['QuickMart US', 'ShopVelocity', 'PrimeDeals Co', 'ValueBridge', 'NovaGoods'];
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
@@ -14,6 +18,7 @@
     });
   }
   function money(n) { return '$' + Number(n || 0).toFixed(2); }
+  function round2(n) { return Math.round(n * 100) / 100; }
   function h(s) { var n = 0; s = String(s); for (var i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) >>> 0; return n; }
 
   function loadOrders() { try { return JSON.parse(localStorage.getItem(ORDERS)) || []; } catch (e) { return []; } }
@@ -23,103 +28,175 @@
     if (i !== -1) { arr[i] = o; localStorage.setItem(ORDERS, JSON.stringify(arr)); }
   }
 
-  var order = null, catalog = [], ordered = {};   // ordered: pid -> 주문 수량
-
-  function imgsOf(p) {
-    return (p.images && p.images.length) ? p.images : (p.image_url ? [p.image_url] : (p.image ? [p.image] : []));
+  // 결정적 옵션 (order-detail.js 의 optionOf 와 반드시 동일 로직!)
+  function optionOf(no, line) {
+    if (line.oos) return null;
+    var seed = h(no + line.pid + 'opt');
+    if (seed % 10 >= 4) return null;             // 40% 만 옵션 있음
+    var TYPES = [
+      { label: '색상', choices: ['블랙', '화이트', '블루', '레드', '그린'] },
+      { label: '사이즈', choices: ['S', 'M', 'L', 'XL'] },
+      { label: '용량', choices: ['소형', '중형', '대형'] }
+    ];
+    var t = TYPES[seed % TYPES.length];
+    return { label: t.label, choices: t.choices, correct: t.choices[Math.floor(seed / 7) % t.choices.length] };
   }
-  function ratingOf(p) { return ((38 + h(p.id + 'r') % 12) / 10).toFixed(1); }   // 3.8 ~ 4.9
-  function reviewsOf(p) { return 50 + h(p.id + 'v') % 4950; }
-  function primeOf(p) { return h(p.id + 'p') % 10 < 8; }                          // 80% Prime
+  function lineOos(l) { return !!l.oos && (Number(l.stock) || 0) < l.qty; }
+
+  var order = null, catalog = [], listings = [], bought = {};
+
+  function imgsOf(p) { return (p.images && p.images.length) ? p.images : (p.image_url ? [p.image_url] : (p.image ? [p.image] : [])); }
+  function ratingOf(p) { return ((38 + h(p.lid + 'r') % 12) / 10).toFixed(1); }
+  function reviewsOf(p) { return 50 + h(p.lid + 'v') % 4950; }
   function deliveryText(p) {
-    var d = new Date(Date.now() + (2 + h(p.id) % 3) * 86400000);
+    var extra = p.prime ? (2 + h(p.lid) % 2) : (5 + h(p.lid) % 4);
+    var d = new Date(Date.now() + extra * 86400000);
     var wd = ['일', '월', '화', '수', '목', '금', '토'][d.getDay()];
     return (d.getMonth() + 1) + '/' + d.getDate() + '(' + wd + ') 도착 예정';
   }
-  function stars(r) {
-    r = Number(r); var full = Math.floor(r), half = (r - full) >= 0.5;
-    var s = '';
-    for (var i = 0; i < 5; i++) s += (i < full ? '★' : (i === full && half ? '⯨' : '☆'));
-    return s;
-  }
+  function stars(r) { r = Number(r); var f = Math.floor(r), hf = (r - f) >= 0.5, s = ''; for (var i = 0; i < 5; i++) s += (i < f ? '★' : (i === f && hf ? '⯨' : '☆')); return s; }
 
+  function lineByPid(pid) { return (order.lines || []).find(function (l) { return String(l.pid) === String(pid); }); }
   function neededMap() { var m = {}; (order.lines || []).forEach(function (l) { m[l.pid] = (m[l.pid] || 0) + l.qty; }); return m; }
-  function isComplete() { var need = neededMap(); return Object.keys(need).every(function (pid) { return (ordered[pid] || 0) >= need[pid]; }); }
-  function wrongCount() { var need = neededMap(); return Object.keys(ordered).filter(function (pid) { return !need[pid]; }).length; }
+  function isComplete() { var need = neededMap(); return Object.keys(need).every(function (pid) { return bought[pid]; }); }
+  function anyOos() { return (order.lines || []).some(lineOos); }
+
+  function buildListings() {
+    listings = [];
+    var inOrder = {};
+    (order.lines || []).forEach(function (l) {
+      var C = Number(l.cost) || 0;
+      var seed = h(order.no + l.pid);
+      var opt = optionOf(order.no, l);
+      var oos = lineOos(l);
+      inOrder[l.pid] = true;
+      listings.push({ lid: l.pid + '-ok', pid: l.pid, kind: 'correct', name: l.name, images: l.images || [], image: l.image,
+        price: C, seller: 'Amazon.com', prime: true, inStock: !oos, option: opt });
+      listings.push({ lid: l.pid + '-hi', pid: l.pid, kind: 'overpriced', name: l.name, images: l.images || [], image: l.image,
+        price: round2(C * (1.2 + (seed % 25) / 100)), seller: SELLERS[seed % SELLERS.length], prime: false, inStock: !oos, option: opt });
+      listings.push({ lid: l.pid + '-cf', pid: l.pid, kind: 'counterfeit', name: l.name + ' (제네릭/호환)', images: l.images || [], image: l.image,
+        price: round2(C * (0.65 + (seed % 20) / 100)), seller: SELLERS[(seed + 2) % SELLERS.length], prime: false, inStock: !oos, option: opt });
+    });
+    (catalog || []).forEach(function (p) {
+      if (inOrder[p.id]) return;
+      listings.push({ lid: 'f-' + p.id, pid: p.id, kind: 'filler', name: p.name, images: p.images || [], image: p.image_url,
+        price: Number(p.cost) || 0, seller: 'Amazon.com', prime: h(p.id) % 3 !== 0, inStock: true, option: null });
+    });
+  }
 
   function persist() {
     var complete = isComplete();
-    var tracking = null;
-    if (complete) {
-      tracking = (order.amazon && order.amazon.tracking) || ('TBA' + String(h(order.no + 'tba') % 1000000000000).padStart(12, '0'));
-    }
-    order.amazon = { items: ordered, tracking: tracking, correct: complete && wrongCount() === 0, complete: complete, at: Date.now() };
+    var pids = Object.keys(bought);
+    var sourcedCost = pids.reduce(function (a, p) { return a + (bought[p].lineCost || 0); }, 0);
+    var misship = pids.some(function (p) { return bought[p].wrongProduct || bought[p].wrongOption; });
+    var overpaid = pids.reduce(function (a, p) { return a + (bought[p].overpaid || 0); }, 0);
+    var tracking = complete ? ((order.amazon && order.amazon.tracking) || ('TBA' + String(h(order.no + 'tba') % 1000000000000).padStart(12, '0'))) : null;
+    order.amazon = {
+      purchases: bought, complete: complete, tracking: tracking,
+      sourcedCost: round2(sourcedCost), misship: misship, overpaid: round2(overpaid),
+      correct: complete && !misship && overpaid < 0.005, at: Date.now()
+    };
     saveOrder(order);
   }
 
+  function buy(L, qty, selOpt) {
+    if (!L.inStock) return;
+    if (L.kind === 'filler') { alert('이 상품은 이 주문에 없습니다.\n주문에 필요한 상품을 검색해 담으세요.'); return; }
+    var C = (lineByPid(L.pid) || {}).cost || 0;
+    bought[L.pid] = {
+      kind: L.kind, unit: L.price, qty: qty, lineCost: round2(L.price * qty),
+      wrongProduct: L.kind === 'counterfeit',
+      wrongOption: !!(L.option && selOpt !== L.option.correct),
+      overpaid: L.kind === 'overpriced' ? round2((L.price - C) * qty) : 0,
+      name: L.name
+    };
+    persist();
+    render();
+    window.scrollTo(0, 0);
+  }
+
   /* ---------- 렌더 ---------- */
+  function boughtLabel(rec) {
+    if (!rec) return '';
+    if (rec.wrongProduct) return '<span class="az-bad">⚠️ 유사품 · 오배송</span>';
+    if (rec.wrongOption) return '<span class="az-bad">⚠️ 옵션 틀림 · 오배송</span>';
+    if (rec.overpaid > 0) return '<span class="az-warn">⚠️ 바가지 (+' + money(rec.overpaid) + ')</span>';
+    return '<span class="az-ok">정상 주문</span>';
+  }
+
   function needList() {
-    var need = neededMap();
     return (order.lines || []).map(function (l) {
-      var done = (ordered[l.pid] || 0) >= l.qty;
+      var oos = lineOos(l);
+      var rec = bought[l.pid];
+      var done = !!rec;
+      var opt = optionOf(order.no, l);
       var img = (imgsOf(l)[0]) ? '<img src="' + esc(imgsOf(l)[0]) + '" alt="">' : '<span class="az-noimg">?</span>';
-      return '<div class="az-need__item ' + (done ? 'is-done' : '') + '">' +
-        '<span class="az-need__chk">' + (done ? '✅' : '⬜') + '</span>' +
-        img +
-        '<div class="az-need__info"><b>' + esc(l.name) + '</b><span>수량 ' + l.qty + '개</span></div>' +
-        '</div>';
+      var status = oos ? '<span class="az-bad">🚫 아마존 품절 · 주문 불가 → 환불하세요</span>'
+        : done ? boughtLabel(rec) : '<span class="az-todo">담아야 함</span>';
+      return '<div class="az-need__item ' + (done && !oos ? 'is-done' : '') + (oos ? ' is-oos' : '') + '">' +
+        '<span class="az-need__chk">' + (oos ? '🚫' : (done ? '✅' : '⬜')) + '</span>' + img +
+        '<div class="az-need__info"><b>' + esc(l.name) + '</b>' +
+          '<span>수량 ' + l.qty + '개' + (opt ? ' · ' + esc(opt.label) + ': <b>' + esc(opt.correct) + '</b>' : '') + '</span>' +
+          '<span class="az-need__st">' + status + '</span>' +
+        '</div></div>';
     }).join('');
   }
 
-  function card(p) {
-    var img = imgsOf(p)[0];
-    return '<div class="az-card" data-pid="' + esc(p.id) + '">' +
-      '<div class="az-card__img">' + (img ? '<img src="' + esc(img) + '" alt="">' : '<span class="az-noimg">?</span>') + '</div>' +
-      '<div class="az-card__title">' + esc(p.name) + '</div>' +
-      '<div class="az-card__rate"><span class="az-stars">' + stars(ratingOf(p)) + '</span> ' +
-        '<span class="az-rate__n">' + ratingOf(p) + '</span> <span class="az-rev">(' + reviewsOf(p).toLocaleString() + ')</span></div>' +
-      '<div class="az-card__price">' + money(p.cost) + '</div>' +
-      (primeOf(p) ? '<div class="az-prime">✓prime <span>무료 배송</span></div>' : '<div class="az-ship">배송비 별도</div>') +
+  function card(L) {
+    var img = imgsOf(L)[0];
+    var badge = !L.inStock ? '<div class="az-oosbadge">현재 재고 없음</div>' : '';
+    return '<div class="az-card' + (!L.inStock ? ' is-oos' : '') + '" data-lid="' + esc(L.lid) + '">' +
+      '<div class="az-card__img">' + (img ? '<img src="' + esc(img) + '" alt="">' : '<span class="az-noimg">?</span>') + badge + '</div>' +
+      '<div class="az-card__title">' + esc(L.name) + '</div>' +
+      '<div class="az-card__rate"><span class="az-stars">' + stars(ratingOf(L)) + '</span> ' +
+        '<span class="az-rate__n">' + ratingOf(L) + '</span> <span class="az-rev">(' + reviewsOf(L).toLocaleString() + ')</span></div>' +
+      '<div class="az-card__price">' + money(L.price) + '</div>' +
+      '<div class="az-seller">판매자: ' + esc(L.seller) + '</div>' +
+      (L.prime ? '<div class="az-prime">✓prime <span>무료·빠른 배송</span></div>' : '<div class="az-ship">일반 배송</div>') +
       '</div>';
   }
 
   function results(query) {
     var q = (query || '').trim().toLowerCase();
-    var list = q ? catalog.filter(function (p) { return (p.name || '').toLowerCase().indexOf(q) !== -1; }) : catalog;
-    if (!list.length) return '<div class="az-empty">검색 결과가 없습니다. 상품명을 확인해 다시 검색해 보세요.</div>';
+    var list = q ? listings.filter(function (L) { return (L.name || '').toLowerCase().indexOf(q) !== -1; }) : listings;
+    if (!list.length) return '<div class="az-empty">검색 결과가 없습니다.</div>';
     return '<div class="az-grid">' + list.map(card).join('') + '</div>';
   }
 
   function render() {
     var complete = order.amazon && order.amazon.complete;
+    var oos = anyOos();
     var addr = esc(order.city + ' ' + order.zip);
 
-    var done = complete
-      ? '<div class="az-done">' +
-          '<div class="az-done__h">✅ 모든 상품을 아마존에서 주문했습니다</div>' +
-          (order.amazon.correct ? '' : '<div class="az-done__warn">⚠️ 주문에 없는 상품도 담았습니다. 실제라면 오배송 손실이 발생합니다.</div>') +
-          '<div class="az-tba">배송번호(Tracking)<b id="azTba">' + esc(order.amazon.tracking) + '</b>' +
-            '<button class="btn-sm is-dark" id="azCopy">복사</button></div>' +
-          '<div class="az-done__tip">이 번호를 복사해 쇼피파이 주문의 <b>[Mark as fulfilled]</b> 에 붙여넣으면 발주가 완료됩니다.</div>' +
-          '<a class="btn-primary" href="order-detail.html?no=' + encodeURIComponent(order.no) + '" style="text-decoration:none;">← 쇼피파이 주문으로 돌아가기</a>' +
-        '</div>'
-      : '';
+    var done = '';
+    if (complete) {
+      done = '<div class="az-done">' +
+        '<div class="az-done__h">✅ 모든 상품을 아마존에서 주문했습니다</div>' +
+        (order.amazon.correct ? '' : '<div class="az-done__warn">⚠️ 잘못 소싱한 상품이 있습니다(오배송/바가지). 실제라면 손실이 발생합니다.</div>') +
+        '<div class="az-tba">배송번호(Tracking)<b id="azTba">' + esc(order.amazon.tracking) + '</b><button class="btn-sm is-dark" id="azCopy">복사</button></div>' +
+        '<div class="az-done__tip">이 번호를 복사해 쇼피파이 주문의 <b>[Mark as fulfilled]</b> 에 붙여넣으면 발주가 완료됩니다.</div>' +
+        '<a class="btn-primary" href="order-detail.html?no=' + encodeURIComponent(order.no) + '" style="text-decoration:none;">← 쇼피파이 주문으로 돌아가기</a>' +
+      '</div>';
+    } else if (oos) {
+      done = '<div class="az-done az-done--oos">' +
+        '<div class="az-done__h" style="color:#c0272d;">🚫 이 주문의 상품이 아마존에 품절입니다</div>' +
+        '<div class="az-done__tip">주문할 수 없는 상품이 있어 발주가 불가능합니다. 쇼피파이로 돌아가 <b>[환불하기(주문 취소)]</b> 로 처리하세요.</div>' +
+        '<a class="btn-primary" href="order-detail.html?no=' + encodeURIComponent(order.no) + '" style="text-decoration:none;">← 쇼피파이 주문으로 돌아가기</a>' +
+      '</div>';
+    }
 
     document.getElementById('azRoot').innerHTML =
       '<div class="az-top">' +
         '<a class="az-logo" href="order-detail.html?no=' + encodeURIComponent(order.no) + '">amazon<span>.com</span></a>' +
         '<div class="az-deliver">📍 배송지: <b>' + addr + '</b></div>' +
       '</div>' +
-
       '<div class="az-need">' +
-        '<div class="az-need__h">🛒 이 주문(' + esc(order.no) + ')에 필요한 상품 — 아마존에서 찾아 주문하세요</div>' +
+        '<div class="az-need__h">🛒 이 주문(' + esc(order.no) + ')에 필요한 상품 — 정확한 리스팅을 찾아 주문하세요</div>' +
         needList() +
       '</div>' +
-
       done +
-
       '<div class="az-searchbar">' +
-        '<input type="text" id="azSearch" placeholder="상품명을 검색하세요 (예: ' + esc((order.lines[0] && order.lines[0].name || '').split(' ').slice(0, 2).join(' ')) + ')">' +
+        '<input type="text" id="azSearch" placeholder="상품명을 검색하세요">' +
         '<button class="btn-primary" id="azSearchBtn">검색</button>' +
       '</div>' +
       '<div id="azResults">' + results('') + '</div>';
@@ -127,66 +204,68 @@
     var si = document.getElementById('azSearch');
     var run = function () { document.getElementById('azResults').innerHTML = results(si.value); };
     document.getElementById('azSearchBtn').addEventListener('click', run);
-    si.addEventListener('keydown', function (e) { if (e.key === 'Enter') run(); });
     si.addEventListener('input', run);
+    si.addEventListener('keydown', function (e) { if (e.key === 'Enter') run(); });
 
     document.getElementById('azResults').addEventListener('click', function (e) {
       var c = e.target.closest('.az-card'); if (!c) return;
-      var p = catalog.find(function (x) { return String(x.id) === c.dataset.pid; });
-      if (p) openProduct(p);
+      var L = listings.find(function (x) { return x.lid === c.dataset.lid; });
+      if (L) openProduct(L);
     });
 
     var cp = document.getElementById('azCopy');
     if (cp) cp.addEventListener('click', function () {
       var t = order.amazon.tracking;
       if (navigator.clipboard) navigator.clipboard.writeText(t).then(function () { cp.textContent = '복사됨!'; }, function () { cp.textContent = t; });
-      else { cp.textContent = t; }
+      else cp.textContent = t;
     });
   }
 
-  function openProduct(p) {
+  function openProduct(L) {
     var need = neededMap();
-    var defQty = need[p.id] || 1;
-    var imgs = imgsOf(p);
-    var big = imgs[0] ? '<img src="' + esc(imgs[0]) + '" alt="">' : '<span class="az-noimg">?</span>';
+    var defQty = need[L.pid] || 1;
+    var big = imgsOf(L)[0] ? '<img src="' + esc(imgsOf(L)[0]) + '" alt="">' : '<span class="az-noimg">?</span>';
     var addr = esc(order.cust + ', ' + order.addr + ', ' + order.city + ' ' + order.zip);
 
     var box = document.createElement('div');
     box.className = 'modal-overlay is-open az-modal';
     box.innerHTML =
       '<div class="modal-card az-prod">' +
-        '<div class="modal-card__head"><h3>' + esc(p.name) + '</h3><button class="modal-close" data-close>×</button></div>' +
+        '<div class="modal-card__head"><h3>' + esc(L.name) + '</h3><button class="modal-close" data-close>×</button></div>' +
         '<div class="modal-card__body">' +
           '<div class="az-prod__grid">' +
             '<div class="az-prod__img">' + big + '</div>' +
             '<div class="az-prod__info">' +
-              '<div class="az-prod__rate"><span class="az-stars">' + stars(ratingOf(p)) + '</span> ' + ratingOf(p) +
-                ' <span class="az-rev">(' + reviewsOf(p).toLocaleString() + '개 평가)</span></div>' +
-              '<div class="az-prod__price">' + money(p.cost) + '</div>' +
-              (primeOf(p) ? '<div class="az-prime">✓prime · 무료 배송</div>' : '<div class="az-ship">배송비 별도</div>') +
-              '<div class="az-prod__deliver">🚚 ' + deliveryText(p) + '</div>' +
+              '<div class="az-prod__rate"><span class="az-stars">' + stars(ratingOf(L)) + '</span> ' + ratingOf(L) +
+                ' <span class="az-rev">(' + reviewsOf(L).toLocaleString() + '개 평가)</span></div>' +
+              '<div class="az-prod__price">' + money(L.price) + '</div>' +
+              '<div class="az-seller">판매자: <b>' + esc(L.seller) + '</b></div>' +
+              (L.prime ? '<div class="az-prime">✓prime · 무료 배송</div>' : '<div class="az-ship">일반 배송(제3자 판매)</div>') +
+              '<div class="az-prod__deliver">🚚 ' + deliveryText(L) + '</div>' +
+              (L.inStock ? '' : '<div class="az-prod__oos">현재 재고 없음 (Currently unavailable)</div>') +
               '<div class="az-prod__ship-to">📍 Deliver to: <b>' + addr + '</b></div>' +
+              (L.option ? '<div class="az-prod__opt"><b>' + esc(L.option.label) + '</b> <select id="azOpt"><option value="">선택하세요</option>' +
+                L.option.choices.map(function (c) { return '<option>' + esc(c) + '</option>'; }).join('') + '</select></div>' : '') +
               '<div class="az-prod__qty">수량 <select id="azQty">' +
-                [1, 2, 3, 4, 5].map(function (n) { return '<option' + (n === defQty ? ' selected' : '') + '>' + n + '</option>'; }).join('') +
-              '</select></div>' +
-              '<button class="btn-primary az-buy" id="azBuy">지금 구매 (Buy now)</button>' +
+                [1, 2, 3, 4, 5].map(function (n) { return '<option' + (n === defQty ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></div>' +
+              (L.inStock
+                ? '<button class="btn-primary az-buy" id="azBuy">지금 구매 (Buy now)</button>'
+                : '<button class="btn-primary az-buy" disabled style="opacity:.5;cursor:not-allowed;">품절 — 주문 불가</button>') +
             '</div>' +
           '</div>' +
           '<div class="az-about"><b>상품 정보 (About this item)</b>' +
-            '<ul><li>' + esc(p.name) + ' — 아마존 정품, 신속 배송</li>' +
-            '<li>고품질 소재 · 실사용 리뷰 다수</li>' +
-            '<li>30일 반품 보장</li></ul></div>' +
+            '<ul><li>' + esc(L.name) + '</li><li>고품질 소재 · 실사용 리뷰 다수</li><li>30일 반품 보장</li></ul></div>' +
         '</div>' +
       '</div>';
     document.body.appendChild(box);
     box.addEventListener('click', function (ev) { if (ev.target === box || ev.target.closest('[data-close]')) box.remove(); });
-    box.querySelector('#azBuy').addEventListener('click', function () {
+    var buyBtn = box.querySelector('#azBuy');
+    if (buyBtn && L.inStock) buyBtn.addEventListener('click', function () {
       var qty = Number(box.querySelector('#azQty').value) || 1;
-      ordered[p.id] = (ordered[p.id] || 0) + qty;
-      persist();
+      var selOpt = box.querySelector('#azOpt') ? box.querySelector('#azOpt').value : null;
+      if (L.option && !selOpt) { alert('옵션(' + L.option.label + ')을 선택하세요.'); return; }
+      buy(L, qty, selOpt);
       box.remove();
-      render();
-      window.scrollTo(0, 0);
     });
   }
 
@@ -200,31 +279,18 @@
   (async function init() {
     var user = await Auth.require();
     if (!user) return;
-
     var no = new URLSearchParams(location.search).get('no');
     order = loadOrders().find(function (x) { return x.no === no; });
     if (!order) { notReady('주문을 찾을 수 없습니다.'); return; }
 
-    // 카탈로그(같은 주제 상품들 = 검색 후보). 실패해도 주문 상품은 항상 담아둠.
     try {
       var s = await sb.from('practice_settings').select('topic').eq('user_id', user.id).maybeSingle();
       var topic = s.data && s.data.topic;
-      if (topic) {
-        var pr = await sb.from('products').select('*').eq('topic', topic).eq('active', true);
-        catalog = pr.data || [];
-      }
+      if (topic) { var pr = await sb.from('products').select('*').eq('topic', topic).eq('active', true); catalog = pr.data || []; }
     } catch (e) {}
 
-    // 주문에 담긴 상품이 카탈로그에 반드시 포함되도록 병합 (정답 상품이 검색되게)
-    (order.lines || []).forEach(function (l) {
-      if (!catalog.some(function (p) { return String(p.id) === String(l.pid); })) {
-        catalog.push({ id: l.pid, name: l.name, cost: l.cost, images: l.images, image_url: l.image });
-      }
-    });
-
-    // 이전 소싱 진행상황 복원
-    if (order.amazon && order.amazon.items) ordered = order.amazon.items;
-
+    if (order.amazon && order.amazon.purchases) bought = order.amazon.purchases;
+    buildListings();
     render();
   })();
 })();
