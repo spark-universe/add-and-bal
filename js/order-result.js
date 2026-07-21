@@ -67,7 +67,8 @@
       }
     });
     r.cbFired = r.cbCount + r.cbWonCount;                 // 사기 주문을 발주해버린 총 건수
-    r.achieve = r.optimal > 0 ? Math.round(r.net / r.optimal * 100) : (r.net >= 0 ? 100 : 0);
+    // 달성률 = 순이익 ÷ 이론상 최선 이익. 운(항소 승소)·위험 처리로 최선을 넘길 수 있어 100%로 상한.
+    r.achieve = r.optimal > 0 ? Math.min(100, Math.round(r.net / r.optimal * 100)) : (r.net >= 0 ? 100 : 0);
     return r;
   }
 
@@ -113,6 +114,7 @@
         '</div>' +
       '</div>' +
       '<p class="result-comment">' + g.m + '</p>' +
+      '<p class="result-basis">📐 <b>달성률</b> = 최종 순이익 ÷ <b>이론상 최선 이익</b>(정상이면서 이익 나는 주문만 발주하고, 사기·역마진·문제 주문은 모두 거절했을 때). 최대 100%.</p>' +
 
       '<div class="stat-row">' +
         '<div class="stat"><div class="label">총 주문</div><div class="value">' + r.total + '<span style="font-size:0.9rem;font-weight:600;">건</span></div></div>' +
