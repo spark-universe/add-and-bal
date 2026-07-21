@@ -38,6 +38,7 @@
       cbWonCount: 0, cbWonProfit: 0,
       negCount: 0, negLoss: 0,
       misCount: 0, misLoss: 0, overCount: 0, overTotal: 0,
+      slowCount: 0, lateCount: 0, lateLoss: 0,
       refundGood: 0, refundBadCount: 0, refundBadMissed: 0,
       riskyCount: 0,
       optimal: 0, net: 0
@@ -62,11 +63,14 @@
           }
         } else if (misship) {
           r.misCount++; r.misLoss += sourced; r.net -= sourced;   // 오배송: 상품값 날리고 매출 회수(환불)
+        } else if (o.lateRefund) {
+          r.lateCount++; r.lateLoss += sourced; r.net -= sourced; r.slowCount++;   // 배송 지연 환불
         } else {
           var prof = tot - sourced;
           r.saleCount++; r.sales += tot; r.costSum += sourced; r.saleProfit += prof; r.net += prof;
           if (prof < 0) { r.negCount++; r.negLoss += (-prof); }
           if (overpaid > 0) { r.overCount++; r.overTotal += overpaid; }
+          if (o.amazon && o.amazon.slowShip) r.slowCount++;   // 배송 기한 미준수(느린 배송)
           if (isProblem) r.riskyCount++;         // 사기는 아니지만 문제(품절/배송불가/정보누락) 발주
         }
       } else if (o.payment === 'refunded') {
@@ -95,6 +99,8 @@
     if (r.overCount) notes.push('<li class="warn">💸 바가지 구매(더 비싼 리스팅) <b>' + r.overCount + '건</b> · 추가 지출 <b>' + money(-r.overTotal) + '</b></li>');
     if (r.negCount) notes.push('<li class="bad">📉 손해 발주(역마진 등) <b>' + r.negCount + '건</b> · 손실 <b>' + money(-r.negLoss) + '</b></li>');
     if (r.riskyCount) notes.push('<li class="warn">⚠️ 품절·배송불가·정보누락 주문 발주 <b>' + r.riskyCount + '건</b> (배송/환불 분쟁 위험)</li>');
+    if (r.slowCount) notes.push('<li class="warn">🚚 배송 기한 미준수 <b>' + r.slowCount + '건</b> (저가·느린 배송으로 발주)</li>');
+    if (r.lateCount) notes.push('<li class="bad">↩️ 배송 지연 환불 요청 <b>' + r.lateCount + '건</b> · 손실 <b>' + money(-r.lateLoss) + '</b></li>');
     if (r.refundBadCount) notes.push('<li class="warn">↩️ 정상 주문을 환불 <b>' + r.refundBadCount + '건</b> · 놓친 이익 <b>' + money(-r.refundBadMissed) + '</b></li>');
     if (r.refundGood) notes.push('<li class="good">🛡️ 문제 주문을 올바르게 환불(취소) <b>' + r.refundGood + '건</b></li>');
 
@@ -140,6 +146,7 @@
           '<tr><td>상품 원가 (아마존 실제 지출' + (r.overCount ? ' · 바가지 ' + r.overCount + '건 포함' : '') + ')</td><td class="r">' + money(-r.costSum) + '</td></tr>' +
           '<tr class="sub"><td>판매 이익</td><td class="r">' + money(r.saleProfit) + '</td></tr>' +
           (r.misCount ? '<tr><td>오배송 손실 (' + r.misCount + '건)</td><td class="r is-neg">' + money(-r.misLoss) + '</td></tr>' : '') +
+          (r.lateCount ? '<tr><td>배송 지연 환불 손실 (' + r.lateCount + '건)</td><td class="r is-neg">' + money(-r.lateLoss) + '</td></tr>' : '') +
           (r.cbWonCount ? '<tr><td>차지백 방어 성공 (' + r.cbWonCount + '건)</td><td class="r is-pos">' + money(r.cbWonProfit) + '</td></tr>' : '') +
           '<tr><td>차지백 손실 (' + r.cbCount + '건)</td><td class="r">' + money(-r.cbLoss) + '</td></tr>' +
           '<tr class="total"><td>최종 순이익</td><td class="r ' + netCls + '">' + money(r.net) + '</td></tr>' +

@@ -63,7 +63,7 @@
   function ratingOf(p) { return ((38 + h(p.lid + 'r') % 12) / 10).toFixed(1); }
   function reviewsOf(p) { return 50 + h(p.lid + 'v') % 4950; }
   function deliveryText(p) {
-    var extra = p.prime ? (2 + h(p.lid) % 2) : (5 + h(p.lid) % 4);
+    var extra = p.slow ? (12 + h(p.lid) % 8) : p.prime ? (2 + h(p.lid) % 2) : (5 + h(p.lid) % 4);
     var d = new Date(Date.now() + extra * 86400000);
     var wd = ['일', '월', '화', '수', '목', '금', '토'][d.getDay()];
     return (d.getMonth() + 1) + '/' + d.getDate() + '(' + wd + ') 도착 예정';
@@ -110,6 +110,11 @@
         listings.push({ lid: l.pid + '-cf2', pid: l.pid, kind: 'counterfeit', name: l.name + ' (호환형)', images: l.images || [], image: l.image,
           price: round2(C * (0.72 + (seed % 15) / 100)), seller: SELLERS[(seed + 3) % SELLERS.length], prime: false, inStock: inStock, option: opt });
       }
+      // 저가·느린 배송 (같은 상품이지만 배송이 오래 걸림 → 나중에 '배송 지연' 위험)
+      if (inStock) {
+        listings.push({ lid: l.pid + '-slow', pid: l.pid, kind: 'slow', name: l.name + ' (해외직배송)', images: l.images || [], image: l.image,
+          price: round2(C * (0.80 + (seed % 12) / 100)), seller: SELLERS[(seed + 4) % SELLERS.length], prime: false, slow: true, inStock: true, option: opt });
+      }
     });
     (catalog || []).forEach(function (p) {
       if (inOrder[p.id]) return;
@@ -128,6 +133,7 @@
     order.amazon = {
       purchases: bought, complete: complete, tracking: tracking,
       sourcedCost: round2(sourcedCost), misship: misship, overpaid: round2(overpaid),
+      slowShip: pids.some(function (p) { return bought[p].slow; }),
       unavailable: anyOos(), correct: complete && !misship && overpaid < 0.005, at: Date.now()
     };
     saveOrder(order);
@@ -142,6 +148,7 @@
       wrongProduct: L.kind === 'counterfeit',
       wrongOption: !!(L.option && selOpt !== L.option.correct),
       overpaid: L.kind === 'overpriced' ? round2((L.price - C) * qty) : 0,
+      slow: !!L.slow,
       name: L.name
     };
     persist();
@@ -155,6 +162,7 @@
     if (rec.wrongProduct) return '<span class="az-bad">⚠️ 유사품 · 오배송</span>';
     if (rec.wrongOption) return '<span class="az-bad">⚠️ 옵션 틀림 · 오배송</span>';
     if (rec.overpaid > 0) return '<span class="az-warn">⚠️ 바가지 (+' + money(rec.overpaid) + ')</span>';
+    if (rec.slow) return '<span class="az-warn">🐢 저가·느린 배송 (지연 위험)</span>';
     return '<span class="az-ok">정상 주문</span>';
   }
 
@@ -186,7 +194,7 @@
         '<span class="az-rate__n">' + ratingOf(L) + '</span> <span class="az-rev">(' + reviewsOf(L).toLocaleString() + ')</span></div>' +
       '<div class="az-card__price">' + money(L.price) + '</div>' +
       '<div class="az-seller">판매자: ' + esc(L.seller) + '</div>' +
-      (L.prime ? '<div class="az-prime">✓prime <span>무료·빠른 배송</span></div>' : '<div class="az-ship">일반 배송</div>') +
+      (L.slow ? '<div class="az-slow">🐢 장기 해외배송 (지연)</div>' : L.prime ? '<div class="az-prime">✓prime <span>무료·빠른 배송</span></div>' : '<div class="az-ship">일반 배송</div>') +
       '</div>';
   }
 
@@ -276,8 +284,8 @@
                 ' <span class="az-rev">(' + reviewsOf(L).toLocaleString() + '개 평가)</span></div>' +
               '<div class="az-prod__price">' + money(L.price) + '</div>' +
               '<div class="az-seller">판매자: <b>' + esc(L.seller) + '</b></div>' +
-              (L.prime ? '<div class="az-prime">✓prime · 무료 배송</div>' : '<div class="az-ship">일반 배송(제3자 판매)</div>') +
-              '<div class="az-prod__deliver">🚚 ' + deliveryText(L) + '</div>' +
+              (L.slow ? '<div class="az-slow">🐢 장기 해외배송 — 배송이 오래 걸립니다</div>' : L.prime ? '<div class="az-prime">✓prime · 무료 배송</div>' : '<div class="az-ship">일반 배송(제3자 판매)</div>') +
+              '<div class="az-prod__deliver' + (L.slow ? ' is-slow' : '') + '">🚚 ' + deliveryText(L) + '</div>' +
               (L.inStock ? '' : '<div class="az-prod__oos">현재 재고 없음 (Currently unavailable)</div>') +
               '<div class="az-prod__ship-to">📍 Deliver to: <b>' + addr + '</b></div>' +
               (L.option ? '<div class="az-prod__opt"><b>' + esc(L.option.label) + '</b> <select id="azOpt"><option value="">선택하세요</option>' +

@@ -868,6 +868,8 @@ tbody tr:hover { background: #fafbff; }
 .az-prime { font-size: 0.78rem; color: #007185; font-weight: 700; margin-top: 4px; }
 .az-prime span { color: #565959; font-weight: 400; }
 .az-ship { font-size: 0.78rem; color: #565959; margin-top: 4px; }
+.az-slow { font-size: 0.78rem; color: #b45309; font-weight: 700; margin-top: 4px; }
+.az-prod__deliver.is-slow { color: #b45309; }
 .az-empty { text-align: center; color: #565959; padding: 40px; background: #fff; border-radius: 10px; }
 .az-seller { font-size: 0.76rem; color: #565959; margin-top: 3px; }
 .az-card__img { position: relative; }

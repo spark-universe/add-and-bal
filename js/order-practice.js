@@ -33,9 +33,9 @@
      fraud/minPer10/fraudCap = 사기(문제) 주문 규칙 — 확정된 값
      lowMargin = 역마진 확률 (별도 카운트) — 잠정값이니 필요하면 이 숫자만 고치면 됨 */
   var LEVELS = {
-    '하': { fraud: 0.15, minPer10: 1, fraudCap: 0.30, lowMargin: 0.05 },
-    '중': { fraud: 0.25, minPer10: 2, fraudCap: 0.35, lowMargin: 0.10 },
-    '상': { fraud: 0.35, minPer10: 3, fraudCap: 0.45, lowMargin: 0.15 },
+    '하': { fraud: 0.15, minPer10: 1, fraudCap: 0.30, lowMargin: 0.05, notFound: 0.04 },
+    '중': { fraud: 0.25, minPer10: 2, fraudCap: 0.35, lowMargin: 0.10, notFound: 0.07 },
+    '상': { fraud: 0.35, minPer10: 3, fraudCap: 0.45, lowMargin: 0.15, notFound: 0.10 },
   };
 
   // 사기(문제) 주문 4종 — 위 fraud 비율 안에서 고르게 섞임
@@ -246,6 +246,14 @@
       };
 
       applyIssue(o);
+
+      // 아마존 조회 불가(단종) — 사기/문제 쿼터와 별개로 일부 정상 주문에도 발생
+      if (!o.issue && Math.random() < lv.notFound) {
+        o.issue = 'oos';
+        var nfl = o.lines[randInt(0, o.lines.length - 1)];
+        nfl.oos = true; nfl.oosType = 'notfound'; nfl.stock = 0;
+        o.reply = 'refund_all'; o.replied = false;
+      }
 
       // 선물 주문 등 정상인데도 청구지 명의가 다른 경우 (차지백 단서가 100% 확정이 되지 않도록)
       if (!o.issue && Math.random() < 0.05) o.billTo = randName();
@@ -461,6 +469,42 @@
           '</div>'
         : '';
     }
+
+    // 모든 주문 처리 완료 순간 → 저가·느린 배송 주문에서 '배송 지연' 이벤트가 뒤늦게 발생
+    if (allDone) processLateEvents();
+  }
+
+  // 저가·느린 배송으로 발주한 주문 → 일부는 '배송 기한 미준수 → 환불 요청' 이 뒤늦게 도착
+  function processLateEvents() {
+    var newRefunds = [];
+    var touched = false;
+    orders.forEach(function (o) {
+      if (o.fulfillment === 'fulfilled' && o.amazon && o.amazon.slowShip && !o.lateProcessed) {
+        o.lateProcessed = true;
+        touched = true;
+        if (Math.random() < 0.55) { o.lateRefund = true; newRefunds.push(o.no); }
+      }
+    });
+    if (touched) save();
+    if (newRefunds.length) showLatePopup(newRefunds);
+  }
+
+  function showLatePopup(nos) {
+    var box = document.createElement('div');
+    box.className = 'modal-overlay is-open';
+    box.innerHTML =
+      '<div class="modal-card" style="max-width:460px;">' +
+        '<div class="modal-card__head"><h3>⚠️ 배송 지연 환불 요청</h3><button class="modal-close" data-close>×</button></div>' +
+        '<div class="modal-card__body">' +
+          '<p style="margin:0 0 12px;font-size:0.92rem;line-height:1.7;">저가·느린 배송으로 처리한 주문 중 <b>' + nos.length + '건</b>이 ' +
+          '<b>배송 기한을 넘겨</b> 고객이 환불을 요청했습니다. 해당 매출은 회수되어 손실로 처리됩니다.</p>' +
+          '<div style="font-size:0.85rem;color:var(--muted);">대상: ' + nos.map(function (n) { return esc(n); }).join(', ') + '</div>' +
+          '<p style="margin:12px 0 0;font-size:0.85rem;">👉 배송이 느린 리스팅(저가·비Prime)은 이런 위험이 있습니다. 정산 결과에 반영됩니다.</p>' +
+        '</div>' +
+        '<div class="modal-card__foot"><button class="btn-sm is-dark" data-close>확인</button></div>' +
+      '</div>';
+    document.body.appendChild(box);
+    box.addEventListener('click', function (ev) { if (ev.target === box || ev.target.closest('[data-close]')) box.remove(); });
   }
 
   /* ---------- 동작 ---------- */
