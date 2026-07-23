@@ -243,6 +243,7 @@
         lowMargin: lowMargin,                                   // 역마진 — 사기와 별개
         level: settings.level,                                  // 생성 당시 난이도 (아마존 함정·옵션 빈도에 사용)
         fromAd: Math.random() < 0.8,                            // 80% 확률로 광고 유입 (20% 직접 유입)
+        randomCb: Math.random() < 0.05,                         // 정상 주문인데도 간혹 발생하는 결제 분쟁(5%, 난이도 공통·예방 불가)
         missing: []
       };
 
@@ -594,7 +595,7 @@
           '<p style="margin:0 0 12px;font-size:0.92rem;line-height:1.7;">고객 안내 <b>없이 취소</b>한 주문 중 <b>' + nos.length + '건</b>에서 ' +
           '고객이 “제품을 못 받았다”며 <b>차지백</b>을 걸었습니다. 각 주문에서 <b>소통·항소</b>로 대응하세요.</p>' +
           '<div style="font-size:0.85rem;color:var(--muted);">대상: ' + nos.map(function (n) { return esc(n); }).join(', ') + '</div>' +
-          '<p style="margin:12px 0 0;font-size:0.85rem;">👉 취소·환불 시 <b>품절 안내 메일</b>을 보냈다면 이런 차지백을 예방할 수 있습니다.</p>' +
+          '<p style="margin:12px 0 0;font-size:0.85rem;">👉 취소·환불 전에 <b>[고객에게 메일 보내기]</b>로 안내했다면 이런 차지백을 예방할 수 있습니다.</p>' +
         '</div>' +
         '<div class="modal-card__foot"><button class="btn-sm is-dark" data-close>확인</button></div>' +
       '</div>';

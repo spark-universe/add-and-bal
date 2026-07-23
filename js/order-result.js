@@ -56,6 +56,7 @@
       cbCount: 0, cbLoss: 0, cbList: [],
       cbWonCount: 0, cbWonProfit: 0,
       cbWrongCount: 0, cbWrongLoss: 0,        // 오배송으로 발생한 차지백
+      cbRandomCount: 0, cbRandomLoss: 0,      // 정상 주문의 우발적 결제 분쟁(예방 불가)
 
       negCount: 0, negLoss: 0,
       misCount: 0, misLoss: 0, overCount: 0, overTotal: 0,
@@ -76,16 +77,22 @@
       var isCb = o.chargebackFired || o.issue === 'chargeback';
       if (o.fulfillment === 'fulfilled') {
         if (isCb) {
-          var wrongCb = o.chargeback && o.chargeback.kind === 'wrongitem';   // 오배송발 차지백(사기 아님)
+          var cbKind = (o.chargeback && o.chargeback.kind) || 'fraud';
           if (o.chargeback && o.chargeback.status === 'won') {
-            r.cbWonCount++; r.cbWonProfit += (tot - sourced); r.net += (tot - sourced);   // 항소 승소 → 판매 유지(운 좋음)
+            r.net += (tot - sourced);                       // 항소 승소 → 판매 유지
+            r.cbWonProfit += (tot - sourced);
+            if (cbKind === 'fraud') r.cbWonCount++;         // 사기 지표는 사기 차지백만 집계
           } else {
             var loss = (o.chargeback && o.chargeback.loss) || (cost + CB_FEE);
-            if (wrongCb) {
-              r.cbWrongCount++; r.cbWrongLoss += loss; r.net -= loss;
+            r.net -= loss;
+            if (cbKind === 'wrongitem') {
+              r.cbWrongCount++; r.cbWrongLoss += loss;
               r.cbList.push({ no: o.no, cust: o.cust, loss: loss, wrong: true });
+            } else if (cbKind === 'random') {
+              r.cbRandomCount++; r.cbRandomLoss += loss;
+              r.cbList.push({ no: o.no, cust: o.cust, loss: loss, rand: true });
             } else {
-              r.cbCount++; r.cbLoss += loss; r.net -= loss;
+              r.cbCount++; r.cbLoss += loss;
               r.cbList.push({ no: o.no, cust: o.cust, loss: loss });
             }
           }
@@ -129,6 +136,7 @@
     if (r.cbWonCount) notes.push('<li class="warn">🎲 항소 승소는 <b>운</b>입니다 — 최종 판단은 카드사·은행이라 대개 패소(승소율 약 30%). 사기 주문은 애초에 받지 않는 게 안전합니다.</li>');
     if (r.misCount) notes.push('<li class="bad">📦 오배송(유사품·옵션 틀림) 발주 <b>' + r.misCount + '건</b> · 손실 <b>' + money(-r.misLoss) + '</b></li>');
     if (r.cbWrongCount) notes.push('<li class="bad">📦 오배송으로 <b>차지백 발생 ' + r.cbWrongCount + '건</b> · 손실 <b>' + money(-r.cbWrongLoss) + '</b> (주문과 다른 상품/옵션을 보냄)</li>');
+    if (r.cbRandomCount) notes.push('<li class="warn">🎲 정상 주문의 우발적 결제 분쟁 <b>' + r.cbRandomCount + '건</b> · 손실 <b>' + money(-r.cbRandomLoss) + '</b> (간혹 발생 · 예방 불가 · 항소로만 방어)</li>');
     if (r.overCount) notes.push('<li class="warn">💸 바가지 구매(더 비싼 리스팅) <b>' + r.overCount + '건</b> · 추가 지출 <b>' + money(-r.overTotal) + '</b></li>');
     if (r.negCount) notes.push('<li class="bad">📉 손해 발주(역마진 등) <b>' + r.negCount + '건</b> · 손실 <b>' + money(-r.negLoss) + '</b></li>');
     if (r.riskyCount) notes.push('<li class="warn">⚠️ 품절·배송불가·정보누락 주문 발주 <b>' + r.riskyCount + '건</b> (배송/환불 분쟁 위험)</li>');

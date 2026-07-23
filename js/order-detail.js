@@ -119,20 +119,23 @@
     if (!o || o.fulfillment !== 'fulfilled') return;
     if (o.chargebackFired) return;                 // 이미 발생한 주문은 다시 뜨지 않음
 
-    // 차지백이 열리는 두 경우:
+    // 차지백이 열리는 세 경우:
     //  (1) 사기(도난 카드) 주문을 걸러내지 못하고 발주한 경우
     //  (2) 주문과 다른 상품/옵션을 잘못 보낸 경우(오배송) → 무조건 차지백
+    //  (3) 정상 주문인데도 간혹(5%) 발생하는 결제 분쟁 → 예방 불가, 항소로 대응
     var isFraud = o.issue === 'chargeback';
     var isMisship = !!(o.amazon && o.amazon.misship);
-    if (!isFraud && !isMisship) return;
+    var isRandom = !isFraud && !isMisship && !!o.randomCb;
+    if (!isFraud && !isMisship && !isRandom) return;
 
+    var kind = isFraud ? 'fraud' : (isMisship ? 'wrongitem' : 'random');
     var a = cbAmounts(o);
     var now = Date.now();
     o.chargebackFired = true;
     o.chargeback = {
       status: 'open',
-      kind: isFraud ? 'fraud' : 'wrongitem',
-      reason: isFraud ? 'Product not received' : 'Item not as described',
+      kind: kind,
+      reason: isFraud ? 'Product not received' : (isMisship ? 'Item not as described' : 'Payment dispute'),
       amount: a.amount, fee: a.fee, total: a.total, loss: a.loss,
       openedAt: now, deadline: now + CB_DAYS * 86400000,
       resolvedAt: null, resolution: null
@@ -168,6 +171,10 @@
             ? '<p class="cb-lead"><b>' + esc(o.no) + '</b> 주문은 <b>주문과 다른 상품/옵션을 발송</b>했습니다.<br>' +
                 '고객이 받은 상품이 주문과 달라 카드사에 결제를 취소(차지백)했습니다.</p>' +
               '<div class="cb-signals">🚩 원인: 아마존에서 유사품·잘못된 옵션·엉뚱한 상품을 담아 발주</div>'
+            : cb.kind === 'random'
+            ? '<p class="cb-lead"><b>' + esc(o.no) + '</b> 주문은 <b>정상 주문</b>이었지만, 고객이 카드사에 결제를 취소(차지백)했습니다.<br>' +
+                '실제 매장에서도 <b>드물게(간혹)</b> 벌어지는 결제 분쟁으로, 미리 막기는 어렵습니다.</p>' +
+              '<div class="cb-signals">🎲 예방 불가한 우발적 분쟁 — 증거를 제출해 항소로 대응하세요</div>'
             : '<p class="cb-lead"><b>' + esc(o.no) + '</b> 주문은 <b>사기(도난 카드) 주문</b>이었습니다.<br>' +
                 '발주해서 상품을 보낸 뒤, 고객이 카드사에 결제를 취소(차지백)했습니다.</p>' +
               '<div class="cb-signals">🚩 위험 신호: 청구자·수령자 이름 불일치' +
@@ -181,6 +188,8 @@
             '다만 <b>최종 판단은 카드사·은행</b>이 하고 대개 고객 편을 들어 <b>승소율은 약 30%뿐</b>입니다. ' +
             (cb.kind === 'wrongitem'
               ? '이런 손실은 원래 아마존에서 <b>정확한 상품·옵션을 담아 발주</b>했으면 없었습니다.<br>'
+              : cb.kind === 'random'
+              ? '이 분쟁은 <b>정상 주문에서 우발적으로</b> 발생해 미리 막기 어렵습니다 — 증거로 항소해 방어하세요.<br>'
               : '이런 주문은 원래 <b>[환불하기(주문 취소)]</b>로 걸렀어야 합니다.<br>') +
             '실제 대응 방법은 <a href="chargeback-manual.html" target="_blank" rel="noopener" style="color:var(--primary);">📕 차지백 대응 가이드</a>를 참고하세요.</div>' +
         '</div>' +
@@ -429,84 +438,106 @@
   // 발송 불가라고 판단되면 [환불하기]에서 사유를 직접 고르고 고객 메일을 보낸다.
   function stockBox(o) { return ''; }
 
-  // 환불 시 고객에게 보내는 안내 메일(사유는 드러내지 않는 일반 문구)
-  function refundEmailText(o) {
-    return 'Hi ' + esc(o.cust) + ',<br><br>' +
-      'Unfortunately we are unable to fulfill your order <b>' + esc(o.no) + '</b>, so we have issued you a <b>full refund</b>. ' +
-      'We sincerely apologize for the inconvenience.<br><br>' +
-      '<span class="od-muted">(주문하신 상품을 발송해 드릴 수 없어 전액 환불 처리했습니다. 불편을 드려 죄송합니다.)</span>';
-  }
-
-  // 품절 안내 메일 (재고 유무와 무관하게 언제든 보낼 수 있음 — 판단은 학생 몫)
-  function stockAlertText(o) {
+  /* ===== 고객에게 메일 보내기 =====
+     발송이 어려운(품절·단종 등) 주문에서 학생이 두 가지 메시지 중 하나를 골라 보낸다.
+       (A) 품절 환불 안내 — "품절로 인하여 환불합니다" (안전, 전액 환불)
+       (B) 진행 방식 문의 — "전체 환불 vs 배송 가능 제품만 배송, 어느 쪽이 좋으세요?"
+           → 고객 답변 이벤트: 40% 답변 옴 / 40% 답변 없음 / 20% 메일 안 보고 차지백 */
+  function mailNoticeText(o) {
     return 'Hi ' + esc(o.cust) + ',<br><br>' +
       'We are sorry to inform you that an item in your order <b>' + esc(o.no) + '</b> is currently <b>out of stock</b> and cannot be shipped. ' +
-      'We will issue you a full refund shortly. We sincerely apologize for the inconvenience.<br><br>' +
-      '<span class="od-muted">(주문하신 상품이 품절되어 발송이 어렵습니다. 곧 전액 환불해 드리겠습니다. 불편을 드려 죄송합니다.)</span>';
+      'We will issue you a <b>full refund</b> shortly. We sincerely apologize for the inconvenience.<br><br>' +
+      '<span class="od-muted">(품절로 인하여 발송이 어려워 <b>전액 환불</b>해 드리겠습니다. 불편을 드려 죄송합니다.)</span>';
+  }
+  function mailAskText(o) {
+    return 'Hi ' + esc(o.cust) + ',<br><br>' +
+      'An item in your order <b>' + esc(o.no) + '</b> is currently <b>out of stock</b>. Which would you prefer?<br>' +
+      '&nbsp;&nbsp;① <b>Full refund</b> for the whole order, or<br>' +
+      '&nbsp;&nbsp;② <b>Ship the available item(s) now</b> and refund the out-of-stock part.<br><br>' +
+      'Please let us know and we will proceed right away.<br><br>' +
+      '<span class="od-muted">(품절로 인하여 <b>① 전체 환불</b> 또는 <b>② 배송 가능한 제품만 배송</b> 중 어느 쪽이 좋으신지 여쭙니다.)</span>';
   }
 
-  function openStockAlert(o) {
+  // 20% "메일 안 보고 차지백" — 우발적으로 결제 취소가 걸림(주문은 환불로 강제 처리)
+  function fireMailNrcb(o) {
+    var amount = Number(o.grandTotal || o.total || 0);
+    var loss = Math.round((amount + 15) * 100) / 100;
+    o.payment = 'refunded';
+    o.fulfillment = 'not_required';
+    o.refundReason = 'oos_stock';
+    o.refundedAt = Date.now();
+    o.nrcb = {
+      status: 'open', amount: Math.round(amount * 100) / 100, fee: 15, loss: loss,
+      cancelBeforeFile: false, filedAt: Date.now(), contacted: false,
+      openedAt: Date.now(), deadline: Date.now() + 15 * 86400000, resolution: null
+    };
+  }
+
+  function openCustMail(o) {
+    var multi = (o.lines && o.lines.length > 1);
     var box = document.createElement('div');
     box.className = 'modal-overlay is-open';
     box.innerHTML =
-      '<div class="modal-card" style="max-width:520px;">' +
-        '<div class="modal-card__head"><h3>고객에게 품절 안내 메일</h3><button class="modal-close" data-close>×</button></div>' +
+      '<div class="modal-card" style="max-width:560px;">' +
+        '<div class="modal-card__head"><h3>고객에게 메일 보내기</h3><button class="modal-close" data-close>×</button></div>' +
         '<div class="modal-card__body">' +
-          '<div class="cust-mail">' +
+          '<p style="margin:0 0 10px;font-size:0.85rem;color:var(--muted);">보낼 메일을 선택하세요.</p>' +
+          '<label class="mail-opt"><input type="radio" name="mailKind" value="notice" checked> ' +
+            '<span><b>품절 환불 안내</b> — “품절로 인하여 환불합니다” (전액 환불, 안전)</span></label>' +
+          (multi
+            ? '<label class="mail-opt"><input type="radio" name="mailKind" value="ask"> ' +
+                '<span><b>진행 방식 문의</b> — “전체 환불 또는 배송 가능 제품만 배송, 어느 쪽이 좋으세요?” (고객 답변 대기)</span></label>'
+            : '') +
+          '<div class="cust-mail" style="margin-top:12px;">' +
             '<div class="cust-mail__row"><span>받는 사람</span><b>' + esc(o.cust) + (o.email ? ' &lt;' + esc(o.email) + '&gt;' : '') + '</b></div>' +
             '<div class="cust-mail__row"><span>제목</span><b>Regarding your order ' + esc(o.no) + '</b></div>' +
-            '<div class="cust-mail__body">' + stockAlertText(o) + '</div>' +
+            '<div class="cust-mail__body" id="mailPreview">' + mailNoticeText(o) + '</div>' +
           '</div>' +
-          '<p style="margin:12px 0 0;font-size:0.82rem;color:var(--muted);">품절·단종·옵션 없음 등 발송이 어려운 경우 고객에게 먼저 안내하고, [환불하기]로 전액 환불하세요.</p>' +
+          (multi
+            ? '<p style="margin:10px 0 0;font-size:0.8rem;color:var(--muted);line-height:1.6;">‘진행 방식 문의’는 배송 가능한 제품만 보내 매출 일부를 지킬 수 있지만, 간혹 고객이 메일을 못 보고 <b>차지백</b>을 걸 수 있습니다.</p>'
+            : '') +
         '</div>' +
         '<div class="modal-card__foot">' +
           '<button class="btn-sm" data-close>취소</button>' +
-          '<button class="btn-sm is-dark" id="alertSend">📧 메일 보내기</button>' +
+          '<button class="btn-sm is-dark" id="mailSend">📧 메일 보내기</button>' +
         '</div>' +
       '</div>';
     document.body.appendChild(box);
     box.addEventListener('click', function (ev) { if (ev.target === box || ev.target.closest('[data-close]')) box.remove(); });
-    box.querySelector('#alertSend').addEventListener('click', function () {
-      o.stockAlertSent = true;
-      o.custNotified = true;
-      o.notifiedAt = Date.now();
-      saveOrder(o);
-      box.remove();
-      render(o);
-    });
-  }
 
-  /* ===== 일부 품절 → 고객 문의 =====
-     여러 상품 주문에서 일부만 품절일 때, 고객에게 상황을 알리고
-     '재고 있는 것만 받을지 / 전부 취소할지' 답변을 받아 처리한다. */
-  function openPartialInquiry(o) {
-    var box = document.createElement('div');
-    box.className = 'modal-overlay is-open';
-    box.innerHTML =
-      '<div class="modal-card" style="max-width:540px;">' +
-        '<div class="modal-card__head"><h3>고객에게 문의 (일부 품절)</h3><button class="modal-close" data-close>×</button></div>' +
-        '<div class="modal-card__body">' +
-          '<div class="cust-mail"><div class="cust-mail__body">Hi ' + esc(o.cust) + ',<br><br>' +
-            'One of the items in your order <b>' + esc(o.no) + '</b> is currently <b>out of stock</b>. ' +
-            'Would you like us to:<br>' +
-            '&nbsp;&nbsp;① <b>ship the in-stock item now</b> and refund the out-of-stock one, or<br>' +
-            '&nbsp;&nbsp;② <b>cancel the whole order</b> for a full refund?<br><br>' +
-            'Please let us know and we will proceed right away.<br><br>' +
-            '<span class="od-muted">(주문 상품 중 하나가 품절입니다. ① 재고 있는 것만 발송+나머지 환불 / ② 전체 취소·환불 중 어떻게 할지 여쭙니다.)</span></div></div>' +
-        '</div>' +
-        '<div class="modal-card__foot"><button class="btn-sm" data-close>취소</button>' +
-          '<button class="btn-sm is-dark" id="paSend">📧 메일 보내기</button></div>' +
-      '</div>';
-    document.body.appendChild(box);
-    box.addEventListener('click', function (ev) { if (ev.target === box || ev.target.closest('[data-close]')) box.remove(); });
-    box.querySelector('#paSend').addEventListener('click', function () {
-      o.custAsked = true;
-      o.custNotified = true;                      // 소통함 → 미배송 차지백 예방
+    function selected() { var el = box.querySelector('input[name="mailKind"]:checked'); return el ? el.value : 'notice'; }
+    box.querySelectorAll('input[name="mailKind"]').forEach(function (el) {
+      el.addEventListener('change', function () {
+        box.querySelector('#mailPreview').innerHTML = selected() === 'ask' ? mailAskText(o) : mailNoticeText(o);
+      });
+    });
+
+    box.querySelector('#mailSend').addEventListener('click', function () {
+      var kind = selected();
+      o.custMailSent = true;
+      o.custNotified = true;                      // 소통함 → 안내 없는 미배송 차지백 예방
       o.notifiedAt = Date.now();
-      var oosL = (o.lines || []).filter(lineOos);
-      var okL = (o.lines || []).filter(function (l) { return !lineOos(l); });
-      o.custReply = (oosL.length && okL.length) ? (Math.random() < 0.6 ? 'partial' : 'cancel')
-        : (oosL.length ? 'cancel' : 'all');       // 전부 품절→취소 / 품절 없음→그대로 발송
+      if (kind === 'notice') {
+        o.mailKind = 'notice';                    // 안내만 보냄 → [환불하기]로 전액 환불
+      } else {
+        o.custAsked = true;
+        o.mailKind = 'ask';
+        var roll = Math.random();
+        if (roll < 0.40) {                        // 40% 답변 옴 — 진행 방향 안내
+          var oosL = (o.lines || []).filter(lineOos);
+          var okL = (o.lines || []).filter(function (l) { return !lineOos(l); });
+          o.custReply = (oosL.length && okL.length) ? (Math.random() < 0.6 ? 'partial' : 'cancel')
+            : (oosL.length ? 'cancel' : 'all');
+          o.custReplyState = 'replied';
+        } else if (roll < 0.80) {                 // 40% 답변 없음
+          o.custReply = null;
+          o.custReplyState = 'none';
+        } else {                                  // 20% 메일 안 보고 차지백
+          o.custReply = null;
+          o.custReplyState = 'chargeback';
+          fireMailNrcb(o);
+        }
+      }
       saveOrder(o);
       box.remove();
       render(o);
@@ -514,8 +545,14 @@
   }
 
   function partialReplyBanner(o) {
-    if (!o.custAsked || !o.custReply) return '';
+    if (!o.custAsked) return '';
+    if (o.nrcb) return '';                         // 차지백 배너(nrcbBanner)가 대신 표시
     var st = 'background:#eef4ff;border:1px solid #d6e4ff;border-radius:12px;padding:14px 18px;margin:14px 0 6px;';
+    if (o.custReplyState === 'none') {
+      return '<div style="' + st + '"><div style="font-weight:800;margin-bottom:4px;">📭 고객이 아직 답이 없습니다.</div>' +
+        '<div style="font-size:0.85rem;line-height:1.6;">계속 기다리기 어렵다면 직접 판단해 처리하세요. 이미 안내했으므로 <b>[환불하기(주문 취소)]</b> 로 전액 환불하는 것이 안전합니다.</div></div>';
+    }
+    if (!o.custReply) return '';
     if (o.custReply === 'partial') {
       return '<div style="' + st + '"><div style="font-weight:800;margin-bottom:4px;">📩 고객 답변: 재고 있는 상품만 받겠습니다.</div>' +
         '<div style="font-size:0.85rem;line-height:1.6;"><b>[주문 편집하기]</b> 에서 품절 상품의 수량을 0으로 만들어 빼고(부분 환불됨), 남은 상품을 아마존에서 소싱해 발주하세요.</div></div>';
@@ -674,16 +711,13 @@
         '<h2 class="od-no">' + esc(o.no) + '</h2>' +
         badges(o) + riskBadge(o) +
         '<div class="od-top__actions">' +
-          // 차지백이 접수된 건은 환불하기·품절 안내 메일 액션을 숨긴다
+          // 차지백이 접수된 건은 환불하기·메일 액션을 숨긴다
           ((o.chargeback || o.nrcb)
             ? ''
             : (o.payment === 'refunded'
                 ? '<button class="btn-sm" disabled>환불 완료</button>'
                 : '<button class="btn-sm is-danger" id="btnRefund">환불하기 (주문 취소)</button>') +
-              '<button class="btn-sm" id="btnStockAlert">' + (o.stockAlertSent ? '✅ 품절 안내 보냄' : '📧 품절 안내 메일') + '</button>' +
-              // 여러 상품 주문은 일부 품절 시 고객에게 문의
-              ((o.lines && o.lines.length > 1 && o.payment !== 'refunded' && o.fulfillment !== 'fulfilled')
-                ? '<button class="btn-sm" id="btnPartialAsk">' + (o.custAsked ? '✅ 고객 문의함' : '📧 일부 품절 문의') + '</button>' : '')) +
+              '<button class="btn-sm" id="btnCustMail">' + (o.custMailSent ? '✅ 메일 보냄' : '📧 고객에게 메일 보내기') + '</button>') +
           '<button class="btn-sm" id="btnEdit">주문 편집하기</button>' +
         '</div>' +
       '</div>' +
@@ -813,11 +847,8 @@
     var rk = document.getElementById('btnRisk');
     if (rk) rk.addEventListener('click', function () { openRiskDetail(o); });
 
-    var sa = document.getElementById('btnStockAlert');
-    if (sa) sa.addEventListener('click', function () { openStockAlert(o); });
-
-    var pa = document.getElementById('btnPartialAsk');
-    if (pa) pa.addEventListener('click', function () { openPartialInquiry(o); });
+    var sa = document.getElementById('btnCustMail');
+    if (sa) sa.addEventListener('click', function () { openCustMail(o); });
 
     var nc = document.getElementById('nrContact');
     if (nc) nc.addEventListener('click', function () { openNrContact(o); });
@@ -986,12 +1017,9 @@
               '<option value="etc">기타 (고객 요청 등)</option>' +
             '</select>' +
           '</div>' +
-          '<label style="display:inline-flex;align-items:center;gap:7px;font-size:0.85rem;margin-top:6px;">' +
-            '<input type="checkbox" id="refundMail" checked> 📧 고객에게 환불 안내 메일 보내기' +
-          '</label>' +
-          '<div class="cust-mail" style="margin-top:8px;">' +
-            '<div class="cust-mail__body">' + refundEmailText(o) + '</div>' +
-          '</div>' +
+          '<p style="margin:10px 0 0;font-size:0.82rem;color:var(--muted);line-height:1.6;">' +
+            '고객 안내는 상단 <b>[📧 고객에게 메일 보내기]</b> 로 먼저 보내세요. ' +
+            '안내 없이 환불하면 “제품을 못 받았다”는 <b>미배송 차지백</b>이 걸릴 수 있습니다.</p>' +
           '<div id="refundErr" style="color:var(--danger);font-size:0.82rem;margin-top:10px;"></div>' +
         '</div>' +
         '<div class="modal-card__foot">' +
@@ -1013,7 +1041,6 @@
       o.fulfillment = 'not_required';    // 발주하지 않는 주문
       o.refundReason = reason;
       o.refundedAt = Date.now();
-      if (box.querySelector('#refundMail').checked) { o.custNotified = true; o.notifiedAt = Date.now(); }
       saveOrder(o);
       close();
       render(o);                         // 화면 갱신 (뱃지가 Refunded 로 바뀜)
