@@ -31,7 +31,6 @@
           { key: 'ohome',    ico: '🏠', label: '심화 과정 메인',   href: 'order-home.html',     lock: true },
           { key: 'basic',    ico: '⚙️', label: '기본 설정',      href: 'basic-settings.html', lock: true },
           { key: 'ad',       ico: '📢', label: '광고 설정',      href: 'ad-settings.html',    lock: true },
-          { key: 'setup',    ico: '🧩', label: '발주 세팅',      href: 'order-setup.html',    lock: true },
           { key: 'practice', ico: '📦', label: '발주 연습',      href: 'order-practice.html', lock: true },
           { key: 'cbguide',  ico: '📕', label: '차지백 가이드',   href: 'chargeback-manual.html', target: '_blank', lock: true },
         ],
