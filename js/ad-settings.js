@@ -109,20 +109,18 @@
     box.style.marginBottom = '18px';
     box.innerHTML =
       '<div class="panel__head"><span>발주 연습 손익 (광고비 반영)' + (practiceTopic ? ' · ' + esc(practiceTopic) : '') + '</span>' +
-        '<button class="btn-sm is-danger" id="resetRecordsBtn">🗑 기록 초기화</button></div>' +
+        '<button class="btn-sm is-danger" id="resetRecordsBtn">🗑 발주 기록 초기화</button></div>' +
       body;
 
     document.getElementById('resetRecordsBtn').addEventListener('click', resetRecords);
   }
 
   function resetRecords() {
-    if (!confirm('광고 캠페인과 발주 연습 기록을 모두 지웁니다.\n(캠페인 · 받은 주문 · 소싱/차지백 기록)\n정말 초기화할까요?')) return;
-    ['ad_campaigns', 'practice_orders', 'practice_plan', 'practice_chargebacks'].forEach(function (k) {
+    if (!confirm('발주 연습 기록(받은 주문 · 소싱 · 차지백)을 지웁니다.\n설정한 광고 캠페인은 그대로 유지됩니다.\n정말 초기화할까요?')) return;
+    ['practice_orders', 'practice_plan', 'practice_chargebacks'].forEach(function (k) {
       localStorage.removeItem(k);
     });
-    campaigns = [];
-    save();
-    render();
+    render();   // 손익 요약 갱신 (광고 캠페인은 유지)
   }
 
   /* ---------- 캠페인 표 ---------- */
