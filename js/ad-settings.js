@@ -142,19 +142,20 @@
         '</td></tr>';
     } else {
       body.innerHTML = list.map(function (c) {
+        var pending = c.status === 'active' && !c.customers;   // 아직 발주 연습이 안 돌아 성과 집계 전
         return '<tr data-id="' + c.id + '">' +
           '<td class="ord-cust" style="color:var(--primary);">' + esc(c.name) + '</td>' +
           '<td>' + (c.alert ? '<span class="risk-badge med">⚠ ' + esc(c.alert) + '</span>' : '') + '</td>' +
           '<td>' + (c.status === 'active'
-            ? '<span class="adv-status on">Active</span>'
+            ? '<span class="adv-status on">Active</span>' + (pending ? ' <span style="font-size:0.72rem;color:var(--muted);">집계 전</span>' : '')
             : '<span class="adv-status">Completed</span>') + '</td>' +
           '<td>' + esc(c.segment) + '</td>' +
-          '<td class="r">' + money(c.sales) + '</td>' +
-          '<td class="r">' + money(c.cac) + '</td>' +
-          '<td class="r">' + c.roas.toFixed(2) + '</td>' +
-          '<td class="r">' + c.customers + '</td>' +
-          '<td class="r">' + money(c.aov) + '</td>' +
-          '<td class="r">' + money(c.spend) + '</td>' +
+          '<td class="r">' + (pending ? '—' : money(c.sales)) + '</td>' +
+          '<td class="r">' + (pending ? '—' : money(c.cac)) + '</td>' +
+          '<td class="r">' + (pending ? '—' : (c.roas || 0).toFixed(2)) + '</td>' +
+          '<td class="r">' + (pending ? '—' : c.customers) + '</td>' +
+          '<td class="r">' + (pending ? '—' : money(c.aov)) + '</td>' +
+          '<td class="r">' + (pending ? '—' : money(c.spend)) + '</td>' +
           '<td>' + esc(c.country) + '</td>' +
           '<td>' + fmtDate(c.start) + '</td>' +
           '<td>' + (c.end ? fmtDate(c.end) : '') + '</td>' +

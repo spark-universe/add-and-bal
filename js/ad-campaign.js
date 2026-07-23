@@ -436,20 +436,8 @@
     if (!s.tov) { alert('목표 객단가를 입력하세요.'); return; }
     if (!s.avgCac) { alert('고객 획득 비용을 입력하세요.'); return; }
 
-    var r = roasRange(s);
-
-    // 집행 일수: 종료일이 있으면 그 기간, 없으면 지금까지 며칠 돌았다고 가정
-    var days = sched.end
-      ? Math.max(1, Math.round((new Date(sched.end) - new Date(sched.start)) / 86400000))
-      : randInt(4, 12);
-    days = Math.min(days, 30);
-
-    var spend = round2(s.budget * days * randF(0.85, 1.05));
-    var roas = round2(randF(r[0], r[1]));
-    var sales = round2(spend * roas);
-    var aov = round2(s.tov * randF(0.92, 1.08));
-    var customers = Math.max(1, Math.round(sales / aov));
-
+    // 성과(고객·매출·광고비)는 캠페인 생성 시엔 0. 발주 연습 완료 시 실제 주문 기준으로 채워진다.
+    // (실제 광고비 = 설정 CAC × 그 캠페인에 태그된 실제 주문 수)
     var c = {
       id: Date.now(),
       name: s.name,
@@ -458,18 +446,13 @@
       segment: 'All',
       tov: s.tov,
       cacs: s.cacs,
-      targetCac: s.avgCac,       // 설정한 평균 고객 획득 비용 (완료 시 실제 광고비 = CAC × 획득 고객)
+      targetCac: s.avgCac,       // 설정한 평균 고객 획득 비용
       category: s.category,
       start: sched.start,
       end: sched.end,
       status: (sched.end && sched.end <= today) ? 'completed' : 'active',
-      spend: spend,
-      sales: sales,
-      roas: roas,
-      aov: aov,
-      customers: customers,
-      cac: round2(spend / customers),
-      alert: roas < 3 ? 'TOV' : null,
+      spend: 0, sales: 0, roas: 0, aov: 0, customers: 0, cac: 0,
+      alert: null,
     };
 
     var list = [];
