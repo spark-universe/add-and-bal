@@ -116,15 +116,23 @@
   }
 
   function fireChargebackIfNeeded(o) {
-    if (!o || o.issue !== 'chargeback') return;
-    if (o.fulfillment !== 'fulfilled') return;
+    if (!o || o.fulfillment !== 'fulfilled') return;
     if (o.chargebackFired) return;                 // 이미 발생한 주문은 다시 뜨지 않음
+
+    // 차지백이 열리는 두 경우:
+    //  (1) 사기(도난 카드) 주문을 걸러내지 못하고 발주한 경우
+    //  (2) 주문과 다른 상품/옵션을 잘못 보낸 경우(오배송) → 무조건 차지백
+    var isFraud = o.issue === 'chargeback';
+    var isMisship = !!(o.amazon && o.amazon.misship);
+    if (!isFraud && !isMisship) return;
 
     var a = cbAmounts(o);
     var now = Date.now();
     o.chargebackFired = true;
     o.chargeback = {
-      status: 'open', reason: 'Product not received',
+      status: 'open',
+      kind: isFraud ? 'fraud' : 'wrongitem',
+      reason: isFraud ? 'Product not received' : 'Item not as described',
       amount: a.amount, fee: a.fee, total: a.total, loss: a.loss,
       openedAt: now, deadline: now + CB_DAYS * 86400000,
       resolvedAt: null, resolution: null
@@ -156,10 +164,14 @@
           '<h3>차지백이 열렸습니다 (Chargeback opened)</h3>' +
         '</div>' +
         '<div class="modal-card__body">' +
-          '<p class="cb-lead"><b>' + esc(o.no) + '</b> 주문은 <b>사기(도난 카드) 주문</b>이었습니다.<br>' +
-            '발주해서 상품을 보낸 뒤, 고객이 카드사에 결제를 취소(차지백)했습니다.</p>' +
-          '<div class="cb-signals">🚩 위험 신호: 청구자·수령자 이름 불일치' +
-            (o.risk === 'high' ? ' · 높은 위험도(High risk)' : '') + ' · 특급배송(Express) 요청</div>' +
+          (cb.kind === 'wrongitem'
+            ? '<p class="cb-lead"><b>' + esc(o.no) + '</b> 주문은 <b>주문과 다른 상품/옵션을 발송</b>했습니다.<br>' +
+                '고객이 받은 상품이 주문과 달라 카드사에 결제를 취소(차지백)했습니다.</p>' +
+              '<div class="cb-signals">🚩 원인: 아마존에서 유사품·잘못된 옵션·엉뚱한 상품을 담아 발주</div>'
+            : '<p class="cb-lead"><b>' + esc(o.no) + '</b> 주문은 <b>사기(도난 카드) 주문</b>이었습니다.<br>' +
+                '발주해서 상품을 보낸 뒤, 고객이 카드사에 결제를 취소(차지백)했습니다.</p>' +
+              '<div class="cb-signals">🚩 위험 신호: 청구자·수령자 이름 불일치' +
+                (o.risk === 'high' ? ' · 높은 위험도(High risk)' : '') + ' · 특급배송(Express) 요청</div>') +
           '<table class="cb-money">' +
             '<tr><td>분쟁 금액 (Dispute amount)</td><td class="r">' + money(cb.amount) + '</td></tr>' +
             '<tr><td>차지백 수수료 (Fee)</td><td class="r">' + money(cb.fee) + '</td></tr>' +
@@ -167,7 +179,9 @@
           '</table>' +
           '<div class="cb-tip">📄 마감일까지 <b>증거를 제출해 항소</b>하거나 <b>차지백을 수용</b>할 수 있습니다. ' +
             '다만 <b>최종 판단은 카드사·은행</b>이 하고 대개 고객 편을 들어 <b>승소율은 약 30%뿐</b>입니다. ' +
-            '이런 주문은 원래 <b>[환불하기(주문 취소)]</b>로 걸렀어야 합니다.<br>' +
+            (cb.kind === 'wrongitem'
+              ? '이런 손실은 원래 아마존에서 <b>정확한 상품·옵션을 담아 발주</b>했으면 없었습니다.<br>'
+              : '이런 주문은 원래 <b>[환불하기(주문 취소)]</b>로 걸렀어야 합니다.<br>') +
             '실제 대응 방법은 <a href="chargeback-manual.html" target="_blank" rel="noopener" style="color:var(--primary);">📕 차지백 대응 가이드</a>를 참고하세요.</div>' +
         '</div>' +
         '<div class="modal-card__foot">' +

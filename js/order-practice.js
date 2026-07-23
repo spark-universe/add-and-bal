@@ -342,6 +342,8 @@
   function backfill() {
     var touched = false;
     [].concat(orders, plan.queue).forEach(function (o) {
+      // 난이도(level)가 없던 옛 주문은 현재 설정 난이도로 채운다 (아마존 함정/경고 판정에 사용)
+      if (o.level == null && settings && settings.level) { o.level = settings.level; touched = true; }
       if (o.grandTotal != null) return;
       o.email = o.email || emailOf(o.cust);
       o.shipping = SHIP_FEE[o.method] || 4.90;
@@ -465,6 +467,8 @@
     var total = plan ? plan.total : 0;
     var open = orders.filter(function (o) { return o.fulfillment === 'unfulfilled'; }).length;
     var done = orders.filter(function (o) { return o.fulfillment === 'fulfilled'; }).length;
+    // '처리 완료' = 발주(fulfilled) 뿐 아니라 환불/취소해서 마무리한 주문까지 포함
+    var handled = orders.filter(function (o) { return o.fulfillment !== 'unfulfilled'; }).length;
     var refunded = orders.filter(function (o) { return o.payment === 'refunded'; }).length;
 
     // 차지백 비율은 '발주해버린 주문' 기준 — 사기 결제 주문을 걸러내지 못했을 때만 올라감
@@ -475,10 +479,10 @@
 
     var cbRate = done ? Math.round(badShipped / done * 100) : 0;
     var rfRate = orders.length ? Math.round(refunded / orders.length * 100) : 0;
-    var progress = total ? Math.round(done / total * 100) : 0;
+    var progress = total ? Math.round(handled / total * 100) : 0;
 
     document.getElementById('mOpen').textContent = open + '건';
-    document.getElementById('mDone').textContent = done + '건';
+    document.getElementById('mDone').textContent = handled + '건';
     document.getElementById('mCb').innerHTML = cbRate + '<small>%</small>';
     document.getElementById('mRefund').innerHTML = rfRate + '<small>%</small>';
     document.getElementById('mProgress').innerHTML = progress + '<small>%</small>';
