@@ -42,6 +42,33 @@
     return round2(total);
   }
 
+  // 이번 연습(현재 주제·런)에 속한 캠페인 + 그 주문들
+  function runContext() {
+    var pl = null; try { pl = JSON.parse(localStorage.getItem('practice_plan')); } catch (e) {}
+    var sig = pl ? pl.sig : null;
+    var mine = practiceTopic ? campaigns.filter(function (c) { return c.category === practiceTopic && (c.status === 'active' || c.runSig === sig); }) : [];
+    var orders = []; try { orders = JSON.parse(localStorage.getItem('practice_orders')) || []; } catch (e) {}
+    return { mine: mine, names: mine.map(function (c) { return c.name; }), orders: orders };
+  }
+
+  // 캠페인 1개의 실시간 성과 (광고 유입 주문 기준). 광고비 = CAC × 획득 고객.
+  function campaignLive(c, orders, names) {
+    var customers = 0, sales = 0;
+    (orders || []).forEach(function (o) {
+      if (campForOrder(o, names) !== c.name) return;
+      customers++;
+      if (o.fulfillment === 'fulfilled') sales += Number(o.grandTotal != null ? o.grandTotal : o.total || 0);
+    });
+    var cac = Number(c.targetCac != null ? c.targetCac : c.cac) || 0;
+    var spend = round2(cac * customers);
+    return {
+      customers: customers, sales: round2(sales), spend: spend,
+      aov: customers ? round2(sales / customers) : 0,
+      cac: customers ? round2(spend / customers) : 0,
+      roas: spend ? round2(sales / spend) : 0
+    };
+  }
+
   var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   function fmtDate(iso) {
     if (!iso) return '';
@@ -54,11 +81,13 @@
   }
   function save() { localStorage.setItem(STORE, JSON.stringify(campaigns)); }
 
-  /* ---------- 상단 지표 (모든 캠페인 합계) ---------- */
+  /* ---------- 상단 지표 (이번 연습 광고의 실시간 성과) ---------- */
   function renderMetrics() {
+    var ctx = runContext();
     var sales = 0, spend = 0, customers = 0;
-    campaigns.forEach(function (c) {
-      sales += c.sales; spend += c.spend; customers += c.customers;
+    ctx.mine.forEach(function (c) {
+      var lv = campaignLive(c, ctx.orders, ctx.names);
+      sales += lv.sales; spend += lv.spend; customers += lv.customers;
     });
     var aov = customers ? sales / customers : 0;
     var cac = customers ? spend / customers : 0;
@@ -160,8 +189,13 @@
           : '아직 캠페인이 없습니다. 우측 상단 <b>[Create campaign]</b> 으로 광고 캠페인을 만들어보세요.') +
         '</td></tr>';
     } else {
+      var ctx = runContext();
+      var liveMap = {};
+      ctx.mine.forEach(function (c) { liveMap[c.name] = campaignLive(c, ctx.orders, ctx.names); });
       body.innerHTML = list.map(function (c) {
-        var pending = c.status === 'active' && !c.customers;   // 아직 발주 연습이 안 돌아 성과 집계 전
+        var lv = liveMap[c.name];        // 이번 연습 캠페인이면 실시간 성과
+        var v = lv || c;                 // 아니면 저장된 값
+        var pending = !!lv && lv.customers === 0;   // 이번 런인데 아직 광고 유입 주문 없음
         return '<tr data-id="' + c.id + '">' +
           '<td class="ord-cust" style="color:var(--primary);">' + esc(c.name) + '</td>' +
           '<td>' + (c.alert ? '<span class="risk-badge med">⚠ ' + esc(c.alert) + '</span>' : '') + '</td>' +
@@ -169,12 +203,12 @@
             ? '<span class="adv-status on">Active</span>' + (pending ? ' <span style="font-size:0.72rem;color:var(--muted);">집계 전</span>' : '')
             : '<span class="adv-status">Completed</span>') + '</td>' +
           '<td>' + esc(c.segment) + '</td>' +
-          '<td class="r">' + (pending ? '—' : money(c.sales)) + '</td>' +
-          '<td class="r">' + (pending ? '—' : money(c.cac)) + '</td>' +
-          '<td class="r">' + (pending ? '—' : (c.roas || 0).toFixed(2)) + '</td>' +
-          '<td class="r">' + (pending ? '—' : c.customers) + '</td>' +
-          '<td class="r">' + (pending ? '—' : money(c.aov)) + '</td>' +
-          '<td class="r">' + (pending ? '—' : money(c.spend)) + '</td>' +
+          '<td class="r">' + (pending ? '—' : money(v.sales)) + '</td>' +
+          '<td class="r">' + (pending ? '—' : money(v.cac)) + '</td>' +
+          '<td class="r">' + (pending ? '—' : (Number(v.roas) || 0).toFixed(2)) + '</td>' +
+          '<td class="r">' + (pending ? '—' : v.customers) + '</td>' +
+          '<td class="r">' + (pending ? '—' : money(v.aov)) + '</td>' +
+          '<td class="r">' + (pending ? '—' : money(v.spend)) + '</td>' +
           '<td>' + esc(c.country) + '</td>' +
           '<td>' + fmtDate(c.start) + '</td>' +
           '<td>' + (c.end ? fmtDate(c.end) : '') + '</td>' +
