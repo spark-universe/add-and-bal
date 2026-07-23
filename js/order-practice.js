@@ -516,9 +516,11 @@
     // 실제 광고비 = 설정한 CAC × 실제 획득 고객 수 → 설정 CAC가 그대로 반영되고, 마진보다 크면 적자.
     var totSales = 0, totCust = 0;
     active.forEach(function (c) {
-      var attr = orders.filter(function (o) { return o.fulfillment === 'fulfilled' && campaignForOrder(o, names) === c.name; });
+      // 광고로 들어온 주문 = 획득 고객 (발주/환불 무관). 광고비 = CAC × 그 수.
+      var attr = orders.filter(function (o) { return campaignForOrder(o, names) === c.name; });
       var cCust = attr.length;
-      var cSales = round2(attr.reduce(function (a, o) { return a + Number(o.grandTotal != null ? o.grandTotal : o.total || 0); }, 0));
+      var cSales = round2(attr.filter(function (o) { return o.fulfillment === 'fulfilled'; })
+        .reduce(function (a, o) { return a + Number(o.grandTotal != null ? o.grandTotal : o.total || 0); }, 0));
       var cac = Number(c.targetCac != null ? c.targetCac : c.cac) || 0;
       var cSpend = round2(cac * cCust);
       c.spend = cSpend;

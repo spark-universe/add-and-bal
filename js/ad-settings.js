@@ -24,6 +24,24 @@
   function randF(a, b) { return Math.random() * (b - a) + a; }
   function round2(n) { return Math.round(n * 100) / 100; }
 
+  // 주문→광고 귀속 + 광고비(=CAC × 광고 유입 주문 수). order-practice/order-result 와 동일 규칙.
+  function campForOrder(o, names) {
+    if (!names.length) return null;
+    var n = parseInt(String(o.no).replace(/\D/g, ''), 10) || 0;
+    var fromAd = (o.fromAd != null) ? o.fromAd : (n % 10 < 8);
+    if (!fromAd) return null;
+    return names[n % names.length];
+  }
+  function adSpendLive(orders, camps) {
+    var names = camps.map(function (c) { return c.name; });
+    var total = 0;
+    (orders || []).forEach(function (o) {
+      var nm = campForOrder(o, names);
+      if (nm) { var c = camps.find(function (x) { return x.name === nm; }); total += Number(c && (c.targetCac != null ? c.targetCac : c.cac)) || 0; }
+    });
+    return round2(total);
+  }
+
   var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   function fmtDate(iso) {
     if (!iso) return '';
@@ -88,7 +106,8 @@
     var pl = null; try { pl = JSON.parse(localStorage.getItem('practice_plan')); } catch (e) {}
     var planSig = pl ? pl.sig : null;
     var mine = practiceTopic ? campaigns.filter(function (c) { return c.category === practiceTopic && (c.status === 'active' || c.runSig === planSig); }) : campaigns;
-    var adSpend = round2(mine.reduce(function (a, c) { return a + (Number(c.spend) || 0); }, 0));
+    var pOrders = []; try { pOrders = JSON.parse(localStorage.getItem('practice_orders')) || []; } catch (e) {}
+    var adSpend = adSpendLive(pOrders, mine);   // CAC × 광고 유입 주문 수 (저장된 spend 무시)
     var finalNet = round2(pn.net - adSpend);
     var fcls = finalNet >= 0 ? 'is-pos' : 'is-neg';
 

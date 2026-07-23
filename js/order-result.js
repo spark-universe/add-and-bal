@@ -22,6 +22,25 @@
   }
   function load(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
 
+  // 주문→광고 귀속 (order-practice 의 campaignForOrder 와 동일 규칙)
+  function campForOrder(o, names) {
+    if (!names.length) return null;
+    var n = parseInt(String(o.no).replace(/\D/g, ''), 10) || 0;
+    var fromAd = (o.fromAd != null) ? o.fromAd : (n % 10 < 8);
+    if (!fromAd) return null;
+    return names[n % names.length];
+  }
+  // 광고비 = 광고로 들어온 주문마다 그 캠페인의 CAC 합 (일 예산과 무관)
+  function adSpendLive(orders, camps) {
+    var names = camps.map(function (c) { return c.name; });
+    var total = 0;
+    (orders || []).forEach(function (o) {
+      var nm = campForOrder(o, names);
+      if (nm) { var c = camps.find(function (x) { return x.name === nm; }); total += Number(c && (c.targetCac != null ? c.targetCac : c.cac)) || 0; }
+    });
+    return Math.round(total * 100) / 100;
+  }
+
   function grade(pct, cbCount) {
     if (pct >= 90 && cbCount === 0) return { g: 'S', c: 'g-s', m: '완벽에 가까워요! 사기 주문을 걸러내고 이익을 극대화했습니다.' };
     if (pct >= 80) return { g: 'A', c: 'g-a', m: '훌륭합니다. 대부분의 판단이 정확했어요.' };
@@ -227,7 +246,7 @@
     var planSig = plan ? plan.sig : null;
     var mine = topic ? camps.filter(function (c) { return c.category === topic && (c.status === 'active' || c.runSig === planSig); }) : camps;
     r.adCount = mine.length;
-    r.adSpend = Math.round(mine.reduce(function (a, c) { return a + (Number(c.spend) || 0); }, 0) * 100) / 100;
+    r.adSpend = adSpendLive(orders, mine);   // CAC × 광고 유입 주문 수 (저장된 spend 무시)
     r.finalNet = Math.round((r.net - r.adSpend) * 100) / 100;
     r.roas = r.adSpend > 0 ? (r.sales / r.adSpend) : 0;
 
