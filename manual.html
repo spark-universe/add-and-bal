@@ -2605,14 +2605,37 @@ links.forEach(l=>l.addEventListener('click',()=>document.body.classList.remove('
     var res = await sb.from('cohort_manual').select('slug,status,publish_at').eq('cohort', viewCohort);
     if (res.error || !res.data) return;
     var now = Date.now();
+    function fmtDT(t) {
+      var d = new Date(t), pad = function (n) { return n < 10 ? '0' + n : n; };
+      return d.getFullYear() + '년 ' + (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' +
+        pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
     res.data.forEach(function (c) {
-      var visible = c.status === 'public' ||
-        (c.status === 'scheduled' && c.publish_at && new Date(c.publish_at).getTime() <= now);
+      var t = c.publish_at ? new Date(c.publish_at).getTime() : null;
+      var visible = c.status === 'public' || (c.status === 'scheduled' && t && t <= now);
       if (visible) return;
       var sec = document.getElementById(c.slug);
-      if (sec) sec.style.display = 'none';
       var nav = document.querySelector('.nav-item[href="#' + c.slug + '"]');
-      if (nav) nav.style.display = 'none';
+      if (c.status === 'scheduled' && t && t > now) {
+        // 오픈 예정: 목차엔 남기되 잠금 표시, 본문은 예정 일시 안내로 대체
+        if (nav) {
+          nav.classList.add('soon');
+          if (!nav.querySelector('.nav-badge')) nav.insertAdjacentHTML('beforeend', '<span class="nav-badge">오픈 예정</span>');
+        }
+        if (sec) {
+          var head = sec.querySelector('.sec-head');
+          sec.innerHTML = '';
+          if (head) sec.appendChild(head);
+          var box = document.createElement('div');
+          box.className = 'soon-box';
+          box.innerHTML = '🔒 이 매뉴얼은 <b>' + fmtDT(t) + '</b>에 오픈 예정입니다.';
+          sec.appendChild(box);
+        }
+      } else {
+        // hidden 등 → 완전히 숨김
+        if (sec) sec.style.display = 'none';
+        if (nav) nav.style.display = 'none';
+      }
     });
     // 파트 구분선: 그 파트에 보이는 챕터가 하나도 없으면 구분선도 숨김
     document.querySelectorAll('.part-divider').forEach(function (div) {
@@ -2646,8 +2669,7 @@ links.forEach(l=>l.addEventListener('click',()=>document.body.classList.remove('
       });
       var msg;
       if (earliest !== null) {
-        var dd = new Date(earliest);
-        msg = '이 매뉴얼은 <b>' + dd.getFullYear() + '년 ' + (dd.getMonth() + 1) + '월 ' + dd.getDate() + '일</b>에 공개될 예정입니다.';
+        msg = '이 매뉴얼은 <b>' + fmtDT(earliest) + '</b>에 오픈 예정입니다.';
       } else {
         msg = '이 매뉴얼은 아직 공개 전입니다. 곧 공개될 예정이에요.';
       }
