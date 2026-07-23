@@ -512,17 +512,21 @@
     if (!active.length) return;
 
     var names = active.map(function (c) { return c.name; });
-    // 각 캠페인에 실제로 귀속된(태그된) 발주 완료 주문만 성과로 집계
+    // 각 캠페인에 실제로 귀속된(태그된) 발주 완료 주문만 성과로 집계.
+    // 실제 광고비 = 설정한 CAC × 실제 획득 고객 수 → 설정 CAC가 그대로 반영되고, 마진보다 크면 적자.
     var totSales = 0, totCust = 0;
     active.forEach(function (c) {
       var attr = orders.filter(function (o) { return o.fulfillment === 'fulfilled' && campaignForOrder(o, names) === c.name; });
-      var cSales = round2(attr.reduce(function (a, o) { return a + Number(o.grandTotal != null ? o.grandTotal : o.total || 0); }, 0));
       var cCust = attr.length;
+      var cSales = round2(attr.reduce(function (a, o) { return a + Number(o.grandTotal != null ? o.grandTotal : o.total || 0); }, 0));
+      var cac = Number(c.targetCac != null ? c.targetCac : c.cac) || 0;
+      var cSpend = round2(cac * cCust);
+      c.spend = cSpend;
       c.sales = cSales;
       c.customers = cCust;
       c.aov = cCust ? round2(cSales / cCust) : 0;
-      c.roas = c.spend ? round2(cSales / c.spend) : 0;
-      c.cac = cCust ? round2(c.spend / cCust) : 0;
+      c.roas = cSpend ? round2(cSales / cSpend) : 0;
+      c.cac = cCust ? round2(cSpend / cCust) : 0;    // = 설정 CAC
       c.status = 'completed';
       c.runSig = plan.sig;
       totSales += cSales; totCust += cCust;

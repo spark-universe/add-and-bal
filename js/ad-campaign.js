@@ -458,6 +458,7 @@
       segment: 'All',
       tov: s.tov,
       cacs: s.cacs,
+      targetCac: s.avgCac,       // 설정한 평균 고객 획득 비용 (완료 시 실제 광고비 = CAC × 획득 고객)
       category: s.category,
       start: sched.start,
       end: sched.end,
