@@ -10,11 +10,7 @@
   var cohorts = [], students = [], events = [];
   var coLabel = {};
 
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-    });
-  }
+  // esc 는 js/util.js 의 공통 함수 사용
   function iso(y, m, d) { return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0'); }
   function fmtDT(isoStr) {
     var d = new Date(isoStr), h = d.getHours(), ap = h >= 12 ? '오후' : '오전', h12 = h % 12 || 12;
@@ -71,7 +67,6 @@
     var ids = Object.keys(selectedUsers);
     el('usersSummary').textContent = ids.length ? (ids.length + '명 선택됨') : '선택된 인원 없음';
   }
-  function studentName(id) { var s = students.find(function (x) { return x.id === id; }); return s ? (s.name || s.email) : id; }
   function renderUList() {
     var q = (el('uSearch').value || '').trim().toLowerCase();
     var list = students.filter(function (s) {

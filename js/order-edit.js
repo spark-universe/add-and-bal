@@ -11,27 +11,9 @@
   var ORDERS = 'practice_orders';
   var TAX_RATE = 0.0825;
 
-  var MONTHS = ['January','February','March','April','May','June',
-    'July','August','September','October','November','December'];
-
+  // esc/money/round2/fmtFull 는 js/util.js 의 공통 함수 사용
   var origin = null;   // 원본 주문 (비교용)
   var draft = null;    // 편집 중인 사본
-
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-    });
-  }
-  function money(n) { return '$' + Number(n || 0).toFixed(2); }
-  function round2(n) { return Math.round(n * 100) / 100; }
-
-  function fmtFull(ts) {
-    if (!ts) return '';
-    var d = new Date(ts);
-    var h = d.getHours(), ampm = h >= 12 ? 'pm' : 'am', h12 = h % 12 || 12;
-    return MONTHS[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() +
-      ' at ' + h12 + ':' + String(d.getMinutes()).padStart(2, '0') + ' ' + ampm;
-  }
 
   function loadOrders() {
     try { return JSON.parse(localStorage.getItem(ORDERS)) || []; } catch (e) { return []; }

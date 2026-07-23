@@ -36,11 +36,6 @@
     regApply: document.getElementById('regCoApply'),
   };
 
-  function manualTitle(slug) {
-    var m = manualChapters.find(function (x) { return x.slug === slug; });
-    return m ? m.title : slug;
-  }
-
   /* ----- '등록할 기수' 선택 (검색 팝업) ----- */
   var regSel = {};     // 등록 대상 기수 id 집합
   var tmpReg = {};     // 팝업 편집용
@@ -113,11 +108,7 @@
     closeRegModal();
   });
 
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-    });
-  }
+  // esc 는 js/util.js 의 공통 함수 사용
   function fmtDate(iso) {
     if (!iso) return '-';
     var d = new Date(iso);

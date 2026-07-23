@@ -11,35 +11,13 @@
   var PLAN = 'practice_plan';
   var CB_FEE = 15;
 
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-    });
-  }
+  // esc/campForOrder/adSpendLive 는 js/util.js 의 공통 함수 사용.
+  // money 는 음수를 '-$5.00' 로 표기해야 해서 이 화면 전용으로 유지.
   function money(n) {
     var v = Number(n || 0);
     return (v < 0 ? '-$' : '$') + Math.abs(v).toFixed(2);
   }
   function load(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
-
-  // 주문→광고 귀속 (order-practice 의 campaignForOrder 와 동일 규칙)
-  function campForOrder(o, names) {
-    if (!names.length) return null;
-    var n = parseInt(String(o.no).replace(/\D/g, ''), 10) || 0;
-    var fromAd = (o.fromAd != null) ? o.fromAd : (n % 10 < 8);
-    if (!fromAd) return null;
-    return names[n % names.length];
-  }
-  // 광고비 = 광고로 들어온 주문마다 그 캠페인의 CAC 합 (일 예산과 무관)
-  function adSpendLive(orders, camps) {
-    var names = camps.map(function (c) { return c.name; });
-    var total = 0;
-    (orders || []).forEach(function (o) {
-      var nm = campForOrder(o, names);
-      if (nm) { var c = camps.find(function (x) { return x.name === nm; }); total += Number(c && (c.targetCac != null ? c.targetCac : c.cac)) || 0; }
-    });
-    return Math.round(total * 100) / 100;
-  }
 
   function grade(pct, cbCount) {
     if (pct >= 90 && cbCount === 0) return { g: 'S', c: 'g-s', m: '완벽에 가까워요! 사기 주문을 걸러내고 이익을 극대화했습니다.' };

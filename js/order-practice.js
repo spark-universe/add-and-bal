@@ -66,9 +66,7 @@
   var orders = [];       // 받은 주문 (최신이 위)
   var plan = null;       // { sig, queue: [...아직 안 받은 주문], total, nextNo }
 
-  function rand(a) { return a[Math.floor(Math.random() * a.length)]; }
-  function randInt(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
-  function round2(n) { return Math.round(n * 100) / 100; }
+  // rand/randInt/round2/shuffle/esc/money 는 js/util.js 의 공통 함수 사용
   function randName() { return rand(FIRST) + ' ' + rand(LAST); }
   function randPhone() {
     return '+1 (' + randInt(200, 989) + ') ' + randInt(200, 999) + '-' +
@@ -80,14 +78,6 @@
     return MONTHS[d.getMonth()] + ' ' + d.getDate() + ' at ' + h12 + ':' + mm + ' ' + ampm;
   }
 
-  // 배열을 섞음 (사기 4종을 고르게 배분할 때 사용)
-  function shuffle(a) {
-    for (var i = a.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
-      var t = a[i]; a[i] = a[j]; a[j] = t;
-    }
-    return a;
-  }
 
   /* ---------- 사기 주문을 몇 번째 주문에 배치할지 계획 ----------
      규칙: 10건 묶음마다 최소 minPer10 건 / 전체 사기 비율은 fraudCap 미만 / 목표치는 fraud 확률
@@ -363,13 +353,6 @@
   }
 
   /* ---------- 렌더 ---------- */
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-    });
-  }
-  function money(n) { return '$' + Number(n).toFixed(2); }
-
   function paymentBadge(p) {
     return '<span class="ord-badge"><span class="dot"></span>' + (p === 'refunded' ? 'Refunded' : 'Paid') + '</span>';
   }
@@ -417,14 +400,7 @@
       .map(function (c) { return c.name; });
   }
 
-  // 주문 하나가 어느 광고에서 왔는지. 광고 유입 여부(o.fromAd)는 생성 시 80% 확률로 결정됨.
-  function campaignForOrder(o, names) {
-    if (!names || !names.length) return null;
-    var n = parseInt(String(o.no).replace(/\D/g, ''), 10) || 0;
-    var fromAd = (o.fromAd != null) ? o.fromAd : (n % 10 < 8);   // 구버전 주문은 결정적 폴백
-    if (!fromAd) return null;                                     // 직접 유입 = 미설정
-    return names[n % names.length];
-  }
+  // 주문→광고 귀속(campForOrder)은 js/util.js 의 공통 함수 사용
 
   function render() {
     var db = document.getElementById('diffBadge');
@@ -438,7 +414,7 @@
     } else {
       var adNames = activeAdNames();
       body.innerHTML = orders.map(function (o) {
-        var camp = campaignForOrder(o, adNames);
+        var camp = campForOrder(o, adNames);
         var tag = camp ? '<span class="ord-tag2">' + esc(camp) + '</span>' : '';
         return '<tr class="' + rowClass(o) + '" data-no="' + esc(o.no) + '">' +
           '<td class="ord-no">' + esc(o.no) + '</td>' +
@@ -522,7 +498,7 @@
     var totSales = 0, totCust = 0;
     active.forEach(function (c) {
       // 광고로 들어온 주문 = 획득 고객 (발주/환불 무관). 광고비 = CAC × 그 수.
-      var attr = orders.filter(function (o) { return campaignForOrder(o, names) === c.name; });
+      var attr = orders.filter(function (o) { return campForOrder(o, names) === c.name; });
       var cCust = attr.length;
       var cSales = round2(attr.filter(function (o) { return o.fulfillment === 'fulfilled'; })
         .reduce(function (a, o) { return a + Number(o.grandTotal != null ? o.grandTotal : o.total || 0); }, 0));

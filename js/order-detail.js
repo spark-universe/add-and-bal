@@ -15,47 +15,8 @@
 
   var current = null;   // 지금 보고 있는 주문
 
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-    });
-  }
-  function money(n) { return '$' + Number(n || 0).toFixed(2); }
-
-  // 결정적 옵션/품절 (js/amazon.js 의 동일 함수와 반드시 로직 일치!)
-  function h(s) { var n = 0; s = String(s); for (var i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) >>> 0; return n; }
+  // esc/money/h/optionOf/fmtFull/dayStr 는 js/util.js 의 공통 함수 사용
   function lineOos(l) { return !!l.oos; }
-  function oosInfo(o) {
-    var l = (o.lines || []).find(function (x) { return x.oos; });
-    if (!l) return null;
-    var t = l.oosType || 'stock';
-    var reason = t === 'notfound' ? '단종 — 아마존에서 검색해도 나오지 않습니다'
-      : t === 'option' ? '요청 옵션(' + (l.reqOption ? l.reqOption.label + ' ' + l.reqOption.value : '') + ')이 아마존에 없습니다'
-      : '품절 — 아마존 재고 없음';
-    return { line: l, type: t, reason: reason };
-  }
-  function optionOf(no, line, level) {
-    if (line.oos) return null;
-    var seed = h(no + line.pid + 'opt');
-    var pth = level === '상' ? 6 : level === '하' ? 2 : 4;   // 하 20% / 중 40% / 상 60%
-    if (seed % 10 >= pth) return null;
-    var TYPES = [
-      { label: '색상', choices: ['블랙', '화이트', '블루', '레드', '그린'] },
-      { label: '사이즈', choices: ['S', 'M', 'L', 'XL'] },
-      { label: '용량', choices: ['소형', '중형', '대형'] }
-    ];
-    var t = TYPES[seed % TYPES.length];
-    return { label: t.label, choices: t.choices, correct: t.choices[Math.floor(seed / 7) % t.choices.length] };
-  }
-
-  function fmtFull(ts) {
-    if (!ts) return '';
-    var d = new Date(ts);
-    var h = d.getHours(), ampm = h >= 12 ? 'pm' : 'am', h12 = h % 12 || 12;
-    var mm = String(d.getMinutes()).padStart(2, '0');
-    return MONTHS[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() +
-      ' at ' + h12 + ':' + mm + ' ' + ampm;
-  }
   function fmtTime(ts, minusMin) {
     var d = new Date(ts - (minusMin || 0) * 60000);
     var h = d.getHours(), ampm = h >= 12 ? 'PM' : 'AM', h12 = h % 12 || 12;
@@ -244,7 +205,6 @@
      안내 없이 취소(환불)한 주문에서 고객이 "제품 안 왔다"며 차지백을 건다.
      - 타임라인: 차지백 접수 '전' 취소 → 항소 시 승소 / 접수 '후' 취소 → 확률 싸움(최대 50%)
      - 고객과 소통 → 취하 유도 + 승률↑ / 자료 제출 → 승률↑ */
-  function dayStr(ts) { return ts ? fmtFull(ts).split(' at ')[0] : '-'; }
 
   function nrcbBanner(o) {
     var cb = o.nrcb;

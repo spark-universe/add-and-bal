@@ -15,11 +15,7 @@
     saved: document.getElementById('saved'),
   };
 
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-    });
-  }
+  // esc 는 js/util.js 의 공통 함수 사용
   function fmtDate(iso) {
     if (!iso) return '-';
     var d = new Date(iso);

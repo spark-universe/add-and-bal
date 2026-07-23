@@ -12,14 +12,7 @@
   var ORDERS = 'practice_orders';
   var SELLERS = ['QuickMart US', 'ShopVelocity', 'PrimeDeals Co', 'ValueBridge', 'NovaGoods'];
 
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-    });
-  }
-  function money(n) { return '$' + Number(n || 0).toFixed(2); }
-  function round2(n) { return Math.round(n * 100) / 100; }
-  function h(s) { var n = 0; s = String(s); for (var i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) >>> 0; return n; }
+  // esc/money/round2/h/optionOf 는 js/util.js 의 공통 함수 사용
 
   function loadOrders() { try { return JSON.parse(localStorage.getItem(ORDERS)) || []; } catch (e) { return []; } }
   function saveOrder(o) {
@@ -28,20 +21,6 @@
     if (i !== -1) { arr[i] = o; localStorage.setItem(ORDERS, JSON.stringify(arr)); }
   }
 
-  // 결정적 옵션 (order-detail.js 의 optionOf 와 반드시 동일 로직!)
-  function optionOf(no, line, level) {
-    if (line.oos) return null;
-    var seed = h(no + line.pid + 'opt');
-    var pth = level === '상' ? 6 : level === '하' ? 2 : 4;   // 옵션 빈도: 하 20% / 중 40% / 상 60%
-    if (seed % 10 >= pth) return null;
-    var TYPES = [
-      { label: '색상', choices: ['블랙', '화이트', '블루', '레드', '그린'] },
-      { label: '사이즈', choices: ['S', 'M', 'L', 'XL'] },
-      { label: '용량', choices: ['소형', '중형', '대형'] }
-    ];
-    var t = TYPES[seed % TYPES.length];
-    return { label: t.label, choices: t.choices, correct: t.choices[Math.floor(seed / 7) % t.choices.length] };
-  }
   function lineOos(l) { return !!l.oos; }
 
   var order = null, catalog = [], listings = [], bought = {};

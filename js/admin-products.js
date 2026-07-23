@@ -20,12 +20,7 @@
   var table = null;       // 읽어들인 파일 { header, rows }
   var pending = [];       // 등록 대기 행
 
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-    });
-  }
-  function money(n) { return '$' + Number(n || 0).toFixed(2); }
+  // esc/money 는 js/util.js 의 공통 함수 사용
   function num(v) {
     var n = parseFloat(String(v == null ? '' : v).replace(/[^0-9.\-]/g, ''));
     return isFinite(n) ? n : NaN;

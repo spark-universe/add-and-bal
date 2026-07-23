@@ -111,11 +111,7 @@
     closeCoModal();
   });
 
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-    });
-  }
+  // esc 는 js/util.js 의 공통 함수 사용
   function localToISO(v) { return v ? new Date(v).toISOString() : null; }
   function isoToLocal(iso) {
     if (!iso) return '';

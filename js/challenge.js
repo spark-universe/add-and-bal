@@ -12,11 +12,7 @@
   var MON = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
   var user = null;
 
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-    });
-  }
+  // esc 는 js/util.js 의 공통 함수 사용
   function fmtDate(iso) {
     if (!iso) return '-';
     var d = new Date(iso);

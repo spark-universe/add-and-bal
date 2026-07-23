@@ -72,16 +72,9 @@
     document.getElementById('segAdd').innerHTML = chips.join('');
   }
 
-  function money(n) { return '$' + Number(n || 0).toFixed(2); }
+  // esc/money/round2/randInt 는 js/util.js 의 공통 함수 사용
   function num(id) { return parseFloat(document.getElementById(id).value) || 0; }
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-    });
-  }
-  function round2(n) { return Math.round(n * 100) / 100; }
   function randF(a, b) { return Math.random() * (b - a) + a; }
-  function randInt(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
 
   /* ---------- 현재 입력값 ---------- */
   function read() {

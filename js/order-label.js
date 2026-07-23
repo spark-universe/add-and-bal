@@ -11,13 +11,7 @@
   var ORDERS = 'practice_orders';
   var order = null;
 
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-    });
-  }
-  function money(n) { return '$' + Number(n || 0).toFixed(2); }
-
+  // esc/money 는 js/util.js 의 공통 함수 사용
   function loadOrders() {
     try { return JSON.parse(localStorage.getItem(ORDERS)) || []; } catch (e) { return []; }
   }

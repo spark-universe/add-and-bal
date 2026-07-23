@@ -14,33 +14,8 @@
   var tab = 'all';
   var practiceTopic = '';
 
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-    });
-  }
-  function money(n, d) { return '$' + Number(n || 0).toFixed(d == null ? 2 : d); }
-  function randInt(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+  // esc/money/randInt/round2/campForOrder/adSpendLive/campaignLive 는 js/util.js 의 공통 함수 사용
   function randF(a, b) { return Math.random() * (b - a) + a; }
-  function round2(n) { return Math.round(n * 100) / 100; }
-
-  // 주문→광고 귀속 + 광고비(=CAC × 광고 유입 주문 수). order-practice/order-result 와 동일 규칙.
-  function campForOrder(o, names) {
-    if (!names.length) return null;
-    var n = parseInt(String(o.no).replace(/\D/g, ''), 10) || 0;
-    var fromAd = (o.fromAd != null) ? o.fromAd : (n % 10 < 8);
-    if (!fromAd) return null;
-    return names[n % names.length];
-  }
-  function adSpendLive(orders, camps) {
-    var names = camps.map(function (c) { return c.name; });
-    var total = 0;
-    (orders || []).forEach(function (o) {
-      var nm = campForOrder(o, names);
-      if (nm) { var c = camps.find(function (x) { return x.name === nm; }); total += Number(c && (c.targetCac != null ? c.targetCac : c.cac)) || 0; }
-    });
-    return round2(total);
-  }
 
   // 이번 연습(현재 주제·런)에 속한 캠페인 + 그 주문들
   function runContext() {
@@ -51,23 +26,6 @@
     return { mine: mine, names: mine.map(function (c) { return c.name; }), orders: orders };
   }
 
-  // 캠페인 1개의 실시간 성과 (광고 유입 주문 기준). 광고비 = CAC × 획득 고객.
-  function campaignLive(c, orders, names) {
-    var customers = 0, sales = 0;
-    (orders || []).forEach(function (o) {
-      if (campForOrder(o, names) !== c.name) return;
-      customers++;
-      if (o.fulfillment === 'fulfilled') sales += Number(o.grandTotal != null ? o.grandTotal : o.total || 0);
-    });
-    var cac = Number(c.targetCac != null ? c.targetCac : c.cac) || 0;
-    var spend = round2(cac * customers);
-    return {
-      customers: customers, sales: round2(sales), spend: spend,
-      aov: customers ? round2(sales / customers) : 0,
-      cac: customers ? round2(spend / customers) : 0,
-      roas: spend ? round2(sales / spend) : 0
-    };
-  }
 
   var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   function fmtDate(iso) {

@@ -10,11 +10,7 @@
   var names = {};         // user_id → 이름
   var filterId = new URLSearchParams(location.search).get('id') || '';
 
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-    });
-  }
+  // esc 는 js/util.js 의 공통 함수 사용
   function fmtDate(iso) { return iso ? iso.slice(0, 10).replace(/-/g, '.') : '-'; }
 
   function reviewTag(s) {

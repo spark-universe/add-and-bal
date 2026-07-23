@@ -7,25 +7,7 @@
    ========================================================= */
 (function () {
   var ORDERS = 'practice_orders';
-  var CB_FEE = 15;
-
-  var MONTHS = ['January','February','March','April','May','June',
-    'July','August','September','October','November','December'];
-
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-    });
-  }
-  function money(n) { return '$' + Number(n || 0).toFixed(2); }
-  function fmtFull(ts) {
-    if (!ts) return '';
-    var d = new Date(ts);
-    var h = d.getHours(), ampm = h >= 12 ? 'pm' : 'am', h12 = h % 12 || 12;
-    var mm = String(d.getMinutes()).padStart(2, '0');
-    return MONTHS[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() +
-      ' at ' + h12 + ':' + mm + ' ' + ampm;
-  }
+  // esc/money/fmtFull 는 js/util.js 의 공통 함수 사용
   function last4(s) {   // 카드 끝 4자리를 주문번호에서 안정적으로 생성
     var h = 0, t = String(s || '');
     for (var i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0;
