@@ -1,22 +1,24 @@
 /* =========================================================
    발주 & 광고 설정 훈련 — 공통 스타일
    ========================================================= */
+/* 앱 토큰을 dock 디자인 시스템(styles.css) 토큰에 매핑.
+   브랜드 색을 바꾸려면 styles.css 의 --color-primary 한 값만 교체하면 된다. */
 :root {
-  --bg: #f4f6f9;
-  --sidebar-bg: #ffffff;
-  --sidebar-border: #e5e8ee;
-  --content-bg: #ffffff;
-  --text: #1f2733;
-  --muted: #6b7684;
-  --primary: #2f6bff;
-  --primary-soft: #eaf1ff;
-  --accent: #ffe600;          /* PDF의 노란 활성 표시 */
-  --border: #e3e7ee;
-  --card-shadow: 0 1px 3px rgba(20, 30, 50, 0.06), 0 6px 20px rgba(20, 30, 50, 0.05);
-  --ok: #1aab5b;
+  --bg: var(--color-surface);          /* #F8FAFC */
+  --sidebar-bg: var(--color-bg);       /* #FFFFFF */
+  --sidebar-border: var(--color-border);
+  --content-bg: var(--color-bg);
+  --text: var(--color-text);           /* #0F172A */
+  --muted: #6b7684;                    /* 중립 회색(가독성 위해 유지) */
+  --primary: var(--color-primary);     /* #2563EB */
+  --primary-soft: var(--color-primary-soft);
+  --accent: #ffe600;                   /* PDF의 노란 활성 표시 (dock 팔레트 밖) */
+  --border: var(--color-border);
+  --card-shadow: var(--shadow-md);
+  --ok: var(--color-green);            /* #059669 */
   --warn: #f59e0b;
   --danger: #ef4444;
-  --radius: 14px;
+  --radius: var(--radius-lg);          /* 16px */
 }
 
 * { box-sizing: border-box; }
@@ -25,7 +27,7 @@ html, body { height: 100%; }
 
 body {
   margin: 0;
-  font-family: 'Pretendard', 'Malgun Gothic', 'Segoe UI', sans-serif;
+  font-family: var(--font-body);       /* Inter + Pretendard */
   background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
