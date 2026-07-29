@@ -388,12 +388,29 @@ tr.row-dirty > td { background: #fff7e0; }
 .stat {
   background: var(--content-bg);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 18px 20px;
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
 }
-.stat.is-highlight { background: #fff8ec; border-color: #ffe6b8; }
 .stat .label { font-size: 0.8rem; color: var(--muted); margin-bottom: 8px; }
-.stat .value { font-size: 1.7rem; font-weight: 800; }
+.stat .value {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+/* dock 시그니처 파스텔 지표 카드 — 지표 행에서 크림/블루/라벤더 3색 순환.
+   is-highlight(호박색 강조)는 제외해 원래 강조를 유지. */
+.stat-row .stat:not(.is-highlight) { border-color: transparent; }
+.stat-row .stat:not(.is-highlight):nth-child(3n+1) { background: var(--pastel-cream); }
+.stat-row .stat:not(.is-highlight):nth-child(3n+2) { background: var(--pastel-blue); }
+.stat-row .stat:not(.is-highlight):nth-child(3n+3) { background: var(--pastel-lavender); }
+.stat-row .stat:not(.is-highlight):nth-child(3n+1) .value { color: var(--color-green); }
+.stat-row .stat:not(.is-highlight):nth-child(3n+2) .value { color: var(--color-blue-accent); }
+.stat-row .stat:not(.is-highlight):nth-child(3n+3) .value { color: var(--color-purple); }
+.stat.is-highlight { background: #fff8ec; border-color: #ffe6b8; }
+.stat.is-highlight .value { color: var(--warn); }
 
 /* 큰 진입 카드 (사용자 메인) */
 .card-grid {
