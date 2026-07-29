@@ -356,8 +356,27 @@ tr.row-dirty > td { background: #fff7e0; }
 /* ---------- 본문 ---------- */
 .content { padding: 34px 40px; }
 .page-head { margin-bottom: 26px; }
-.page-head h2 { margin: 0 0 4px; font-size: 1.4rem; font-weight: 800; }
+.page-head h2 {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--color-text);
+}
 .page-head p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+
+/* dock eyebrow: 섹션/카드 위 작은 회색 라벨 */
+.eyebrow {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
 
 /* 상단 통계 카드 줄 */
 .stat-row {
@@ -578,14 +597,15 @@ tr.row-dirty > td { background: #fff7e0; }
 .btn-primary {
   background: var(--primary);
   color: #fff;
-  border: none;
-  border-radius: 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);      /* 알약형 */
   padding: 13px 26px;
   font-size: 0.95rem;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.18s var(--ease), transform 0.18s var(--ease);
 }
-.btn-primary:hover { opacity: 0.92; }
+.btn-primary:hover { background: var(--color-primary-hover); transform: translateY(-1px); }
 .form-saved { display: inline-block; margin-left: 14px; font-size: 0.85rem; color: var(--ok); font-weight: 700; }
 .form-row textarea {
   width: 100%;
@@ -667,11 +687,12 @@ tbody tr:hover { background: #fafbff; }
 .btn-sm {
   border: 1px solid var(--border);
   background: #fff;
-  border-radius: 8px;
-  padding: 6px 12px;
+  border-radius: var(--radius-full);      /* 알약형 */
+  padding: 6px 14px;
   font-size: 0.8rem;
   cursor: pointer;
   white-space: nowrap;
+  transition: border-color 0.15s var(--ease), color 0.15s var(--ease), background 0.15s var(--ease);
 }
 .btn-sm:hover { border-color: var(--primary); color: var(--primary); }
 .btn-sm.is-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
