@@ -23,7 +23,8 @@
 
   function lineOos(l) { return !!l.oos; }
 
-  var order = null, catalog = [], listings = [], bought = {};
+  var order = null, catalog = [], otherCatalog = [], listings = [], bought = {};
+  var MAX_FILLERS = 40;   // 검색 노이즈 상한 (제품이 많아져도 화면이 무겁지 않도록)
 
   function imgsOf(p) { return (p.images && p.images.length) ? p.images : (p.image_url ? [p.image_url] : (p.image ? [p.image] : [])); }
   function ratingOf(p) { return ((38 + h(p.lid + 'r') % 12) / 10).toFixed(1); }
@@ -88,11 +89,21 @@
           price: round2(C * (0.80 + (seed % 12) / 100)), seller: SELLERS[(seed + 4) % SELLERS.length], prime: false, slow: true, inStock: true, option: optFor(l.pid + '-slow') });
       }
     });
-    (catalog || []).forEach(function (p) {
-      if (inOrder[p.id]) return;
+    // 필러(주문에 없는 상품) = 같은 주제 + 다른 제품군 섞기. 개수 상한으로 스케일 대응.
+    var fillers = [];
+    (catalog || []).forEach(function (p) { if (!inOrder[p.id]) fillers.push(p); });
+    (otherCatalog || []).forEach(function (p) { if (!inOrder[p.id]) fillers.push(p); });
+    fillers = fillers.slice(0, MAX_FILLERS);
+    fillers.forEach(function (p) {
       listings.push({ lid: 'f-' + p.id, pid: p.id, kind: 'filler', name: p.name, images: p.images || [], image: p.image_url,
         price: Number(p.cost) || 0, seller: 'Amazon.com', prime: h(p.id) % 3 !== 0, inStock: true, option: null });
     });
+
+    // 정답 리스팅이 항상 맨 위에 오지 않도록 전체를 섞는다.
+    // 주문번호+리스팅 id 를 곱셈 해시로 잘 흩어서 순서를 만든다(인접 id 가 뭉치지 않음).
+    // 같은 주문에선 항상 같은 순서라 다시 눌러도 안 흔들린다.
+    function scramble(lid) { return (h(order.no + '|' + lid) * 2654435761) >>> 0; }
+    listings.sort(function (a, b) { return scramble(a.lid) - scramble(b.lid); });
   }
 
   function persist() {
@@ -330,7 +341,13 @@
     try {
       var s = await sb.from('practice_settings').select('topic').eq('user_id', user.id).maybeSingle();
       var topic = s.data && s.data.topic;
-      if (topic) { var pr = await sb.from('products').select('*').eq('topic', topic).eq('active', true); catalog = pr.data || []; }
+      if (topic) {
+        var pr = await sb.from('products').select('*').eq('topic', topic).eq('active', true);
+        catalog = pr.data || [];
+        // 다른 제품군도 검색에 섞어 노출 (제품이 많아질 것 대비 DB에서 개수 제한)
+        var ot = await sb.from('products').select('*').eq('active', true).neq('topic', topic).limit(MAX_FILLERS);
+        otherCatalog = ot.data || [];
+      }
     } catch (e) {}
 
     if (order.amazon && order.amazon.purchases) bought = order.amazon.purchases;
