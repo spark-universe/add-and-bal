@@ -37,6 +37,8 @@
       cbRandomCount: 0, cbRandomLoss: 0,      // 정상 주문의 우발적 결제 분쟁(예방 불가)
 
       negCount: 0, negLoss: 0,
+      lowMarginCount: 0, lowMarginLoss: 0,   // 역마진 주문(발주는 정상, 손실만 표시)
+      infoResolved: 0,                       // 정보 누락 → 확인 후 발주(정답)
       misCount: 0, misLoss: 0, overCount: 0, overTotal: 0,
       slowCount: 0, lateCount: 0, lateLoss: 0,
       nrCount: 0, nrLoss: 0,
@@ -81,10 +83,17 @@
         } else {
           var prof = tot - sourced;
           r.saleCount++; r.sales += tot; r.costSum += sourced; r.saleProfit += prof; r.net += prof;
-          if (prof < 0) { r.negCount++; r.negLoss += (-prof); }
+          if (prof < 0) {
+            // 역마진: 발주는 정상(정답)이되 마진이 낮아 손해 → 정산에 손실로만 표시(실수 아님)
+            if (o.lowMargin) { r.lowMarginCount++; r.lowMarginLoss += (-prof); }
+            else { r.negCount++; r.negLoss += (-prof); }
+          }
           if (overpaid > 0) { r.overCount++; r.overTotal += overpaid; }
           if (o.amazon && o.amazon.slowShip) r.slowCount++;   // 배송 기한 미준수(느린 배송)
-          if (isProblem) r.riskyCount++;         // 사기는 아니지만 문제(품절/배송불가/정보누락) 발주
+          // 정보 누락 주문: 고객에게 정보를 받아 채운 뒤(infoFilled) 발주하면 정상. 안 채우고 발주하면 배송 위험.
+          var infoResolved = o.issue === 'missing_info' && (o.infoFilled || !(o.missing && o.missing.length));
+          if (o.issue === 'missing_info' && infoResolved) r.infoResolved++;
+          else if (isProblem) r.riskyCount++;    // 사기 아니지만 문제(품절/배송불가/정보미확인) 발주
         }
       } else if (o.payment === 'refunded') {
         if (isProblem) r.refundGood++;
@@ -116,8 +125,10 @@
     if (r.cbWrongCount) notes.push('<li class="bad">📦 오배송으로 <b>차지백 발생 ' + r.cbWrongCount + '건</b> · 손실 <b>' + money(-r.cbWrongLoss) + '</b> (주문과 다른 상품/옵션을 보냄)</li>');
     if (r.cbRandomCount) notes.push('<li class="warn">🎲 정상 주문의 우발적 결제 분쟁 <b>' + r.cbRandomCount + '건</b> · 손실 <b>' + money(-r.cbRandomLoss) + '</b> (간혹 발생 · 예방 불가 · 항소로만 방어)</li>');
     if (r.overCount) notes.push('<li class="warn">💸 바가지 구매(더 비싼 리스팅) <b>' + r.overCount + '건</b> · 추가 지출 <b>' + money(-r.overTotal) + '</b></li>');
-    if (r.negCount) notes.push('<li class="bad">📉 손해 발주(역마진 등) <b>' + r.negCount + '건</b> · 손실 <b>' + money(-r.negLoss) + '</b></li>');
-    if (r.riskyCount) notes.push('<li class="warn">⚠️ 품절·배송불가·정보누락 주문 발주 <b>' + r.riskyCount + '건</b> (배송/환불 분쟁 위험)</li>');
+    if (r.negCount) notes.push('<li class="bad">📉 손해 발주 <b>' + r.negCount + '건</b> · 손실 <b>' + money(-r.negLoss) + '</b></li>');
+    if (r.lowMarginCount) notes.push('<li class="warn">📉 역마진 주문 발주 <b>' + r.lowMarginCount + '건</b> · 손실 <b>' + money(-r.lowMarginLoss) + '</b> — 발주는 정상 처리지만 마진이 낮아 손해입니다. <b>판매가 마진을 더 높게</b> 설정하면 예방됩니다.</li>');
+    if (r.infoResolved) notes.push('<li class="good">📝 정보 누락 주문을 <b>고객에게 확인 후 발주 ' + r.infoResolved + '건</b> (올바른 처리)</li>');
+    if (r.riskyCount) notes.push('<li class="warn">⚠️ 품절·배송불가·정보 미확인 주문 발주 <b>' + r.riskyCount + '건</b> (배송/환불 분쟁 위험)</li>');
     if (r.slowCount) notes.push('<li class="warn">🚚 배송 기한 미준수 <b>' + r.slowCount + '건</b> (저가·느린 배송으로 발주)</li>');
     if (r.lateCount) notes.push('<li class="bad">↩️ 배송 지연 환불 요청 <b>' + r.lateCount + '건</b> · 손실 <b>' + money(-r.lateLoss) + '</b></li>');
     if (r.nrCount) notes.push('<li class="bad">📮 미배송 클레임 차지백 <b>' + r.nrCount + '건</b> · 손실 <b>' + money(-r.nrLoss) + '</b> (취소 시 고객 안내를 안 함)</li>');

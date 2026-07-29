@@ -524,6 +524,64 @@
     return '<div style="' + st + '"><div style="font-weight:800;">📩 고객 답변: 주문한 상품 그대로 다 보내주세요.</div></div>';
   }
 
+  /* ===== 정보 누락 → 고객에게 누락 정보 요청 =====
+     전화/주소/우편번호가 빈 주문. 요청 메일을 보내 받으면 채워서 발주하는 게 정답. */
+  function missingLabel(f) { return f === 'phone' ? '전화번호' : f === 'zip' ? '우편번호' : '배송 주소'; }
+  function missingLabelEn(f) { return f === 'phone' ? 'phone number' : f === 'zip' ? 'ZIP code' : 'shipping address'; }
+  function genField(f) {
+    if (f === 'phone') return '+1 (' + randInt(200, 989) + ') ' + randInt(200, 999) + '-' + String(randInt(0, 9999)).padStart(4, '0');
+    if (f === 'zip') return String(randInt(10000, 99999));
+    return randInt(100, 9999) + ' ' + rand(['Oak St', 'Maple Ave', 'Cedar Rd', 'Elm St', 'Pine Ave', 'Birch Ln']);
+  }
+
+  function infoReplyBanner(o) {
+    if (o.issue !== 'missing_info' || !o.infoAsked) return '';
+    var blue = 'background:#eef4ff;border:1px solid #d6e4ff;border-radius:12px;padding:14px 18px;margin:14px 0 6px;';
+    var green = 'background:#eaf7ef;border:1px solid #b7e3c8;border-radius:12px;padding:14px 18px;margin:14px 0 6px;';
+    if (o.infoReplyState === 'filled') {
+      return '<div style="' + green + '"><div style="font-weight:800;margin-bottom:4px;">📩 고객이 <b>' + esc(missingLabel(o.infoFilledField)) + '</b>를 알려줬습니다.</div>' +
+        '<div style="font-size:0.85rem;line-height:1.6;">주문 정보가 채워졌습니다. 이제 <b>아마존에서 소싱해 발주</b>하면 됩니다.</div></div>';
+    }
+    return '<div style="' + blue + '"><div style="font-weight:800;margin-bottom:4px;">📭 고객이 아직 답이 없습니다.</div>' +
+      '<div style="font-size:0.85rem;line-height:1.6;"><b>[정보 다시 요청]</b> 하거나, 계속 어려우면 <b>[환불하기]</b> 로 취소하세요. 정보 없이 발송하면 배송 실패 위험이 있습니다.</div></div>';
+  }
+
+  function openAskInfo(o) {
+    var field = (o.missing && o.missing[0]) || 'addr';
+    var box = document.createElement('div');
+    box.className = 'modal-overlay is-open';
+    box.innerHTML =
+      '<div class="modal-card" style="max-width:520px;">' +
+        '<div class="modal-card__head"><h3>고객에게 누락 정보 요청</h3><button class="modal-close" data-close>×</button></div>' +
+        '<div class="modal-card__body">' +
+          '<div class="cust-mail"><div class="cust-mail__body">Hi ' + esc(o.cust) + ',<br><br>' +
+            'Thank you for your order <b>' + esc(o.no) + '</b>. We are missing your <b>' + esc(missingLabelEn(field)) + '</b>, ' +
+            'which we need to ship your item. Could you please reply with it?<br><br>' +
+            '<span class="od-muted">(주문에 <b>' + esc(missingLabel(field)) + '</b>가 빠져 있어 발송이 어렵습니다. 회신으로 알려주시면 바로 처리하겠습니다.)</span></div></div>' +
+        '</div>' +
+        '<div class="modal-card__foot"><button class="btn-sm" data-close>취소</button>' +
+          '<button class="btn-sm is-dark" id="aiSend">📧 메일 보내기</button></div>' +
+      '</div>';
+    document.body.appendChild(box);
+    box.addEventListener('click', function (ev) { if (ev.target === box || ev.target.closest('[data-close]')) box.remove(); });
+    box.querySelector('#aiSend').addEventListener('click', function () {
+      o.infoAsked = true;
+      o.custNotified = true;                     // 소통함 → 미배송 차지백 예방
+      if (Math.random() < 0.7) {                 // 70% 고객이 정보를 회신 → 채워짐
+        o[field] = genField(field);
+        o.missing = [];
+        o.infoFilled = true;
+        o.infoFilledField = field;
+        o.infoReplyState = 'filled';
+      } else {
+        o.infoReplyState = 'none';               // 30% 무응답
+      }
+      saveOrder(o);
+      box.remove();
+      render(o);
+    });
+  }
+
   /* Order risk 카드의 아이콘을 누르면 뜨는 상세 분석.
      감지된 신호만 나열하고 결론은 내려주지 않는다 (판단은 수강생 몫) */
   function riskSignals(o) {
@@ -677,7 +735,10 @@
             : (o.payment === 'refunded'
                 ? '<button class="btn-sm" disabled>환불 완료</button>'
                 : '<button class="btn-sm is-danger" id="btnRefund">환불하기 (주문 취소)</button>') +
-              '<button class="btn-sm" id="btnCustMail">' + (o.custMailSent ? '✅ 메일 보냄' : '📧 고객에게 메일 보내기') + '</button>') +
+              '<button class="btn-sm" id="btnCustMail">' + (o.custMailSent ? '✅ 메일 보냄' : '📧 고객에게 메일 보내기') + '</button>' +
+              // 정보 누락 주문: 고객에게 누락 정보를 요청 → 받으면 채워서 발주
+              ((o.issue === 'missing_info' && o.missing && o.missing.length && o.fulfillment !== 'fulfilled')
+                ? '<button class="btn-sm" id="btnAskInfo">' + (o.infoAsked ? '📧 정보 다시 요청' : '📧 누락 정보 요청') + '</button>' : '')) +
           '<button class="btn-sm" id="btnEdit">주문 편집하기</button>' +
         '</div>' +
       '</div>' +
@@ -686,6 +747,7 @@
       cbBanner(o) +
       nrcbBanner(o) +
       partialReplyBanner(o) +
+      infoReplyBanner(o) +
 
       '<div class="od-grid">' +
         // ===== 왼쪽 =====
@@ -809,6 +871,9 @@
 
     var sa = document.getElementById('btnCustMail');
     if (sa) sa.addEventListener('click', function () { openCustMail(o); });
+
+    var ai = document.getElementById('btnAskInfo');
+    if (ai) ai.addEventListener('click', function () { openAskInfo(o); });
 
     var nc = document.getElementById('nrContact');
     if (nc) nc.addEventListener('click', function () { openNrContact(o); });
