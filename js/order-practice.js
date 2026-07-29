@@ -261,7 +261,7 @@
 
       queue.push(o);
     }
-    return { sig: sig, queue: queue, total: n, nextNo: no };
+    return { sig: sig, level: settings.level, queue: queue, total: n, nextNo: no };
   }
 
   // 문제 주문의 실제 흔적을 데이터에 심는다 (수강생은 이 흔적을 보고 판단해야 함)
@@ -322,6 +322,8 @@
     try {
       var p = JSON.parse(localStorage.getItem(PLAN));
       if (!p || p.sig !== sig) return false;          // 세팅이 바뀌었으면 시나리오를 새로 짬
+      // 안전장치: 저장된 시나리오의 난이도가 현재 설정 난이도와 다르면 새로 생성(sig가 놓쳐도 이중 방어)
+      if (settings && settings.level && p.level && p.level !== settings.level) return false;
       plan = p;
       orders = JSON.parse(localStorage.getItem(ORDERS)) || [];
       backfill();                                     // 상세 화면용 필드가 없던 옛 주문 보정
