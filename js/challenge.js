@@ -568,7 +568,7 @@
       // 파일 첨부: 경로 첫 폴더가 본인 uid 여야 스토리지 정책을 통과한다
       if (file) {
         btn.textContent = '업로드 중...';
-        var path = user.id + '/challenge/' + c.id + '/' + Date.now() + '_' + file.name;
+        var path = user.id + '/challenge/' + c.id + '/' + Date.now() + '_' + storageKey(file.name);
         var up = await sb.storage.from('submissions').upload(path, file, { upsert: true });
         if (up.error) {
           btn.disabled = false; btn.textContent = '제출하기';

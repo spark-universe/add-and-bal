@@ -80,7 +80,7 @@
     if (prev && prev.file_path) {
       await sb.storage.from(BUCKET).remove([prev.file_path]);
     }
-    var path = user.id + '/' + key + '/' + Date.now() + '_' + file.name;
+    var path = user.id + '/' + key + '/' + Date.now() + '_' + storageKey(file.name);
     var up = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
     if (up.error) { alert('업로드 실패: ' + up.error.message); return; }
 

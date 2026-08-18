@@ -4,3 +4,6 @@ _backup_숫자야구.html
 supabase/
 .claude/
 README.md
+# 셀프호스팅 스택 (compose/SQL/스크립트). infra/.env 에 service_role 키가 있어
+# 배포되면 RLS 우회 키가 그대로 공개된다. 반드시 제외.
+infra/

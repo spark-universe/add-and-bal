@@ -1,0 +1,153 @@
+# =====================================================================
+# infra/docker-compose.yml — addbal 셀프호스팅 백엔드 (Supabase 대체)
+#
+#   cd infra && docker compose up -d
+#
+# 컨테이너 4개. Postgres 는 여기 없다 — 기존 spark-postgres 의 addbal DB 를
+# 그대로 쓴다(격리는 infra/sql/01-cluster-roles.sql 의 CONNECT 게이트).
+# cloudflared 도 여기 없다 — spark-center 가 이미 띄운 걸 재사용하고,
+# Cloudflare 대시보드에 Public Hostname 한 줄만 추가한다:
+#     challenge.sparkuniverse.kr  ->  http://addbal-gw:80
+#
+# 그래서 이 파일은 spark-center 의 네트워크에 얹힌다. spark-center 의
+# docker-compose.yml 은 한 줄도 건드리지 않는다.
+#
+# 안 띄우는 것: realtime(sb.channel 호출 0건) / edge-functions(0건) /
+# imgproxy(이미지 변환 0건) / studio·meta(어드민 UI 를 직접 만들어 씀) /
+# analytics·vector(도커 로그로 충분) / supavisor(수강생 규모에 불필요).
+# =====================================================================
+name: addbal
+
+services:
+  # ── PostgREST — sb.from() 전부 ──────────────────────────────────────
+  addbal-rest:
+    image: postgrest/postgrest:v13.0.8
+    container_name: addbal-rest
+    restart: always
+    environment:
+      # authenticator 는 NOINHERIT 라 자기 권한이 0이다. 요청마다 JWT 의
+      # role 클레임으로 SET ROLE 해서 그 role 의 권한만 얻는다.
+      PGRST_DB_URI: "postgres://authenticator:${AUTHENTICATOR_PASSWORD}@spark-postgres:5432/addbal"
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: "${JWT_SECRET}"
+      # v11+ 방식(request.jwt.claims JSON)으로 GUC 를 심는다.
+      # 02-addbal-init.sql 의 auth.uid() 가 이 GUC 를 읽는다.
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      # PGRST_JWT_AUD 는 일부러 비운다 — anon 키에는 aud 클레임이 없어서
+      # 값을 넣는 순간 로그인 전 요청이 전부 401 이 된다.
+      PGRST_DB_POOL: "10"
+      PGRST_LOG_LEVEL: info
+    deploy:
+      resources:
+        limits: { memory: 256M, cpus: "1" }
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  # ── GoTrue — 로그인/가입/비밀번호 재설정 + auth.users 소유 ───────────
+  addbal-auth:
+    image: supabase/gotrue:v2.195.0
+    container_name: addbal-auth
+    restart: always
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: "9999"
+      API_EXTERNAL_URL: "${API_EXTERNAL_URL}"
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: "postgres://supabase_auth_admin:${AUTH_ADMIN_PASSWORD}@spark-postgres:5432/addbal?search_path=auth&sslmode=disable"
+      # 메일 링크(비밀번호 재설정 등)가 돌아올 곳. 프론트를 옮기면 여기도 바꾼다.
+      GOTRUE_SITE_URL: "${SITE_URL}"
+      GOTRUE_URI_ALLOW_LIST: "${URI_ALLOW_LIST:-}"
+      GOTRUE_DISABLE_SIGNUP: "false"
+      GOTRUE_JWT_SECRET: "${JWT_SECRET}"
+      GOTRUE_JWT_EXP: "3600"
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: "${MAILER_AUTOCONFIRM}"
+      GOTRUE_SMTP_HOST: "${SMTP_HOST}"
+      GOTRUE_SMTP_PORT: "${SMTP_PORT}"
+      GOTRUE_SMTP_USER: "${SMTP_USER}"
+      GOTRUE_SMTP_PASS: "${SMTP_PASS}"
+      GOTRUE_SMTP_ADMIN_EMAIL: "${SMTP_SENDER}"
+      GOTRUE_SMTP_SENDER_NAME: "발주 & 광고 훈련"
+      GOTRUE_LOG_LEVEL: info
+    deploy:
+      resources:
+        limits: { memory: 256M, cpus: "1" }
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  # ── storage-api — 과제 첨부 업로드 + 서명 URL ───────────────────────
+  addbal-storage:
+    image: supabase/storage-api:v1.69.9
+    container_name: addbal-storage
+    restart: always
+    depends_on: [addbal-rest]
+    environment:
+      ANON_KEY: "${ANON_KEY}"
+      SERVICE_KEY: "${SERVICE_ROLE_KEY}"
+      PGRST_JWT_SECRET: "${JWT_SECRET}"
+      DATABASE_URL: "postgres://supabase_storage_admin:${STORAGE_ADMIN_PASSWORD}@spark-postgres:5432/addbal?sslmode=disable"
+      POSTGREST_URL: http://addbal-rest:3000
+      # role 은 01-cluster-roles.sql 에서 이미 만들었다. 여기서 또 만들게 두면
+      # 클러스터 공용 role 을 storage 가 자기 것으로 덮어쓴다.
+      DB_INSTALL_ROLES: "false"
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      FILE_SIZE_LIMIT: "52428800"          # 50MB — nginx client_max_body_size 와 동일
+      ENABLE_IMAGE_TRANSFORMATION: "false" # imgproxy 를 안 띄우므로 반드시 false
+      TENANT_ID: addbal
+      REGION: local
+      GLOBAL_S3_BUCKET: addbal             # file 백엔드에서도 필수 (미설정 시 기동 실패)
+    volumes:
+      # pg_dump 로는 안 잡히는 실파일. 별도 백업 대상이다 (infra/README.md 참고)
+      - storage-data:/var/lib/storage
+    deploy:
+      resources:
+        limits: { memory: 512M, cpus: "1" }
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  # ── nginx — 경로 3개 분기 + prefix 제거 (Kong 대체) ─────────────────
+  addbal-gw:
+    image: nginx:1.29-alpine
+    container_name: addbal-gw
+    restart: always
+    depends_on: [addbal-rest, addbal-auth, addbal-storage]
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # 정적 사이트. 레포 루트를 읽기전용으로 물리고 infra/·supabase/·dotfile 은
+      # nginx location 규칙에서 404 로 막는다 (infra/.env 에 service_role 키가 있음).
+      - ..:/srv/site:ro
+    ports:
+      # localhost 만. 외부 노출은 cloudflared 가 addbal-gw:80 으로 직접 붙는다.
+      # 이 바인드는 호스트에서 curl 로 테스트하기 위한 것.
+      - "127.0.0.1:8100:80"
+    healthcheck:
+      # localhost 가 아니라 127.0.0.1 이어야 한다. nginx 는 `listen 80` 으로
+      # IPv4 에만 붙는데 busybox wget 은 localhost 를 ::1 로 먼저 풀어서
+      # "Connection refused" 로 계속 unhealthy 가 된다 (게이트웨이 자체는 정상).
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits: { memory: 128M, cpus: "1" }
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+volumes:
+  storage-data:
+    name: addbal_storage
+
+networks:
+  default:
+    name: spark-center_default
+    external: true

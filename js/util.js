@@ -30,6 +30,21 @@ function h(s) {
   return n;
 }
 
+/* 스토리지 객체 키 안전화.
+   storage-api 는 객체 키를 S3 안전문자(사실상 ASCII)로만 받는다. 한글이 섞인
+   파일명을 그대로 키로 쓰면 업로드가 InvalidKey 로 통째로 실패한다.
+   원래 파일명은 DB 의 file_name 에 따로 저장돼 화면에 그대로 보이므로,
+   여기서는 키만 바꾼다. 앞에 Date.now() 가 붙으므로 중복 걱정은 없다. */
+function storageKey(name) {
+  var s = String(name || 'file');
+  var dot = s.lastIndexOf('.');
+  var ext = dot > 0 ? s.slice(dot + 1).replace(/[^A-Za-z0-9]/g, '') : '';
+  var base = (dot > 0 ? s.slice(0, dot) : s)
+    .replace(/[^A-Za-z0-9_\-]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+  if (!base) base = 'f' + h(s).toString(36);   // 전부 한글이면 이름별로 다른 값이 되게
+  return ext ? base + '.' + ext : base;
+}
+
 /* ---------- 날짜 (풀 포맷: "July 20, 2026 at 3:05 pm") ---------- */
 function fmtFull(ts) {
   if (!ts) return '';

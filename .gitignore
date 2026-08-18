@@ -2,3 +2,8 @@
 .vercel/
 node_modules/
 *.log
+
+# 셀프호스팅 스택 시크릿 (DB 비밀번호 / JWT 시크릿 / anon·service_role 키)
+.env
+infra/.env
+infra/storage-data/
