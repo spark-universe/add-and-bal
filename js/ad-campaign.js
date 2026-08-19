@@ -449,9 +449,9 @@
     };
 
     var list = [];
-    try { list = JSON.parse(localStorage.getItem(STORE)) || []; } catch (e) { list = []; }
+    try { list = JSON.parse(simStore().getItem(STORE)) || []; } catch (e) { list = []; }
     list.unshift(c);
-    localStorage.setItem(STORE, JSON.stringify(list));
+    simStore().setItem(STORE, JSON.stringify(list));
 
     location.href = 'ad-settings.html';
   });
@@ -459,10 +459,12 @@
   (async function init() {
     var user = await Auth.require();
     if (!user) return;
+    var me = await Auth.me();                       // 데모 계정이면 sessionStorage 사용
+    window.__demoSim = !!(me && me.is_demo);
 
     // 다음 캠페인 번호를 이름 기본값으로
     var list = [];
-    try { list = JSON.parse(localStorage.getItem(STORE)) || []; } catch (e) { list = []; }
+    try { list = JSON.parse(simStore().getItem(STORE)) || []; } catch (e) { list = []; }
     document.getElementById('cname').value =
       '새 캠페인 ' + String(list.length + 1).padStart(2, '0');
 

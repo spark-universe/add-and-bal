@@ -99,6 +99,22 @@
   }
   levelEl.addEventListener('change', updateLevelDesc);
 
+  // ---- 저장하지 않은 변경 보호 ----
+  // 난이도 등을 바꾸고 [세팅 저장하고 발주 연습 시작] 없이 '연습하기'로 넘어가면
+  // 새 난이도가 적용되지 않고 이전 시나리오(이전 난이도)로 연습된다 → 경고로 막는다.
+  var dirty = false;
+  var dirtyHint = document.createElement('span');
+  dirtyHint.style.cssText = 'color:var(--warn);font-size:0.82rem;font-weight:700;display:none;';
+  dirtyHint.textContent = '● 저장되지 않은 변경 — [세팅 저장하고 발주 연습 시작]을 눌러야 적용됩니다';
+  savedEl.parentNode.appendChild(dirtyHint);
+  function markDirty() { dirty = true; dirtyHint.style.display = ''; savedEl.hidden = true; }
+  function clearDirty() { dirty = false; dirtyHint.style.display = 'none'; }
+  [topicSel, marginEl, countEl, levelEl].forEach(function (el) {
+    el.addEventListener('change', markDirty);
+    el.addEventListener('input', markDirty);
+  });
+  window.addEventListener('beforeunload', function (e) { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
   async function loadSettings() {
     var res = await sb.from('practice_settings').select('*').eq('user_id', user.id).maybeSingle();
     var s = res.data;
@@ -144,6 +160,7 @@
     localStorage.removeItem('practice_nextno');
     localStorage.removeItem('practice_plan');
 
+    clearDirty();               // 저장 완료 → 이동 경고 해제
     savedEl.hidden = false;
     location.href = 'order-practice.html';
   });

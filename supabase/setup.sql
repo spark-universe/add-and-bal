@@ -38,6 +38,10 @@ update public.profiles set level = 0 where level is null;
 -- 수강생 개인 수강일 (수강생이 보는 날짜. 이 날짜로 기수가 자동 매칭됨. 예외 시 기수/날짜 따로 수정)
 alter table public.profiles add column if not exists enroll_date text;
 
+-- 공용 데모(테스트) 계정: true 이면 '광고 설정' 영역만 접근 가능(사이드바도 축소).
+-- 여러 명이 한 계정으로 동시 접속하는 테스트용. 데이터는 sessionStorage(브라우저 탭)라 서버에 안 쌓임.
+alter table public.profiles add column if not exists is_demo boolean not null default false;
+
 -- 등급업 신청: 수강생이 신청 → 어드민이 승인/반려
 create table if not exists public.level_requests (
   id bigint generated always as identity primary key,
@@ -274,6 +278,7 @@ begin
     new.status := old.status;
     new.cohort := old.cohort;
     new.enroll_date := old.enroll_date;
+    new.is_demo := old.is_demo;      -- 데모 계정이 스스로 제한을 풀지 못하게
   end if;
   return new;
 end;

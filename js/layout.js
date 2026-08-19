@@ -149,10 +149,18 @@
       try {
         var s = await sb.auth.getSession();
         if (!s.data.session) return;
-        var prof = await sb.from('profiles').select('name, level, role').eq('id', s.data.session.user.id).single();
+        var prof = await sb.from('profiles').select('*').eq('id', s.data.session.user.id).single();
         var p = (prof && prof.data) || {};
         var nameEl = document.getElementById('sbName');
         if (nameEl && p.name) nameEl.textContent = p.name;
+        // 공용 데모 계정: 사이드바를 '광고 설정' 하나로 축소
+        if (p.is_demo && p.role !== 'admin') {
+          var navEl = document.querySelector('.sidebar .nav');
+          if (navEl) navEl.innerHTML = '<li><a class="is-active" href="ad-settings.html" data-key="ad">' +
+            '<span class="ico">📢</span>광고 설정</a></li>';
+          if (nameEl) nameEl.textContent = p.name || '테스트 계정';
+          return;
+        }
         if (p.role === 'admin' || (p.level || 0) >= 1) return;   // 열린 학생·어드민은 잠금 없음
         document.querySelectorAll('.nav a.is-lockable').forEach(function (a) {
           a.classList.add('is-locked');
