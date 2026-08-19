@@ -19,10 +19,10 @@
 
   // 이번 연습(현재 주제·런)에 속한 캠페인 + 그 주문들
   function runContext() {
-    var pl = null; try { pl = JSON.parse(localStorage.getItem('practice_plan')); } catch (e) {}
+    var pl = null; try { pl = JSON.parse(simStore().getItem('practice_plan')); } catch (e) {}
     var sig = pl ? pl.sig : null;
     var mine = practiceTopic ? campaigns.filter(function (c) { return c.category === practiceTopic && (c.status === 'active' || c.runSig === sig); }) : [];
-    var orders = []; try { orders = JSON.parse(localStorage.getItem('practice_orders')) || []; } catch (e) {}
+    var orders = []; try { orders = JSON.parse(simStore().getItem('practice_orders')) || []; } catch (e) {}
     return { mine: mine, names: mine.map(function (c) { return c.name; }), orders: orders };
   }
 
@@ -35,9 +35,9 @@
   }
 
   function load() {
-    try { campaigns = JSON.parse(localStorage.getItem(STORE)) || []; } catch (e) { campaigns = []; }
+    try { campaigns = JSON.parse(simStore().getItem(STORE)) || []; } catch (e) { campaigns = []; }
   }
-  function save() { localStorage.setItem(STORE, JSON.stringify(campaigns)); }
+  function save() { simStore().setItem(STORE, JSON.stringify(campaigns)); }
 
   /* ---------- 상단 지표 (이번 연습 광고의 실시간 성과) ---------- */
   function renderMetrics() {
@@ -62,8 +62,8 @@
   /* ---------- 발주 연습 손익 (order-result 의 net 계산과 동일 규칙) ---------- */
   function practiceNet() {
     var orders = [], plan = null;
-    try { orders = JSON.parse(localStorage.getItem('practice_orders')) || []; } catch (e) {}
-    try { plan = JSON.parse(localStorage.getItem('practice_plan')); } catch (e) {}
+    try { orders = JSON.parse(simStore().getItem('practice_orders')) || []; } catch (e) {}
+    try { plan = JSON.parse(simStore().getItem('practice_plan')); } catch (e) {}
     var total = plan ? plan.total : orders.length;
     var processed = orders.filter(function (o) { return o.fulfillment !== 'unfulfilled'; }).length;
     var net = 0, sales = 0;
@@ -90,10 +90,10 @@
     var box = document.getElementById('pnlSummary');
     if (!box) return;
     var pn = practiceNet();
-    var pl = null; try { pl = JSON.parse(localStorage.getItem('practice_plan')); } catch (e) {}
+    var pl = null; try { pl = JSON.parse(simStore().getItem('practice_plan')); } catch (e) {}
     var planSig = pl ? pl.sig : null;
     var mine = practiceTopic ? campaigns.filter(function (c) { return c.category === practiceTopic && (c.status === 'active' || c.runSig === planSig); }) : campaigns;
-    var pOrders = []; try { pOrders = JSON.parse(localStorage.getItem('practice_orders')) || []; } catch (e) {}
+    var pOrders = []; try { pOrders = JSON.parse(simStore().getItem('practice_orders')) || []; } catch (e) {}
     var adSpend = adSpendLive(pOrders, mine);   // CAC × 광고 유입 주문 수 (저장된 spend 무시)
     var finalNet = round2(pn.net - adSpend);
     var fcls = finalNet >= 0 ? 'is-pos' : 'is-neg';
@@ -124,7 +124,7 @@
   function resetRecords() {
     if (!confirm('발주 연습 기록(받은 주문 · 소싱 · 차지백)을 지웁니다.\n설정한 광고 캠페인은 그대로 유지됩니다.\n정말 초기화할까요?')) return;
     ['practice_orders', 'practice_plan', 'practice_chargebacks'].forEach(function (k) {
-      localStorage.removeItem(k);
+      simStore().removeItem(k);
     });
     render();   // 손익 요약 갱신 (광고 캠페인은 유지)
   }
@@ -219,6 +219,8 @@
   (async function init() {
     var user = await Auth.require();
     if (!user) return;
+    var me = await Auth.me();                       // 데모 계정이면 sessionStorage 사용
+    window.__demoSim = !!(me && me.is_demo);
     try {
       var s = await sb.from('practice_settings').select('topic').eq('user_id', user.id).maybeSingle();
       practiceTopic = (s.data && s.data.topic) || '';

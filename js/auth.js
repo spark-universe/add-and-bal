@@ -19,6 +19,18 @@ window.Auth = {
     return res.data.session.user;
   },
 
+  // 현재 로그인 사용자의 프로필(role/level/name/is_demo) — 페이지당 1회만 조회하고 캐시
+  _me: undefined,
+  me: async function () {
+    if (this._me !== undefined) return this._me;
+    var res = await sb.auth.getSession();
+    if (!res.data.session) { this._me = null; return null; }
+    var prof = await sb.from('profiles').select('*').eq('id', res.data.session.user.id).single();
+    this._me = (prof && prof.data) || {};
+    this._me.id = res.data.session.user.id;
+    return this._me;
+  },
+
   // 어드민 전용 페이지 가드. 로그인 + role=admin 이어야 통과
   requireAdmin: async function () {
     var user = await this.require();
@@ -50,15 +62,22 @@ document.addEventListener('click', function (e) {
 
 // 발주 & 광고 훈련 페이지 자동 가드 (body data-lock="1" 인 페이지만)
 //  - 등급(level)이 1 이상이어야 접근 가능. 어드민은 통과.
+//  - 공용 데모(is_demo) 계정은 '광고 설정' 영역만 허용, 나머지는 광고 설정으로 돌려보냄.
 //  - 아직 안 열렸으면 훈련 메인(index.html)으로 돌려보냄.
 (async function () {
   if (!document.body || document.body.dataset.lock !== '1') return;
-  var res = await sb.auth.getSession();
-  if (!res.data.session) { location.href = Auth.prefix() + 'login.html'; return; }
-  var prof = await sb.from('profiles').select('role, level').eq('id', res.data.session.user.id).single();
-  var p = (prof && prof.data) || {};
-  if (p.role === 'admin') return;
-  if ((p.level || 0) >= 1) return;
+  var me = await Auth.me();
+  if (!me) { location.href = Auth.prefix() + 'login.html'; return; }
+  if (me.role === 'admin') return;
+  if (me.is_demo) {                       // 데모: 광고 설정/캠페인 만들기만 허용
+    window.__demoSim = true;              // 이 계정은 sessionStorage 사용(격리·자동삭제)
+    var page = location.pathname.split('/').pop();
+    if (page !== 'ad-settings.html' && page !== 'ad-campaign.html') {
+      location.href = Auth.prefix() + 'ad-settings.html';
+    }
+    return;
+  }
+  if ((me.level || 0) >= 1) return;
   alert('챌린지 심화 과정은 아직 열리지 않았습니다.\n챌린지를 모두 마치고 승인되면 열립니다.');
   location.href = Auth.prefix() + 'index.html';
 })();

@@ -102,3 +102,8 @@ function campaignLive(c, orders, names) {
     roas: spend ? round2(sales / spend) : 0
   };
 }
+
+/* 연습/광고 시뮬 저장소. 공용 데모(테스트) 계정은 sessionStorage 를 써서
+   탭별로 격리되고 탭을 닫으면 자동 삭제된다(여러 명이 동시에 써도 안 섞이고 안 쌓임).
+   auth/광고 코드가 is_demo 확인 후 window.__demoSim = true 로 켠다. */
+function simStore() { return window.__demoSim ? window.sessionStorage : window.localStorage; }

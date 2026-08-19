@@ -61,13 +61,15 @@
     }
 
     // 프로필로 역할/승인 상태 확인 후 라우팅
-    var prof = await sb.from('profiles').select('role, status').eq('id', res.data.user.id).single();
+    var prof = await sb.from('profiles').select('*').eq('id', res.data.user.id).single();
     btn.disabled = false;
 
     if (prof.error) { return show('프로필 조회 실패: ' + prof.error.message); }
 
     if (prof.data.role === 'admin') {
       window.location.href = 'admin/index.html';
+    } else if (prof.data.is_demo) {              // 공용 데모(테스트) 계정 → 광고 설정만
+      window.location.href = 'ad-settings.html';
     } else if (prof.data.status === 'approved') {
       window.location.href = 'index.html';
     } else {
