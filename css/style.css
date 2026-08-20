@@ -1384,14 +1384,6 @@ tbody tr:hover { background: #fafbff; }
   border-radius: 50%; background: #22a06b; color: #fff; font-size: 0.7rem; font-weight: 800;
   vertical-align: middle; margin-left: 3px; }
 
-/* 정답보기 모달 케이스 카드 */
-.ans-case { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
-.ans-case:last-child { margin-bottom: 0; }
-.ans-case__name { font-weight: 800; font-size: 0.95rem; margin-bottom: 8px; }
-.ans-case__row { display: flex; gap: 8px; font-size: 0.86rem; line-height: 1.6; margin-top: 4px; }
-.ans-case__row b { flex: 0 0 34px; color: var(--primary); font-weight: 800; }
-.ans-case__row span { flex: 1; color: #364152; }
-
 /* 광고 캠페인 표: 모든 칸 가운데 정렬 + 열 구분선 (다른 표에는 영향 없음) */
 .adv-table th, .adv-table td { text-align: center; vertical-align: middle;
   border-right: 1px solid #eef0f3; }

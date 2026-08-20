@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>광고 진단 · 정답 & 해설</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+  :root { --blue:#2f6bff; --ink:#1a1f2b; --muted:#6b7280; --line:#e6e9f0; --bg:#f4f6fb;
+    --ok:#1f9d63; --ok-bg:#eafaf1; --tip:#b26a00; --tip-bg:#fff6e6; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Pretendard',system-ui,-apple-system,sans-serif; color:var(--ink);
+    background:var(--bg); -webkit-font-smoothing:antialiased; line-height:1.6; }
+  .wrap { max-width:760px; margin:0 auto; padding:30px 24px 56px; }
+
+  h1 { font-size:1.4rem; font-weight:800; margin:0 0 2px; }
+  h1 b { color:var(--blue); }
+  .sub { color:var(--muted); font-size:0.85rem; margin:0 0 18px; }
+
+  /* 비밀번호 게이트 */
+  .gate { max-width:380px; margin:8vh auto 0; background:#fff; border:1px solid var(--line);
+    border-radius:16px; padding:26px 24px; box-shadow:0 4px 20px rgba(20,30,60,.06); text-align:center; }
+  .gate h2 { font-size:1.1rem; font-weight:800; margin:0 0 6px; }
+  .gate p { color:var(--muted); font-size:0.85rem; margin:0 0 16px; }
+  .gate input { width:100%; padding:11px 13px; border:1px solid #d7dbe3; border-radius:9px; font-size:0.95rem; font-family:inherit; }
+  .gate input:focus { outline:none; border-color:var(--blue); }
+  .gate button { width:100%; margin-top:12px; padding:11px; border:0; border-radius:9px; background:var(--blue);
+    color:#fff; font-size:0.95rem; font-weight:700; cursor:pointer; font-family:inherit; }
+  .gate .err { color:#d63b3b; font-size:0.82rem; margin-top:10px; min-height:1em; }
+
+  /* 정답 카드 */
+  .case { background:#fff; border:1px solid var(--line); border-radius:16px; padding:20px 22px; margin-bottom:16px;
+    box-shadow:0 1px 2px rgba(20,30,60,.04); }
+  .case__name { font-size:1.15rem; font-weight:800; margin-bottom:12px; }
+  .case__name .num { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px;
+    border-radius:50%; background:var(--blue); color:#fff; font-size:0.82rem; font-weight:800; margin-right:8px; vertical-align:middle; }
+  .meta { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+  .chip { font-size:0.8rem; font-weight:600; color:#3d4757; background:#f1f4f9; border:1px solid #e3e8f0;
+    border-radius:8px; padding:5px 10px; }
+  .chip b { color:var(--ink); font-weight:800; }
+  .block { border-radius:12px; padding:13px 15px; margin-top:10px; }
+  .block--answer { background:var(--ok-bg); border:1px solid #cdeede; }
+  .block--explain { background:var(--tip-bg); border:1px solid #fce4bd; }
+  .block__label { font-size:0.8rem; font-weight:800; letter-spacing:.02em; margin-bottom:5px; }
+  .block--answer .block__label { color:var(--ok); }
+  .block--explain .block__label { color:var(--tip); }
+  .block__text { font-size:0.92rem; line-height:1.75; color:#2b3442; white-space:pre-line; }
+  .foot { color:#aab0bb; font-size:0.76rem; text-align:center; margin-top:26px; }
+</style>
+</head>
+<body>
+  <!-- 비밀번호 게이트 -->
+  <div class="gate" id="gate">
+    <h2>🔑 정답 보기</h2>
+    <p>비밀번호를 입력하면 각 케이스의 정답과 해설을 볼 수 있습니다.</p>
+    <input type="password" id="pw" placeholder="비밀번호" autocomplete="off">
+    <button id="pwGo">확인</button>
+    <div class="err" id="pwErr"></div>
+  </div>
+
+  <!-- 정답 내용 -->
+  <div class="wrap" id="content" hidden>
+    <h1>광고 진단 <b>정답 &amp; 해설</b></h1>
+    <p class="sub">각 케이스의 문제를 어떻게 고쳐야 하는지와 그 이유입니다. 이 창을 띄워둔 채 광고 설정을 조정해 보세요.</p>
+    <div id="cases"></div>
+    <div class="foot">데모 학습용 · 광고 진단 케이스 정답</div>
+  </div>
+
+<script src="js/ad-demo-cases.js"></script>
+<script>
+(function () {
+  var PW = 'spark2026';
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+    });
+  }
+  function money(n) { return '$' + (Math.round(Number(n) || 0)).toLocaleString(); }
+  function r2(n) { return Math.round((Number(n) || 0) * 100) / 100; }
+
+  function render() {
+    var cases = window.AD_DEMO_CASES || [];
+    document.getElementById('cases').innerHTML = cases.map(function (cs, i) {
+      var p = cs.perf || {};
+      var roas = p.spend ? r2(p.sales / p.spend) : 0;
+      return '<div class="case">' +
+        '<div class="case__name"><span class="num">' + (i + 1) + '</span>' + esc(cs.name) + '</div>' +
+        '<div class="meta">' +
+          '<span class="chip">현재 설정 · CAC <b>' + money(cs.cac) + '</b> · TOV <b>' + money(cs.tov) + '</b> · 예산 <b>' + money(cs.budget) + '</b></span>' +
+          '<span class="chip">현재 성과 · 매출 <b>' + money(p.sales) + '</b> · 광고비 <b>' + money(p.spend) + '</b> · ROAS <b>' + roas.toFixed(1) + 'x</b></span>' +
+        '</div>' +
+        (cs.answer ? '<div class="block block--answer"><div class="block__label">✅ 정답</div><div class="block__text">' + esc(cs.answer) + '</div></div>' : '') +
+        (cs.explain ? '<div class="block block--explain"><div class="block__label">💡 해설</div><div class="block__text">' + esc(cs.explain) + '</div></div>' : '') +
+      '</div>';
+    }).join('');
+  }
+
+  function unlock() {
+    if (document.getElementById('pw').value === PW) {
+      document.getElementById('gate').hidden = true;
+      document.getElementById('content').hidden = false;
+      render();
+    } else {
+      document.getElementById('pwErr').textContent = '비밀번호가 올바르지 않습니다.';
+      document.getElementById('pw').select();
+    }
+  }
+  document.getElementById('pwGo').addEventListener('click', unlock);
+  document.getElementById('pw').addEventListener('keydown', function (e) { if (e.key === 'Enter') unlock(); });
+  document.getElementById('pw').focus();
+})();
+</script>
+</body>
+</html>
