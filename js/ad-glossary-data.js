@@ -46,6 +46,20 @@ window.AD_GLOSSARY = {
       key: 'negmargin', badge: null, term: '역마진', en: 'Negative Margin',
       short: '이익보다 광고비 등 비용이 커 손실이 난 상태.',
       full: '상품 판매 후 발생한 이익보다 광고비 등의 비용이 커 손실이 발생한 상태입니다.'
+    },
+
+    /* 아래 3개는 대시보드 지표 툴팁 전용 (tipOnly) — 용어사전 카드에는 표시하지 않음 */
+    {
+      key: 'customers', badge: null, tipOnly: true, term: '확보된 고객', en: 'Customers acquired',
+      short: '광고를 통해 유입되어 주문한 고객 수입니다.'
+    },
+    {
+      key: 'sales', badge: null, tipOnly: true, term: '판매된 금액', en: 'Sales',
+      short: '광고로 유입된 주문에서 발생한 총 판매액입니다.'
+    },
+    {
+      key: 'spend', badge: null, tipOnly: true, term: '사용된 광고비', en: 'Spend',
+      short: '실제로 사용된 광고비입니다. (CAC × 광고 유입 주문 수)'
     }
   ]
 };
