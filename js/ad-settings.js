@@ -54,7 +54,7 @@
   /* ---------- 데모 계정 전용 진단 케이스 심기 ----------
      is_demo 계정으로 접속하면 문제 있는 광고 3개를 세션에 깔아둔다.
      탭(sessionStorage)마다 따로 생기고, 일반 계정에는 절대 안 뜬다. */
-  var SEED_V = 2;   // 케이스 데이터 버전 — 올리면 예전 세션의 시드도 새로 갱신됨
+  var SEED_V = 3;   // 케이스 데이터 버전 — 올리면 예전 세션의 시드도 새로 갱신됨
   function buildCaseCampaign(cs, i) {
     var p = cs.perf || { customers: 0, spend: 0, sales: 0, startDaysAgo: 0 };
     var d = new Date(); d.setDate(d.getDate() - (p.startDaysAgo || 0));
@@ -292,6 +292,57 @@
     window.open('ad-glossary.html', 'adGlossary',
       'width=980,height=840,menubar=no,toolbar=no,location=no,scrollbars=yes,resizable=yes');
   });
+
+  /* ---------- 정답보기 (데모 계정 전용, 비밀번호 게이트) ---------- */
+  var ANSWER_PW = 'spark2026';
+  function answersHtml() {
+    var cases = window.AD_DEMO_CASES || [];
+    var rows = cases.map(function (cs) {
+      return '<div class="ans-case">' +
+        '<div class="ans-case__name">' + esc(cs.name) + '</div>' +
+        (cs.answer ? '<div class="ans-case__row"><b>정답</b><span>' + esc(cs.answer) + '</span></div>' : '') +
+        (cs.explain ? '<div class="ans-case__row"><b>해설</b><span>' + esc(cs.explain) + '</span></div>' : '') +
+      '</div>';
+    }).join('');
+    return '<div class="modal-card__head"><h3>정답 &amp; 해설</h3><button class="modal-close" data-close>×</button></div>' +
+      '<div class="modal-card__body">' + rows + '</div>' +
+      '<div class="modal-card__foot"><button class="btn-sm is-dark" data-close>닫기</button></div>';
+  }
+  function openAnswerModal() {
+    var box = document.createElement('div');
+    box.className = 'modal-overlay is-open';
+    box.innerHTML =
+      '<div class="modal-card" style="max-width:400px;">' +
+        '<div class="modal-card__head"><h3>정답 보기</h3><button class="modal-close" data-close>×</button></div>' +
+        '<div class="modal-card__body">' +
+          '<p style="margin:0 0 12px;font-size:0.88rem;color:var(--muted);">비밀번호를 입력하면 각 케이스의 정답과 해설을 볼 수 있습니다.</p>' +
+          '<input type="password" id="answerPw" placeholder="비밀번호" autocomplete="off" ' +
+            'style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.95rem;">' +
+          '<div id="answerPwErr" style="color:var(--danger);font-size:0.82rem;margin-top:8px;"></div>' +
+        '</div>' +
+        '<div class="modal-card__foot"><button class="btn-sm" data-close>취소</button>' +
+          '<button class="btn-sm is-dark" id="answerPwGo">확인</button></div>' +
+      '</div>';
+    document.body.appendChild(box);
+    box.addEventListener('click', function (e) {
+      if (e.target === box || e.target.closest('[data-close]')) box.remove();
+    });
+    function tryPw() {
+      if (box.querySelector('#answerPw').value === ANSWER_PW) {
+        var card = box.querySelector('.modal-card');
+        card.style.maxWidth = '580px';
+        card.innerHTML = answersHtml();
+      } else {
+        box.querySelector('#answerPwErr').textContent = '비밀번호가 올바르지 않습니다.';
+      }
+    }
+    box.querySelector('#answerPwGo').addEventListener('click', tryPw);
+    box.querySelector('#answerPw').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); tryPw(); }
+    });
+    box.querySelector('#answerPw').focus();
+  }
+  document.getElementById('answerBtn').addEventListener('click', openAnswerModal);
   document.getElementById('manageBtn').addEventListener('click', function () {
     alert('채널 관리는 이 연습에서 사용되지 않습니다.');
   });
@@ -368,6 +419,7 @@
     if (!user) return;
     var me = await Auth.me();                       // 데모 계정이면 sessionStorage 사용
     window.__demoSim = !!(me && me.is_demo);
+    if (window.__demoSim) document.getElementById('answerBtn').hidden = false;   // 정답보기: 데모 계정만
     try {
       var s = await sb.from('practice_settings').select('topic').eq('user_id', user.id).maybeSingle();
       practiceTopic = (s.data && s.data.topic) || '';
