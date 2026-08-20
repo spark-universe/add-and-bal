@@ -108,6 +108,35 @@ function campaignLive(c, orders, names) {
    auth/광고 코드가 is_demo 확인 후 window.__demoSim = true 로 켠다. */
 function simStore() { return window.__demoSim ? window.sessionStorage : window.localStorage; }
 
+/* ---------- 연결 장애 안내 (Supabase 점검/일시정지 등) ----------
+   서버가 멈추면 쿼리가 throw → 미처리로 빈 화면이 된다.
+   전역에서 네트워크성 실패를 잡아 친절한 오버레이를 띄운다. */
+function showConnError() {
+  if (typeof document === 'undefined' || !document.body || document.getElementById('__connErr')) return;
+  var d = document.createElement('div');
+  d.id = '__connErr';
+  d.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(255,255,255,0.97);display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,-apple-system,sans-serif;';
+  d.innerHTML =
+    '<div style="text-align:center;max-width:420px;">' +
+      '<div style="font-size:2.6rem;">🔌</div>' +
+      '<h2 style="margin:12px 0 8px;font-size:1.3rem;color:#0F172A;font-weight:600;">서비스에 연결할 수 없어요</h2>' +
+      '<p style="color:#475569;line-height:1.6;font-size:0.95rem;margin:0;">일시적인 접속 문제이거나 서버 점검 중일 수 있습니다.<br>잠시 후 다시 시도해 주세요.</p>' +
+      '<button id="__connReload" style="margin-top:18px;padding:11px 24px;border:none;border-radius:9999px;background:#2563EB;color:#fff;font-size:0.95rem;font-weight:600;cursor:pointer;">새로고침</button>' +
+    '</div>';
+  document.body.appendChild(d);
+  var btn = document.getElementById('__connReload');
+  if (btn) btn.addEventListener('click', function () { location.reload(); });
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', function (e) {
+    var msg = String((e && e.reason && (e.reason.message || e.reason)) || '');
+    // 네트워크/DNS/연결 실패 계열만 (RLS·권한 등 정상 오류는 각 페이지가 처리)
+    if (/failed to fetch|networkerror|network error|load failed|err_|enotfound|econnrefused|dns|typeerror: fetch/i.test(msg)) {
+      showConnError();
+    }
+  });
+}
+
 /* ---------- 표 헤더 클릭 정렬 (관리자 표 공용) ----------
    각 셀의 텍스트(또는 data-sortval)로 정렬. 숫자는 자동 인식, 날짜(YYYY-MM-DD)는 문자열.
    특정 열을 빼려면 <th data-nosort>. tbody 를 다시 그려도 헤더 리스너는 유지된다. */
