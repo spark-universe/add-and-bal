@@ -503,6 +503,19 @@
           '📘 관련 매뉴얼 보기 <span aria-hidden="true">↗</span></a>'
       : '';
 
+    // 관련 자료: 업로드 파일 다운로드 + 외부 링크
+    var matParts = [];
+    if (c.material_path) {
+      var pub = sb.storage.from('materials').getPublicUrl(c.material_path).data.publicUrl;
+      matParts.push('<a class="ch-manual-link" href="' + esc(pub) + '" target="_blank" rel="noopener" download>' +
+        '📎 관련 자료 다운로드' + (c.material_name ? ' (' + esc(c.material_name) + ')' : '') + ' <span aria-hidden="true">↓</span></a>');
+    }
+    if (c.material_url) {
+      matParts.push('<a class="ch-manual-link" href="' + esc(c.material_url) + '" target="_blank" rel="noopener">' +
+        '🔗 관련 링크 열기 <span aria-hidden="true">↗</span></a>');
+    }
+    var materialHtml = matParts.join('');
+
     var already = c.sub && c.sub.file_name
       ? '<div class="ch-file">📎 첨부: ' + esc(c.sub.file_name) + '</div>' : '';
 
@@ -524,7 +537,7 @@
               esc(c.description) + '</p>'
             : '') +
 
-          manualHtml +
+          manualHtml + materialHtml +
 
           (c.sub && c.sub.review_status !== 'pending'
             ? '<div class="ch-review ' + (c.sub.review_status === 'pass' ? 'ok' : 'no') + '" style="margin-top:16px;">' +

@@ -64,6 +64,15 @@
             <div class="field-hint">수강생이 숙제 안에서 이 매뉴얼 챕터로 바로 이동합니다. 챕터는 <a href="manual-schedule.html" style="color:var(--primary);">매뉴얼 공개</a> 목록과 같습니다.</div>
           </div>
 
+          <div class="field" style="grid-column:1/-1;">
+            <label>관련 자료 (선택)</label>
+            <input type="file" id="fMaterial" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;background:#fff;">
+            <div id="fMaterialCur" class="field-hint" style="color:var(--primary);"></div>
+            <input type="url" id="fMaterialUrl" placeholder="또는 외부 링크(URL) — 구글 드라이브 · 노션 등"
+              style="width:100%;margin-top:8px;padding:11px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;">
+            <div class="field-hint">파일을 올리거나 링크를 붙이면 학생이 숙제 안에서 자료를 받거나 열 수 있습니다. (파일·링크 둘 다 가능)</div>
+          </div>
+
           <div class="field">
             <label>시작일시</label>
             <input type="datetime-local" id="fOpen">

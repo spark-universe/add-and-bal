@@ -185,6 +185,9 @@ create table if not exists public.challenges (
 alter table public.challenges add column if not exists cohort int default 1;
 alter table public.challenges alter column active set default false;   -- 기본 비공개
 alter table public.challenges add column if not exists manual_slug text;
+alter table public.challenges add column if not exists material_url  text;   -- 관련 자료 외부 링크
+alter table public.challenges add column if not exists material_path text;   -- 관련 자료 업로드 파일 경로(materials 버킷)
+alter table public.challenges add column if not exists material_name text;   -- 관련 자료 파일 원본 이름
 update public.challenges set cohort = 1 where cohort is null;
 alter table public.challenges alter column open_at type timestamptz using open_at::timestamptz;
 alter table public.challenges alter column due_at  type timestamptz using due_at::timestamptz;
@@ -529,6 +532,21 @@ create policy "sub_files_select" on storage.objects for select
 drop policy if exists "sub_files_delete" on storage.objects;
 create policy "sub_files_delete" on storage.objects for delete
   using (bucket_id = 'submissions' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- 숙제 관련 자료 버킷 (공개 다운로드, 업로드/삭제는 어드민만)
+insert into storage.buckets (id, name, public) values ('materials', 'materials', true)
+on conflict (id) do nothing;
+drop policy if exists "materials_read" on storage.objects;
+create policy "materials_read" on storage.objects for select using (bucket_id = 'materials');
+drop policy if exists "materials_write" on storage.objects;
+create policy "materials_write" on storage.objects for insert
+  with check (bucket_id = 'materials' and public.is_admin());
+drop policy if exists "materials_update" on storage.objects;
+create policy "materials_update" on storage.objects for update
+  using (bucket_id = 'materials' and public.is_admin());
+drop policy if exists "materials_delete" on storage.objects;
+create policy "materials_delete" on storage.objects for delete
+  using (bucket_id = 'materials' and public.is_admin());
 
 -- =========================================================
 --  실행 후 할 일:
