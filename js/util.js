@@ -146,7 +146,11 @@ function initSortableTables(root) {
         th.classList.add(asc ? 'sort-asc' : 'sort-desc');
         rows.sort(function (a, b) {
           var av = cellSortVal(a.cells[idx]), bv = cellSortVal(b.cells[idx]);
-          var r = (typeof av === 'number' && typeof bv === 'number') ? (av - bv) : String(av).localeCompare(String(bv), 'ko');
+          var an = typeof av === 'number', bn = typeof bv === 'number', r;
+          if (an && bn) r = av - bv;           // 숫자끼리
+          else if (an) r = -1;                 // 숫자를 텍스트보다 앞으로 (일관된 순서)
+          else if (bn) r = 1;
+          else r = String(av).localeCompare(String(bv), 'ko');
           return asc ? r : -r;
         });
         rows.forEach(function (r) { tbody.appendChild(r); });
