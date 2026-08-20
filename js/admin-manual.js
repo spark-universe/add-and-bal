@@ -150,9 +150,14 @@
         '<td><select class="mc-status" style="padding:6px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;">' +
           opt('public', '공개') + opt('hidden', '숨김') + opt('scheduled', '예약') +
         '</select></td>' +
-        '<td><input type="datetime-local" class="mc-when" value="' + isoToLocal(c.publish_at) + '"' +
-          (c.status === 'scheduled' ? '' : ' disabled') +
-          ' style="padding:6px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;width:100%;"></td>' +
+        '<td>' + (function () {
+          var past = c.status === 'scheduled' && c.publish_at && new Date(c.publish_at).getTime() <= Date.now();
+          var already = c.status === 'public' || past;   // 이미 공개된 상태
+          return '<span class="mc-already" style="color:var(--ok);font-weight:600;font-size:0.82rem;' + (already ? '' : 'display:none;') + '">이미 공개됨</span>' +
+            '<input type="datetime-local" class="mc-when" value="' + isoToLocal(c.publish_at) + '"' +
+            (c.status === 'scheduled' ? '' : ' disabled') +
+            ' style="padding:6px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;width:100%;' + (already ? 'display:none;' : '') + '">';
+        })() + '</td>' +
         '<td class="mc-note" style="color:var(--muted);font-size:0.78rem;white-space:nowrap;"></td>' +
       '</tr>';
     }).join('');
@@ -184,7 +189,14 @@
     var tr = e.target.closest('tr');
     if (!tr) return;
     if (e.target.classList.contains('mc-status')) {
-      tr.querySelector('.mc-when').disabled = e.target.value !== 'scheduled';
+      var when = tr.querySelector('.mc-when');
+      var already = tr.querySelector('.mc-already');
+      var st = e.target.value;
+      when.disabled = st !== 'scheduled';
+      // 상태를 직접 바꾸면: 공개는 '이미 공개됨', 그 외(예약/숨김)는 일시 입력을 보여 편집
+      var showAlready = st === 'public';
+      if (already) already.style.display = showAlready ? '' : 'none';
+      when.style.display = showAlready ? 'none' : '';
     }
     refreshDirty();
   });

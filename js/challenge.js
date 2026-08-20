@@ -31,10 +31,14 @@
 
   // 과제 + 내 제출을 합쳐서 가져온다 (내 기수 과제만)
   var myCohortLabel = '';
+  var myCohort = 1;                 // 내 기수 (캘린더의 매뉴얼 예약 공개 조회에 사용)
+  var manualTitles = {};            // slug → 매뉴얼 제목
+  var monthManual = [];             // 이번 달 매뉴얼 예약 공개 (내 기수)
   async function fetchData() {
     var prof = await sb.from('profiles').select('cohort, enroll_date').eq('id', user.id).single();
     // 0 = 미분류(그대로 0으로 조회), null 이면 기본 1
     var cohort = (prof.data && prof.data.cohort != null) ? prof.data.cohort : 1;
+    myCohort = cohort;
 
     // 내 수강일: 개인 수강일 우선, 없으면 기수 수강일 (수강생은 기수 대신 날짜만 봄)
     myCohortLabel = (prof.data && prof.data.enroll_date) || '';
@@ -232,6 +236,9 @@
     user = await require();
     if (!user) return;
     calList = await fetchData();
+    // 매뉴얼 제목표 (slug → 제목) 한 번 로드
+    var mt = await sb.from('manual_chapters').select('slug, title');
+    (mt.data || []).forEach(function (r) { manualTitles[r.slug] = r.title; });
 
     var now = new Date();
     calYear = now.getFullYear();
@@ -243,6 +250,7 @@
 
     // 달력 클릭: 일정 마커 → 수정, 빈 날짜 → 추가, 과제 마커 → 상세
     document.getElementById('cal').addEventListener('click', function (e) {
+      if (e.target.closest('.cal__ev.manual')) return;   // 매뉴얼 예약 공개 마커는 클릭 무시
       var evEl = e.target.closest('[data-ev]');
       if (evEl) { var ev = monthEvents.find(function (x) { return String(x.id) === evEl.dataset.ev; }); if (ev) openEvent(ev); return; }
       var hwEl = e.target.closest('[data-id]');
@@ -265,6 +273,11 @@
     var end = new Date(calYear, calMonth + 1, 1).toISOString();   // 보이는 달만 (데이터 최소화)
     var res = await sb.from('events').select('*').gte('start_at', start).lt('start_at', end).order('start_at');
     monthEvents = res.data || [];
+    // 내 기수의 매뉴얼 예약 공개일 (이번 달) — 예약 상태이고 공개일시가 이 달에 있는 것
+    var mm = await sb.from('cohort_manual').select('slug, publish_at, status')
+      .eq('cohort', myCohort).eq('status', 'scheduled')
+      .gte('publish_at', start).lt('publish_at', end);
+    monthManual = (mm.data || []).filter(function (r) { return r.publish_at; });
   }
   function fmtTime(iso) {
     var d = new Date(iso), h = d.getHours(), ap = h >= 12 ? '오후' : '오전', h12 = h % 12 || 12;
@@ -286,6 +299,12 @@
       var d = new Date(e.start_at);
       (evDay[d.getDate()] = evDay[d.getDate()] || []).push(e);
     });
+    var mDay = {};    // 매뉴얼 예약 공개 (내 기수)
+    monthManual.forEach(function (r) {
+      var d = new Date(r.publish_at);
+      if (d.getFullYear() === calYear && d.getMonth() === calMonth)
+        (mDay[d.getDate()] = mDay[d.getDate()] || []).push(r);
+    });
 
     var first = new Date(calYear, calMonth, 1).getDay();
     var days = new Date(calYear, calMonth + 1, 0).getDate();
@@ -304,8 +323,11 @@
         return '<span class="cal__ev ' + (mine ? 'mine' : 'adm') + '" data-ev="' + e.id + '">' +
           esc(fmtTime(e.start_at)) + ' ' + esc(e.title) + '</span>';
       }).join('');
+      var mans = (mDay[day] || []).map(function (r) {
+        return '<span class="cal__ev manual" title="매뉴얼 예약 공개">📘 ' + esc(manualTitles[r.slug] || r.slug) + ' 공개</span>';
+      }).join('');
       cells.push('<div class="cal__cell' + (isToday ? ' is-today' : '') + '" data-day="' + day + '">' +
-        '<span class="cal__num">' + day + '</span>' + hw + evs + '</div>');
+        '<span class="cal__num">' + day + '</span>' + hw + mans + evs + '</div>');
     }
     document.getElementById('cal').innerHTML = cells.join('');
   }
