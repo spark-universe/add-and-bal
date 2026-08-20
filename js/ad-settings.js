@@ -202,7 +202,7 @@
   document.getElementById('createBtn').addEventListener('click', openCreate);
   document.getElementById('glossaryBtn').addEventListener('click', function () {
     window.open('ad-glossary.html', 'adGlossary',
-      'width=520,height=760,menubar=no,toolbar=no,location=no,scrollbars=yes,resizable=yes');
+      'width=980,height=840,menubar=no,toolbar=no,location=no,scrollbars=yes,resizable=yes');
   });
   document.getElementById('manageBtn').addEventListener('click', function () {
     alert('채널 관리는 이 연습에서 사용되지 않습니다.');

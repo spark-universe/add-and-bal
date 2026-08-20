@@ -3,52 +3,95 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>광고 용어사전</title>
+<title>마케팅 핵심 용어 사전</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
 <style>
+  :root {
+    --blue: #2f6bff; --blue-soft: #eef3ff; --ink: #1a1f2b; --muted: #6b7280;
+    --line: #e6e9f0; --card: #ffffff; --bg: #f4f6fb;
+  }
   * { box-sizing: border-box; }
   body { margin: 0; font-family: 'Pretendard', system-ui, -apple-system, sans-serif;
-    color: #1a1f2b; background: #f5f7fa; -webkit-font-smoothing: antialiased; }
-  .gl-head { position: sticky; top: 0; z-index: 5; background: #fff; border-bottom: 1px solid #e5e8ee;
-    padding: 18px 22px 14px; }
-  .gl-head h1 { margin: 0 0 4px; font-size: 1.15rem; font-weight: 800; }
-  .gl-head p { margin: 0 0 12px; font-size: 0.82rem; color: #6b7280; line-height: 1.5; }
-  .gl-search { width: 100%; padding: 10px 12px; border: 1px solid #d7dbe3; border-radius: 9px;
-    font-size: 0.9rem; font-family: inherit; }
-  .gl-search:focus { outline: none; border-color: #4a6cf7; }
-  .gl-body { padding: 8px 22px 40px; }
-  .gl-group { margin-top: 20px; }
-  .gl-group__name { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
-    color: #9aa1ad; margin: 0 0 8px; }
-  .gl-term { background: #fff; border: 1px solid #e5e8ee; border-radius: 11px; padding: 14px 16px; margin-bottom: 10px; }
-  .gl-term__h { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
-  .gl-term__name { font-size: 0.98rem; font-weight: 800; }
-  .gl-term__en { font-size: 0.72rem; font-weight: 700; color: #4a6cf7; background: #eef2ff;
-    border-radius: 6px; padding: 2px 7px; }
-  .gl-term__d { font-size: 0.85rem; line-height: 1.65; color: #3d4757; white-space: pre-line; }
-  .gl-empty { text-align: center; color: #9aa1ad; padding: 40px; font-size: 0.88rem; }
-  .gl-foot { text-align: center; color: #aab0bb; font-size: 0.75rem; padding: 0 0 30px; }
+    color: var(--ink); background: var(--bg); -webkit-font-smoothing: antialiased; line-height: 1.5; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 34px 26px 60px; }
+
+  /* 헤더 */
+  .gl-title { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.02em; margin: 0; }
+  .gl-title b { color: var(--blue); font-weight: 800; }
+  .gl-rule { height: 4px; width: 100%; background: var(--blue); border-radius: 3px; margin: 14px 0 18px; }
+  .gl-intro { background: var(--blue-soft); border: 1px solid #d6e2ff; border-radius: 12px;
+    padding: 13px 16px; font-size: 0.9rem; color: #33456b; line-height: 1.6; }
+  .gl-intro .n { color: var(--blue); font-weight: 800; }
+
+  /* 카드 그리드 */
+  .gl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 22px; }
+  .card { position: relative; background: var(--card); border: 1px solid var(--line);
+    border-radius: 16px; padding: 20px 20px 18px; box-shadow: 0 1px 2px rgba(20,30,60,.04); }
+  .card.is-metric { border-color: #cfdcff; }
+  .card__badge { position: absolute; top: -12px; left: 18px; width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.95rem;
+    color: #fff; background: var(--blue); box-shadow: 0 3px 8px rgba(47,107,255,.35); }
+  .card__badge--concept { background: #fff; color: #c2c8d4; border: 1.5px solid #dfe3ec; box-shadow: none; font-size: 1.1rem; }
+  .card__term { font-size: 1.35rem; font-weight: 800; margin: 6px 0 2px; letter-spacing: -0.01em; }
+  .card__en { font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-bottom: 12px; }
+  .card__def { font-size: 0.92rem; color: #364152; line-height: 1.65; }
+
+  /* 대시보드 위치 안내 */
+  .gl-map { margin-top: 40px; }
+  .gl-map__label { font-size: 1.05rem; font-weight: 800; margin: 0 0 4px; }
+  .gl-map__sub { font-size: 0.85rem; color: var(--muted); margin: 0 0 16px; }
+  .bar { display: flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 14px;
+    background: #fff; overflow: hidden; }
+  .bar__cell { flex: 1 1 0; min-width: 150px; padding: 16px 16px; border-right: 1px solid var(--line);
+    position: relative; }
+  .bar__cell:last-child { border-right: none; }
+  .bar__cell.period { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; color: var(--muted);
+    font-size: 0.82rem; font-weight: 700; background: #fafbfe; }
+  .bar__l { font-size: 0.76rem; color: var(--muted); margin-bottom: 7px; white-space: nowrap; }
+  .bar__v { font-size: 1.15rem; font-weight: 800; }
+  .bar__v small { font-size: 0.72rem; color: #34a853; font-weight: 700; }
+  .pin { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;
+    border-radius: 50%; background: var(--blue); color: #fff; font-size: 0.72rem; font-weight: 800;
+    margin-right: 6px; vertical-align: middle; }
+  .gl-foot { text-align: center; color: #aab0bb; font-size: 0.76rem; margin-top: 36px; }
+
+  @media (max-width: 780px) { .gl-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 520px) { .gl-grid { grid-template-columns: 1fr; } .wrap { padding: 26px 16px 44px; } }
 </style>
 </head>
 <body>
-  <div class="gl-head">
-    <h1 id="glTitle">광고 용어사전</h1>
-    <p id="glSub"></p>
-    <input type="text" class="gl-search" id="glSearch" placeholder="용어 검색 (예: ROAS, 객단가, 세그먼트)">
+  <div class="wrap">
+    <h1 class="gl-title" id="glTitle">마케팅 핵심 <b>용어 사전</b></h1>
+    <div class="gl-rule"></div>
+    <div class="gl-intro" id="glIntro"></div>
+
+    <div class="gl-grid" id="glGrid"></div>
+
+    <div class="gl-map">
+      <div class="gl-map__label">30일 성과 지표 바 — 용어가 표시되는 위치</div>
+      <p class="gl-map__sub">광고 설정 화면 상단의 성과 바에서 아래 위치에 지표가 나타납니다.</p>
+      <div class="bar">
+        <div class="bar__cell period">📅 30 days</div>
+        <div class="bar__cell"><div class="bar__l">Customers acquired</div><div class="bar__v">151</div></div>
+        <div class="bar__cell"><div class="bar__l"><span class="pin">2</span>Average order value</div><div class="bar__v">$74.14</div></div>
+        <div class="bar__cell"><div class="bar__l">Sales</div><div class="bar__v">$11.1K</div></div>
+      </div>
+      <div class="bar" style="margin-top:10px;">
+        <div class="bar__cell"><div class="bar__l">Spend</div><div class="bar__v">$2,294</div></div>
+        <div class="bar__cell"><div class="bar__l"><span class="pin">1</span>Average customer acquisition cost</div><div class="bar__v">$15.19</div></div>
+        <div class="bar__cell"><div class="bar__l"><span class="pin">3</span>ROAS</div><div class="bar__v">4.88</div></div>
+      </div>
+    </div>
+
+    <div class="gl-foot">광고 설정 연습용 용어사전 · 챌린지 매뉴얼과 별도로 관리됩니다</div>
   </div>
-  <div class="gl-body" id="glBody"></div>
-  <div class="gl-foot">광고 설정 연습용 용어사전 · 챌린지 매뉴얼과 별도로 관리됩니다</div>
 
 <script src="js/ad-glossary-data.js"></script>
 <script>
 (function () {
-  var G = window.AD_GLOSSARY || { groups: [] };
-  document.getElementById('glTitle').textContent = G.title || '광고 용어사전';
-  document.getElementById('glSub').textContent = G.subtitle || '';
-  document.title = G.title || '광고 용어사전';
-
-  var body = document.getElementById('glBody');
+  var G = window.AD_GLOSSARY || { terms: [] };
+  var CIRCLED = { 1: '①', 2: '②', 3: '③' };
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -56,35 +99,21 @@
     });
   }
 
-  function render(q) {
-    q = (q || '').trim().toLowerCase();
-    var html = '';
-    var any = false;
+  if (G.title) { document.title = G.title; }
+  document.getElementById('glIntro').innerHTML =
+    (G.intro || '').replace(/[①②③]/g, function (m) { return '<span class="n">' + m + '</span>'; });
 
-    (G.groups || []).forEach(function (grp) {
-      var terms = (grp.terms || []).filter(function (t) {
-        if (!q) return true;
-        return (t.term + ' ' + (t.en || '') + ' ' + (t.short || '') + ' ' + (t.full || ''))
-          .toLowerCase().indexOf(q) !== -1;
-      });
-      if (!terms.length) return;
-      any = true;
-      html += '<div class="gl-group"><div class="gl-group__name">' + esc(grp.name) + '</div>';
-      terms.forEach(function (t) {
-        html += '<div class="gl-term">' +
-          '<div class="gl-term__h"><span class="gl-term__name">' + esc(t.term) + '</span>' +
-          (t.en ? '<span class="gl-term__en">' + esc(t.en) + '</span>' : '') + '</div>' +
-          '<div class="gl-term__d">' + esc(t.full || t.short || '') + '</div>' +
-        '</div>';
-      });
-      html += '</div>';
-    });
-
-    body.innerHTML = any ? html : '<div class="gl-empty">검색 결과가 없습니다.</div>';
-  }
-
-  document.getElementById('glSearch').addEventListener('input', function () { render(this.value); });
-  render('');
+  document.getElementById('glGrid').innerHTML = (G.terms || []).map(function (t) {
+    var badge = t.badge
+      ? '<span class="card__badge">' + t.badge + '</span>'
+      : '<span class="card__badge card__badge--concept">–</span>';
+    return '<div class="card' + (t.badge ? ' is-metric' : '') + '">' +
+      badge +
+      '<div class="card__term">' + esc(t.term) + '</div>' +
+      '<div class="card__en">' + esc(t.en || '') + '</div>' +
+      '<div class="card__def">' + esc(t.full || t.short || '') + '</div>' +
+    '</div>';
+  }).join('');
 })();
 </script>
 </body>
