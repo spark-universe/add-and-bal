@@ -1383,6 +1383,12 @@ tbody tr:hover { background: #fafbff; }
 .adv-fixed { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px;
   border-radius: 50%; background: #22a06b; color: #fff; font-size: 0.7rem; font-weight: 800;
   vertical-align: middle; margin-left: 3px; }
+
+/* 광고 캠페인 표: 모든 칸 가운데 정렬 + 열 구분선 (다른 표에는 영향 없음) */
+.adv-table th, .adv-table td { text-align: center; vertical-align: middle;
+  border-right: 1px solid #eef0f3; }
+.adv-table th.r, .adv-table td.r { text-align: center; }   /* 숫자 칸도 가운데로 */
+.adv-table th:last-child, .adv-table td:last-child { border-right: none; }
 .adv-row .adv-check { cursor: default; }
 #advOnlySel { background: #fff; color: var(--text); font-family: inherit; cursor: pointer; }
 #advOnlySel:hover { background: #f2f4f8; }
@@ -1411,6 +1417,7 @@ tbody tr:hover { background: #fafbff; }
   background-repeat: no-repeat; background-position: right 9px center; }
 .mr-select:hover { border-color: var(--primary); }
 .mr-select:focus { outline: none; border-color: var(--primary); }
+.mr-scope { font-size: 0.76rem; font-weight: 700; color: var(--primary); white-space: nowrap; }
 
 .adv-status {
   display: inline-block; font-size: 0.72rem; font-weight: 700;

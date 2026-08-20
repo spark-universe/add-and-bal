@@ -13,12 +13,17 @@
        · analyze 110/30 ≈ 3.67
        · nosale  90/15 = 6.0
    ========================================================= */
+/* perf = '실제 주문이 발생했다는 가정'의 고정 성과값 (그때그때 바뀌지 않게 고정).
+   - customers/spend/sales 로 표·상단바의 CAC·AOV·ROAS 가 계산된다.
+   - startDaysAgo: 접속일 기준 Start 를 며칠 전으로 둘지. */
 window.AD_DEMO_CASES = [
   {
     key: 'low',
     name: 'ROAS 저조',
     cac: 25, tov: 60, budget: 100,
     note: 'ROAS가 2점대라 팔면 팔수록 손해를 보는 구조입니다. 광고 효율을 높이는 개선이 필요합니다.',
+    // ROAS 2.4 (2~2.9) — 매출 2880 / 광고비 1200
+    perf: { customers: 48, spend: 1200, sales: 2880, startDaysAgo: 0 },
     goal: {
       min: 3.5,
       pass: '좋습니다! 손해 구간에서 벗어나 안정적인 ROAS로 조정했습니다.',
@@ -29,7 +34,9 @@ window.AD_DEMO_CASES = [
     key: 'analyze',
     name: 'ROAS 분석 필요',
     cac: 30, tov: 110, budget: 250,
-    note: 'ROAS 4점대로 안정권이지만 마진에 따라 손해가 날 수 있습니다. 원가·마진을 계산해 분석이 필요한 수치입니다.',
+    note: 'ROAS만 보면 안정권처럼 보이지만, 마진을 따지면 손해가 날 수 있습니다. 원가·마진을 계산해 분석이 필요한 수치입니다.',
+    // 순이익 = 매출×0.5(마진) − 매출×0.2 − 광고비 = 3200×0.3 − 900 = +$60 (−500~+250)
+    perf: { customers: 30, spend: 900, sales: 3200, startDaysAgo: 0 },
     goal: {
       min: 4.5,
       pass: '좋습니다! 마진을 감안해도 안전한 수준으로 분석·조정했습니다.',
@@ -40,7 +47,9 @@ window.AD_DEMO_CASES = [
     key: 'nosale',
     name: '판매 안 됨 (ROAS 조정)',
     cac: 15, tov: 90, budget: 200,
-    note: 'CAC가 낮은데 목표 객단가(TOV)가 너무 높아 판매가 원활하지 않을 수 있습니다. 수치 조정이 필요합니다.',
+    note: 'CAC가 낮은데 목표 객단가(TOV)가 너무 높아 판매가 원활하지 않습니다. 일주일간 주문이 거의 없어 매출이 매우 낮습니다. 수치 조정이 필요합니다.',
+    // 주문 2건, 매출 매우 낮음, Start 는 1주일 전
+    perf: { customers: 2, spend: 30, sales: 54, startDaysAgo: 7 },
     goal: {
       min: 2.5, max: 4.0,
       pass: '좋습니다! 판매가 이뤄질 수 있는 현실적인 수준으로 조정했습니다.',

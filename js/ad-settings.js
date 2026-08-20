@@ -54,12 +54,15 @@
   /* ---------- 데모 계정 전용 진단 케이스 심기 ----------
      is_demo 계정으로 접속하면 문제 있는 광고 3개를 세션에 깔아둔다.
      탭(sessionStorage)마다 따로 생기고, 일반 계정에는 절대 안 뜬다. */
+  var SEED_V = 2;   // 케이스 데이터 버전 — 올리면 예전 세션의 시드도 새로 갱신됨
   function buildCaseCampaign(cs, i) {
-    var roas = round2(cs.tov / cs.cac);
-    var today = new Date().toISOString().slice(0, 10);
+    var p = cs.perf || { customers: 0, spend: 0, sales: 0, startDaysAgo: 0 };
+    var d = new Date(); d.setDate(d.getDate() - (p.startDaysAgo || 0));
+    var start = d.toISOString().slice(0, 10);
+    var customers = p.customers || 0, spend = p.spend || 0, sales = p.sales || 0;
     return {
-      id: 900000001 + i,          // 데모 케이스 고정 id (중복 시드 방지)
-      demoCase: cs.key,
+      id: 900000001 + i,          // 데모 케이스 고정 id
+      demoCase: cs.key, seedV: SEED_V,
       name: cs.name,
       note: cs.note,
       budget: cs.budget,
@@ -69,40 +72,62 @@
       cacs: [{ name: '전체 고객', value: cs.cac }],
       cacAll: cs.cac,
       segsRaw: [],
-      targetCac: cs.cac,
+      targetCac: cs.cac,          // 설정값(수정 대상). 설계 ROAS = tov/cac
       category: '',
-      start: today, end: null,
+      start: start, end: null,
       status: 'active',
-      spend: 0, sales: 0, customers: 0,
-      cac: cs.cac, aov: cs.tov, roas: roas,   // 설계값을 표에 보여줌
+      // 실제 성과 (주어진 고정값) → 표·상단바에 표시
+      customers: customers, spend: spend, sales: sales,
+      cac: customers ? round2(spend / customers) : 0,
+      aov: customers ? round2(sales / customers) : 0,
+      roas: spend ? round2(sales / spend) : 0,
       alert: null, resolved: false
     };
   }
   function seedDemoCases() {
     if (!window.__demoSim || !window.AD_DEMO_CASES) return;
-    var have = {};
-    campaigns.forEach(function (c) { if (c.demoCase) have[c.demoCase] = true; });
-    var added = false;
+    var byCase = {};
+    campaigns.forEach(function (c) { if (c.demoCase) byCase[c.demoCase] = c; });
+    var changed = false;
     window.AD_DEMO_CASES.forEach(function (cs, i) {
-      if (have[cs.key]) return;
+      var ex = byCase[cs.key];
+      if (ex && ex.seedV === SEED_V) return;                 // 최신이면 그대로 둠
+      if (ex && !ex.resolved) campaigns = campaigns.filter(function (c) { return c !== ex; }); // 오래된 시드(미수정)만 교체
+      else if (ex) return;                                   // 이미 수정한 케이스는 보존
       campaigns.push(buildCaseCampaign(cs, i));
-      added = true;
+      changed = true;
     });
-    if (added) save();
+    if (changed) save();
   }
 
   /* ---------- 상단 지표 (이번 연습 광고의 실시간 성과) ---------- */
   function renderMetrics() {
     var ctx = runContext();
     var orders = ctx.orders.filter(inRange);      // 선택한 기간(하루/일주일/한달)의 주문만
+
+    // 체크박스로 고른 캠페인이 있으면 그 캠페인들만, 없으면 이번 연습(run) 캠페인 전체
+    var target = selCount()
+      ? campaigns.filter(function (c) { return selectedIds[c.id]; })
+      : ctx.mine;
+
     var sales = 0, spend = 0, customers = 0;
-    ctx.mine.forEach(function (c) {
-      var lv = campaignLive(c, orders, ctx.names);
-      sales += lv.sales; spend += lv.spend; customers += lv.customers;
+    target.forEach(function (c) {
+      var m;
+      if (ctx.names.indexOf(c.name) !== -1) {
+        m = campaignLive(c, orders, ctx.names);   // 이번 연습 런: 실제 주문 기반
+      } else {
+        // 그 외(데모 케이스 등)는 캠페인에 저장된 값(= 주어질 매출·광고비)을 사용
+        m = { sales: Number(c.sales) || 0, spend: Number(c.spend) || 0, customers: Number(c.customers) || 0 };
+      }
+      sales += m.sales; spend += m.spend; customers += m.customers;
     });
+
     var aov = customers ? sales / customers : 0;
     var cac = customers ? spend / customers : 0;
     var roas = spend ? sales / spend : 0;
+
+    var scope = document.getElementById('advMetricScope');
+    if (scope) scope.textContent = selCount() ? '· 선택 ' + selCount() + '개' : '';
 
     document.getElementById('mCust').textContent = customers;
     document.getElementById('mAov').textContent = money(aov);
@@ -312,13 +337,13 @@
     if (tr) location.href = 'ad-campaign.html?edit=' + tr.dataset.id;
   });
 
-  // 행 체크박스 → 선택 목록 갱신
+  // 행 체크박스 → 선택 목록 갱신 (상단 지표도 선택 기준으로 갱신)
   document.getElementById('advBody').addEventListener('change', function (e) {
     if (!e.target.classList.contains('advSel')) return;
     var id = Number(e.target.dataset.id);
     if (e.target.checked) selectedIds[id] = true; else delete selectedIds[id];
     if (onlySelected) render();   // 선택만 보기 중이면 해제한 행이 바로 사라지도록
-    else updateSelUI();
+    else { updateSelUI(); renderMetrics(); }
   });
 
   // 전체 선택 (현재 표에 보이는 행 대상)
@@ -329,7 +354,7 @@
       if (on) selectedIds[id] = true; else delete selectedIds[id];
     });
     if (onlySelected) render();
-    else updateSelUI();
+    else { updateSelUI(); renderMetrics(); }
   });
 
   // 선택만 보기 토글
