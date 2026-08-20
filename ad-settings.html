@@ -28,12 +28,9 @@
 
     <!-- 상단 지표 (기간 선택) -->
     <div class="ord-metrics" id="advMetrics">
-      <div class="ord-metrics__today">
-        <div class="mr-toggle" id="advRange">
-          <button class="mr-btn" data-range="day">하루</button>
-          <button class="mr-btn is-on" data-range="week">일주일</button>
-          <button class="mr-btn" data-range="month">한달</button>
-        </div>
+      <div class="ord-metrics__today is-click" id="advRange" role="button" tabindex="0"
+        title="클릭하면 기간이 바뀝니다 (하루 · 일주일 · 한달)">
+        📅 <span id="advRangeLabel">일주일</span><span class="mr-caret">▾</span>
       </div>
       <div class="ord-metric">
         <div class="l">Customers acquired</div>
