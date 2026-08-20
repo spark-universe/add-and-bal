@@ -1380,6 +1380,9 @@ tbody tr:hover { background: #fafbff; }
 .adv-row:hover td { background: #f7f9fc; }
 .adv-row .adv-rowact { cursor: default; }
 .adv-check { width: 34px; text-align: center; cursor: default; }
+.adv-fixed { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px;
+  border-radius: 50%; background: #22a06b; color: #fff; font-size: 0.7rem; font-weight: 800;
+  vertical-align: middle; margin-left: 3px; }
 .adv-row .adv-check { cursor: default; }
 #advOnlySel { background: #fff; color: var(--text); font-family: inherit; cursor: pointer; }
 #advOnlySel:hover { background: #f2f4f8; }

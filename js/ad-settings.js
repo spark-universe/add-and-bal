@@ -51,6 +51,46 @@
   }
   function save() { simStore().setItem(STORE, JSON.stringify(campaigns)); }
 
+  /* ---------- 데모 계정 전용 진단 케이스 심기 ----------
+     is_demo 계정으로 접속하면 문제 있는 광고 3개를 세션에 깔아둔다.
+     탭(sessionStorage)마다 따로 생기고, 일반 계정에는 절대 안 뜬다. */
+  function buildCaseCampaign(cs, i) {
+    var roas = round2(cs.tov / cs.cac);
+    var today = new Date().toISOString().slice(0, 10);
+    return {
+      id: 900000001 + i,          // 데모 케이스 고정 id (중복 시드 방지)
+      demoCase: cs.key,
+      name: cs.name,
+      note: cs.note,
+      budget: cs.budget,
+      country: 'United States',
+      segment: 'All',
+      tov: cs.tov,
+      cacs: [{ name: '전체 고객', value: cs.cac }],
+      cacAll: cs.cac,
+      segsRaw: [],
+      targetCac: cs.cac,
+      category: '',
+      start: today, end: null,
+      status: 'active',
+      spend: 0, sales: 0, customers: 0,
+      cac: cs.cac, aov: cs.tov, roas: roas,   // 설계값을 표에 보여줌
+      alert: null, resolved: false
+    };
+  }
+  function seedDemoCases() {
+    if (!window.__demoSim || !window.AD_DEMO_CASES) return;
+    var have = {};
+    campaigns.forEach(function (c) { if (c.demoCase) have[c.demoCase] = true; });
+    var added = false;
+    window.AD_DEMO_CASES.forEach(function (cs, i) {
+      if (have[cs.key]) return;
+      campaigns.push(buildCaseCampaign(cs, i));
+      added = true;
+    });
+    if (added) save();
+  }
+
   /* ---------- 상단 지표 (이번 연습 광고의 실시간 성과) ---------- */
   function renderMetrics() {
     var ctx = runContext();
@@ -173,7 +213,10 @@
         var pending = !!lv && lv.customers === 0;   // 이번 런인데 아직 광고 유입 주문 없음
         return '<tr data-id="' + c.id + '" class="adv-row" title="클릭하면 이 캠페인을 수정합니다">' +
           '<td class="adv-check"><input type="checkbox" class="advSel" data-id="' + c.id + '"' + (selectedIds[c.id] ? ' checked' : '') + '></td>' +
-          '<td class="ord-cust" style="color:var(--primary);">' + esc(c.name) + '</td>' +
+          '<td class="ord-cust" style="color:var(--primary);">' + esc(c.name) +
+            (c.note ? ' <span class="gl-tip" data-tip-head="' + esc(c.name) + '" data-tip-body="' + esc(c.note) + '">?</span>' : '') +
+            (c.resolved ? ' <span class="adv-fixed" title="잘 조정됨">✓</span>' : '') +
+          '</td>' +
           '<td>' + (c.alert ? '<span class="risk-badge med">⚠ ' + esc(c.alert) + '</span>' : '') + '</td>' +
           '<td>' + (c.status === 'active'
             ? '<span class="adv-status on">Active</span>' + (pending ? ' <span style="font-size:0.72rem;color:var(--muted);">집계 전</span>' : '')
@@ -250,6 +293,7 @@
 
   document.getElementById('advBody').addEventListener('click', function (e) {
     if (e.target.closest('.adv-check')) return;   // 체크박스 칸: 선택용 (이동/편집 아님)
+    if (e.target.closest('.gl-tip')) return;      // 이름 옆 ? : 툴팁용 (이동/편집 아님)
     var del = e.target.closest('button[data-del]');
     if (del) {
       var id = Number(del.dataset.del);
@@ -304,6 +348,7 @@
       practiceTopic = (s.data && s.data.topic) || '';
     } catch (e) {}
     load();
+    seedDemoCases();     // 데모 계정이면 진단 케이스 3개 심기
     render();
   })();
 })();
