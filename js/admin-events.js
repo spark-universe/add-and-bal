@@ -131,7 +131,7 @@
   });
 
   /* ---------- 학생 캘린더 보기 ---------- */
-  var vYear, vMonth, vStudent = null, vEvents = [], vChallenges = [];
+  var vYear, vMonth, vStudent = null, vEvents = [], vChallenges = [], vManual = [], manualTitles = {};
   el('stuSel').addEventListener('change', function () { vStudent = this.value; loadStudentMonth(); });
   el('vPrev').addEventListener('click', function () { vShift(-1); });
   el('vNext').addEventListener('click', function () { vShift(1); });
@@ -160,14 +160,27 @@
       var d = new Date(c.due_at);
       return d.getFullYear() === vYear && d.getMonth() === vMonth;
     });
+    // 그 학생 기수의 매뉴얼 예약 공개 (이번 달)
+    var mm = await sb.from('cohort_manual').select('slug, publish_at, status')
+      .eq('cohort', stu ? stu.cohort : -1).eq('status', 'scheduled')
+      .gte('publish_at', start).lt('publish_at', end);
+    vManual = (mm.data || []).filter(function (r) { return r.publish_at; });
+    if (!Object.keys(manualTitles).length) {
+      var mt = await sb.from('manual_chapters').select('slug, title');
+      (mt.data || []).forEach(function (r) { manualTitles[r.slug] = r.title; });
+    }
     renderVCal();
   }
 
   function renderVCal() {
     el('vLabel').textContent = vYear + '년 ' + MON[vMonth];
-    var evDay = {}, hwDay = {};
+    var evDay = {}, hwDay = {}, mDay = {};
     vEvents.forEach(function (e) { var d = new Date(e.start_at); (evDay[d.getDate()] = evDay[d.getDate()] || []).push(e); });
     vChallenges.forEach(function (c) { var d = new Date(c.due_at); (hwDay[d.getDate()] = hwDay[d.getDate()] || []).push(c); });
+    vManual.forEach(function (r) {
+      var d = new Date(r.publish_at);
+      if (d.getFullYear() === vYear && d.getMonth() === vMonth) (mDay[d.getDate()] = mDay[d.getDate()] || []).push(r);
+    });
 
     var first = new Date(vYear, vMonth, 1).getDay();
     var days = new Date(vYear, vMonth + 1, 0).getDate();
@@ -175,11 +188,12 @@
     for (var i = 0; i < first; i++) cells.push('<div class="cal__cell is-empty"></div>');
     for (var day = 1; day <= days; day++) {
       var hw = (hwDay[day] || []).map(function (c) { return '<span class="cal__ev todo">' + esc(c.title) + '</span>'; }).join('');
+      var mans = (mDay[day] || []).map(function (r) { return '<span class="cal__ev manual">📘 ' + esc(manualTitles[r.slug] || r.slug) + ' 공개</span>'; }).join('');
       var evs = (evDay[day] || []).map(function (e) {
         var mine = e.scope === 'personal';
         return '<span class="cal__ev ' + (mine ? 'mine' : 'adm') + '">' + esc(fmtTime(e.start_at)) + ' ' + esc(e.title) + '</span>';
       }).join('');
-      cells.push('<div class="cal__cell"><span class="cal__num">' + day + '</span>' + hw + evs + '</div>');
+      cells.push('<div class="cal__cell"><span class="cal__num">' + day + '</span>' + hw + mans + evs + '</div>');
     }
     el('vCal').innerHTML = cells.join('');
   }
