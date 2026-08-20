@@ -434,7 +434,13 @@
   document.getElementById('startBtn').addEventListener('click', function () {
     clampAll();
     var s = read();
-    if (!s.category) { alert('카테고리를 고르세요.'); return; }
+
+    var list = [];
+    try { list = JSON.parse(simStore().getItem(STORE)) || []; } catch (e) { list = []; }
+    var editTarget = (editId != null) ? list.find(function (x) { return x.id === editId; }) : null;
+    var isDemoCase = !!(editTarget && editTarget.demoCase);   // 데모 진단 케이스 수정 중
+
+    if (!s.category && !isDemoCase) { alert('카테고리를 고르세요.'); return; }  // 데모 케이스는 카테고리 없이 진행
     if (!s.name) { alert('캠페인 이름을 입력하세요.'); return; }
     if (!s.budget) { alert('일 예산을 입력하세요.'); return; }
     if (!s.tov) { alert('목표 객단가를 입력하세요.'); return; }
@@ -449,14 +455,22 @@
       return;
     }
 
-    var list = [];
-    try { list = JSON.parse(simStore().getItem(STORE)) || []; } catch (e) { list = []; }
-
     if (editId != null) {
       // ---- 수정 모드 : 기존 캠페인의 설정값만 갱신, 성과·id·런 태그는 유지 ----
       var idx = list.findIndex(function (x) { return x.id === editId; });
       if (idx === -1) { alert('수정할 캠페인을 찾을 수 없습니다.'); location.href = 'ad-settings.html'; return; }
       var c = list[idx];
+
+      // 데모 진단 케이스: 목표(min/max ROAS) 달성 여부 판정 — 미달이면 저장하지 않고 다시
+      if (c.demoCase && window.AD_DEMO_CASES) {
+        var cs = window.AD_DEMO_CASES.find(function (x) { return x.key === c.demoCase; });
+        if (cs && cs.goal && !window.adDemoCaseGoalOk(cs.goal, roasBase)) {
+          alert('⚠ 다시 설정해 주세요.\n\n현재 ROAS: ' + roasBase.toFixed(1) + 'x\n' + cs.goal.fail);
+          return;
+        }
+        c.resolved = !!(cs && cs.goal);
+      }
+
       c.name = s.name;
       c.budget = s.budget;
       c.country = s.country;
@@ -469,8 +483,15 @@
       c.start = sched.start;
       c.end = sched.end;
       c.status = (sched.end && sched.end <= today) ? 'completed' : 'active';
+      c.roas = round2(roasBase);      // 표에 보일 설계 ROAS 갱신
+      c.cac = s.avgCac; c.aov = s.tov;
       list[idx] = c;
       simStore().setItem(STORE, JSON.stringify(list));
+
+      if (c.demoCase && c.resolved) {
+        var cs2 = window.AD_DEMO_CASES && window.AD_DEMO_CASES.find(function (x) { return x.key === c.demoCase; });
+        if (cs2 && cs2.goal) alert('✅ ' + cs2.goal.pass);
+      }
       location.href = 'ad-settings.html';
       return;
     }
@@ -527,12 +548,13 @@
       document.getElementById('country').value = target.country || 'United States';
       document.getElementById('cacAll').value = (target.cacAll != null ? target.cacAll : 0);
       document.getElementById('budget').value = target.budget || 0;
-      // 세그먼트 복원 (구버전 캠페인은 segsRaw 가 없을 수 있어 기본값 유지)
-      if (target.segsRaw && target.segsRaw.length) segs = JSON.parse(JSON.stringify(target.segsRaw));
+      // 세그먼트 복원 (segsRaw 가 있으면 빈 배열이라도 그대로 — 구버전만 기본값 유지)
+      if (target.segsRaw) segs = JSON.parse(JSON.stringify(target.segsRaw));
       sched = { start: target.start || today, end: target.end || null, now: !target.end && target.start === today };
 
       renderSegs();
       renderSched();
+      document.getElementById('tov').value = target.tov;   // 저장했던 목표 객단가 (카테고리 없어도 채움)
 
       if (target.category) {
         document.getElementById('category').value = target.category;
