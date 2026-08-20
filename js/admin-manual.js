@@ -138,12 +138,12 @@
 
   function render() {
     els.count.textContent = chapters.length ? '(' + chapters.length + '개)' : '';
-    els.body.innerHTML = chapters.map(function (c) {
+    els.body.innerHTML = chapters.map(function (c, i) {
       var opt = function (v, label) {
         return '<option value="' + v + '"' + (c.status === v ? ' selected' : '') + '>' + label + '</option>';
       };
       return '<tr data-slug="' + c.slug + '">' +
-        '<td>' + (c.sort || '') + '</td>' +
+        '<td>' + (i + 1) + '</td>' +
         '<td style="text-align:left;font-weight:600;">' + esc(c.title) +
           ' <span style="color:var(--muted);font-weight:400;font-size:0.8rem;">#' + esc(c.slug) + '</span></td>' +
         '<td class="mc-badge">' + currentBadge(c) + '</td>' +
