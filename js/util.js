@@ -192,3 +192,60 @@ if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _initSort);
   else _initSort();
 }
+
+/* ---------- 용어 툴팁 ( ? 아이콘 ) ----------
+   HTML 에 <span data-gl="cac"></span> 를 넣어두면 window.AD_GLOSSARY 에서
+   해당 용어를 찾아 ? 아이콘 + 마우스오버 설명(short)으로 바꾼다.
+   사전에 없는 key 는 조용히 제거한다. (ad-glossary-data.js 가 로드된 페이지에서만 동작) */
+function initGlossaryTips() {
+  if (typeof document === 'undefined' || !window.AD_GLOSSARY) return;
+  var map = {};
+  (window.AD_GLOSSARY.terms || []).forEach(function (t) { map[t.key] = t; });
+
+  document.querySelectorAll('[data-gl]').forEach(function (el) {
+    if (el.__glInit) return;
+    var t = map[el.dataset.gl];
+    if (!t) { el.remove(); return; }
+    el.__glInit = true;
+    el.className = (el.className ? el.className + ' ' : '') + 'gl-tip';
+    el.textContent = '?';
+    el.setAttribute('role', 'button');
+    el.setAttribute('tabindex', '0');
+    el.setAttribute('aria-label', t.term + ' 설명');
+    el.dataset.tipHead = t.term + (t.en ? ' · ' + t.en : '');
+    el.dataset.tipBody = t.short || t.full || '';
+  });
+
+  if (document.__glTipBound) return;
+  document.__glTipBound = true;
+  var pop = null;
+  function hide() { if (pop) { pop.remove(); pop = null; } }
+  function show(el) {
+    hide();
+    pop = document.createElement('div');
+    pop.className = 'gl-pop';
+    pop.innerHTML = '<b>' + esc(el.dataset.tipHead) + '</b>' + esc(el.dataset.tipBody);
+    document.body.appendChild(pop);
+    var r = el.getBoundingClientRect();
+    var pr = pop.getBoundingClientRect();
+    var below = (r.top - pr.height - 10) < 4;
+    var top = (below ? r.bottom + 8 : r.top - pr.height - 8) + window.scrollY;
+    var left = r.left + r.width / 2 - pr.width / 2 + window.scrollX;
+    left = Math.max(8 + window.scrollX, Math.min(left, window.scrollX + document.documentElement.clientWidth - pr.width - 8));
+    pop.style.top = top + 'px';
+    pop.style.left = left + 'px';
+  }
+  document.addEventListener('mouseover', function (e) { var el = e.target.closest('.gl-tip'); if (el) show(el); });
+  document.addEventListener('mouseout', function (e) { var el = e.target.closest('.gl-tip'); if (el) hide(); });
+  document.addEventListener('focusin', function (e) { var el = e.target.closest && e.target.closest('.gl-tip'); if (el) show(el); });
+  document.addEventListener('focusout', hide);
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest('.gl-tip');
+    if (el) { e.preventDefault(); e.stopPropagation(); if (pop) hide(); else show(el); }
+  });
+  window.addEventListener('scroll', hide, true);
+}
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initGlossaryTips);
+  else initGlossaryTips();
+}

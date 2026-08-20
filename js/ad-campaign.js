@@ -408,7 +408,7 @@
 
   document.getElementById('glossaryBtn').addEventListener('click', function () {
     window.open('ad-glossary.html', 'adGlossary',
-      'width=520,height=760,menubar=no,toolbar=no,location=no,scrollbars=yes,resizable=yes');
+      'width=980,height=840,menubar=no,toolbar=no,location=no,scrollbars=yes,resizable=yes');
   });
 
   document.getElementById('resetBtn').addEventListener('click', function () {

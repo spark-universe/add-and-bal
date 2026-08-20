@@ -1379,11 +1379,22 @@ tbody tr:hover { background: #fafbff; }
 .adv-row { cursor: pointer; }
 .adv-row:hover td { background: #f7f9fc; }
 .adv-row .adv-rowact { cursor: default; }
-/* 상단 지표 기간 토글 (하루/일주일/한달) */
-.mr-toggle { display: inline-flex; gap: 2px; }
-.mr-btn { border: 1px solid var(--border); background: #fff; color: var(--muted);
-  font-size: 0.76rem; font-weight: 700; padding: 5px 9px; border-radius: 7px; cursor: pointer; white-space: nowrap; }
-.mr-btn.is-on { background: var(--text); color: #fff; border-color: var(--text); }
+/* 용어 툴팁 ? 아이콘 + 말풍선 */
+.gl-tip { display: inline-flex; align-items: center; justify-content: center;
+  width: 15px; height: 15px; border-radius: 50%; border: 1px solid var(--border);
+  color: var(--muted); background: #fff; font-size: 0.66rem; font-weight: 800; line-height: 1;
+  margin-left: 5px; cursor: help; vertical-align: middle; user-select: none; flex: 0 0 auto; }
+.gl-tip:hover, .gl-tip:focus { border-color: var(--primary); color: var(--primary); outline: none; }
+.gl-pop { position: absolute; z-index: 9998; max-width: 260px; background: #1a1f2b; color: #fff;
+  font-size: 0.78rem; line-height: 1.55; padding: 8px 11px; border-radius: 9px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.22); pointer-events: none; }
+.gl-pop b { display: block; font-size: 0.71rem; color: #9db4ff; margin-bottom: 3px; font-weight: 800; }
+
+/* 상단 지표 기간 (📅 라벨 클릭 시 하루/일주일/한달 순환) */
+.ord-metrics__today.is-click { cursor: pointer; user-select: none; transition: background 0.15s; }
+.ord-metrics__today.is-click:hover { background: #f2f4f8; }
+.ord-metrics__today.is-click:focus { outline: none; background: #eef1f5; }
+.mr-caret { color: var(--muted); font-size: 0.7rem; margin-left: 2px; }
 
 .adv-status {
   display: inline-block; font-size: 0.72rem; font-weight: 700;

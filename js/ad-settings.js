@@ -202,7 +202,7 @@
   document.getElementById('createBtn').addEventListener('click', openCreate);
   document.getElementById('glossaryBtn').addEventListener('click', function () {
     window.open('ad-glossary.html', 'adGlossary',
-      'width=520,height=760,menubar=no,toolbar=no,location=no,scrollbars=yes,resizable=yes');
+      'width=980,height=840,menubar=no,toolbar=no,location=no,scrollbars=yes,resizable=yes');
   });
   document.getElementById('manageBtn').addEventListener('click', function () {
     alert('채널 관리는 이 연습에서 사용되지 않습니다.');
@@ -220,14 +220,21 @@
     });
   });
 
-  // 상단 지표 기간 토글 (하루/일주일/한달)
-  document.getElementById('advRange').addEventListener('click', function (e) {
-    var b = e.target.closest('.mr-btn');
-    if (!b) return;
-    document.querySelectorAll('#advRange .mr-btn').forEach(function (x) { x.classList.remove('is-on'); });
-    b.classList.add('is-on');
-    metricRange = b.dataset.range;
+  // 상단 지표 기간: 클릭하면 하루 → 일주일 → 한달 순으로 바뀐다
+  var RANGE_ORDER = ['day', 'week', 'month'];
+  var RANGE_LABEL = { day: '하루', week: '일주일', month: '한달' };
+  var rangeEl = document.getElementById('advRange');
+  var rangeLabelEl = document.getElementById('advRangeLabel');
+  rangeLabelEl.textContent = RANGE_LABEL[metricRange];
+  function cycleRange() {
+    var i = RANGE_ORDER.indexOf(metricRange);
+    metricRange = RANGE_ORDER[(i + 1) % RANGE_ORDER.length];
+    rangeLabelEl.textContent = RANGE_LABEL[metricRange];
     renderMetrics();
+  }
+  rangeEl.addEventListener('click', cycleRange);
+  rangeEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cycleRange(); }
   });
 
   document.getElementById('advBody').addEventListener('click', function (e) {
