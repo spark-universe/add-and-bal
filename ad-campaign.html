@@ -72,7 +72,7 @@
                 <span class="cac-row__unit">$</span>
                 <input type="number" id="tov" step="0.01" min="0" value="0">
               </span>
-              <div class="field-hint" id="tovHint">카테고리를 먼저 고르면 최대 금액이 정해집니다.</div>
+              <div class="field-hint" id="tovHint">주문 한 건에서 기대하는 매출(목표 객단가)입니다.</div>
             </div>
             <div class="field">
               <label>일 예산 (Daily budget)</label>
@@ -88,16 +88,6 @@
           <!-- 노출 설정 -->
           <details class="dist" open>
             <summary class="dist__head">노출 설정 (Distribution)</summary>
-
-            <div class="dist__row">
-              <span class="dist__label">🛍 카테고리</span>
-              <span class="dist__val">
-                <select id="category" class="dist__select">
-                  <option value="">불러오는 중...</option>
-                </select>
-                <span class="od-muted" style="font-size:0.78rem;" id="catHint"></span>
-              </span>
-            </div>
 
             <div class="dist__row">
               <span class="dist__label">🗓 일정</span>
@@ -130,9 +120,6 @@
               <tr><td>평균 획득 비용<span data-gl="cac"></span></td><td></td><td class="r" id="sCac">$35.76</td></tr>
             </table>
             <div id="sSegs" class="adv-seglist"></div>
-            <div class="adv-seg" style="margin-top:10px;">
-              <span>카테고리</span><b id="sChannels">-</b>
-            </div>
             <div class="adv-roas">
               <span>예상 광고 수익률 (ROAS)<span data-gl="roas"></span></span>
               <b id="sRoas">2.0x - 2.5x</b>
