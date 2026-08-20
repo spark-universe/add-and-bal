@@ -288,6 +288,45 @@ create trigger trg_protect_profile
   before update on public.profiles
   for each row execute function public.protect_profile_fields();
 
+-- ---------- 3-1b. 검수 결과 보호 (학생이 자기 제출을 통과/점수 조작 금지) ----------
+--  RLS update 는 본인 행 수정을 허용하므로, 검수 필드는 트리거로 보호한다.
+--  학생의 재제출(review_status='pending' 리셋)은 그대로 허용.
+create or replace function public.protect_submission_review()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin()
+     and new.review_status is distinct from old.review_status
+     and new.review_status in ('pass','fail') then
+    new.review_status := old.review_status;
+    new.review_reason := old.review_reason;
+    new.reviewed_at   := old.reviewed_at;
+  end if;
+  return new;
+end; $$;
+drop trigger if exists trg_protect_submission on public.submissions;
+create trigger trg_protect_submission before update on public.submissions
+  for each row execute function public.protect_submission_review();
+
+create or replace function public.protect_chsub_review()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then
+    if new.review_status is distinct from old.review_status
+       and new.review_status in ('pass','fail') then
+      new.review_status := old.review_status;
+      new.review_reason := old.review_reason;
+      new.reviewed_at   := old.reviewed_at;
+    end if;
+    if new.score is distinct from old.score and new.score is not null then
+      new.score := old.score;
+    end if;
+  end if;
+  return new;
+end; $$;
+drop trigger if exists trg_protect_chsub on public.challenge_submissions;
+create trigger trg_protect_chsub before update on public.challenge_submissions
+  for each row execute function public.protect_chsub_review();
+
 -- ---------- 3-2. 기수 생성 시 숙제 자동 복사 (비공개 상태) ----------
 --  가장 낮은 기수(1기 등)의 숙제를 새 기수로 복제한다. 복제본은 비공개(active=false).
 create or replace function public.seed_cohort_homework()

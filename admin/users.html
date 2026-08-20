@@ -144,7 +144,7 @@
     detailTitle: document.getElementById('detailTitle'),
   };
 
-  var all = [], storesByUser = {}, subsByUser = {}, cohorts = [], defaultCohort = 1, cohortByDate = {}, pendingReq = {};
+  var all = [], storeCount = {}, confirmedCount = {}, cohorts = [], defaultCohort = 1, cohortByDate = {}, pendingReq = {};
   var reqByUser = {}, levelFilter = 'all', admins = [], myId = null;
   var userSearch = '';                          // 사용자 관리 검색어 (정렬은 util.js 공용 기능 사용)
 
@@ -270,11 +270,12 @@
     cohortByDate = {};
     cohorts.forEach(function (c) { if (c.enroll_date) cohortByDate[c.enroll_date] = c.id; });
 
-    storesByUser = {}; subsByUser = {};
-    var st = await sb.from('stores').select('*');
-    (st.data || []).forEach(function (s) { (storesByUser[s.user_id] = storesByUser[s.user_id] || []).push(s); });
-    var su = await sb.from('submissions').select('*');
-    (su.data || []).forEach(function (r) { (subsByUser[r.user_id] = subsByUser[r.user_id] || []).push(r); });
+    // 목록엔 개수만 필요 → 전체 행 대신 가벼운 컬럼만 조회(대역폭·속도). 상세는 모달에서 지연 로드.
+    storeCount = {}; confirmedCount = {};
+    var st = await sb.from('stores').select('user_id');
+    (st.data || []).forEach(function (s) { storeCount[s.user_id] = (storeCount[s.user_id] || 0) + 1; });
+    var su = await sb.from('submissions').select('user_id, status');
+    (su.data || []).forEach(function (r) { if (r.status === 'confirmed') confirmedCount[r.user_id] = (confirmedCount[r.user_id] || 0) + 1; });
 
     // 등급업 신청: 대기 + 최근 내역(사용자별 최신 1건)
     pendingReq = {}; reqByUser = {};
@@ -501,8 +502,8 @@
       return;
     }
     els.userBody.innerHTML = list.map(function (u) {
-      var storeN = (storesByUser[u.id] || []).length;
-      var confirmed = (subsByUser[u.id] || []).filter(function (r) { return r.status === 'confirmed'; }).length;
+      var storeN = storeCount[u.id] || 0;
+      var confirmed = confirmedCount[u.id] || 0;
       var opts = cohortOptions(u.cohort == null ? defaultCohort : u.cohort);
       var approvedU = u.status === 'approved';
       return '<tr>' +
@@ -525,10 +526,15 @@
     }).join('');
   }
 
-  function openDetail(u) {
+  async function openDetail(u) {
     els.detailTitle.textContent = (u.name || '수강생') + ' 상세';
-    var stores = storesByUser[u.id] || [];
-    var subs = subsByUser[u.id] || [];
+    els.detailBody.innerHTML = '<p style="color:var(--muted);padding:20px;">불러오는 중...</p>';
+    els.modal.classList.add('is-open');
+    // 이 사용자의 스토어·제출물만 지연 로드 (목록에선 개수만 받았음)
+    var sr = await sb.from('stores').select('*').eq('user_id', u.id).order('created_at');
+    var ur = await sb.from('submissions').select('*').eq('user_id', u.id);
+    var stores = sr.data || [];
+    var subs = ur.data || [];
 
     var html = '';
     html += '<h4 style="margin:0 0 8px;">스토어 (' + stores.length + ')</h4>';
