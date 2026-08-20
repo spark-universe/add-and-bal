@@ -107,3 +107,55 @@ function campaignLive(c, orders, names) {
    탭별로 격리되고 탭을 닫으면 자동 삭제된다(여러 명이 동시에 써도 안 섞이고 안 쌓임).
    auth/광고 코드가 is_demo 확인 후 window.__demoSim = true 로 켠다. */
 function simStore() { return window.__demoSim ? window.sessionStorage : window.localStorage; }
+
+/* ---------- 표 헤더 클릭 정렬 (관리자 표 공용) ----------
+   각 셀의 텍스트(또는 data-sortval)로 정렬. 숫자는 자동 인식, 날짜(YYYY-MM-DD)는 문자열.
+   특정 열을 빼려면 <th data-nosort>. tbody 를 다시 그려도 헤더 리스너는 유지된다. */
+function cellSortVal(td) {
+  if (!td) return '';
+  if (td.hasAttribute('data-sortval')) {
+    var v = td.getAttribute('data-sortval'); var vn = parseFloat(v);
+    return isNaN(vn) ? v : vn;
+  }
+  var t = (td.textContent || '').trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(t)) return t;              // 날짜는 문자열(ISO 정렬)
+  var s = t.replace(/[,\s]/g, '').replace(/^[$₩€£¥]/, ''); // 구분자·앞 통화기호 제거
+  var m = s.match(/^-?\d+(\.\d+)?/);                       // 맨 앞이 숫자일 때만 숫자 취급(이메일 등 보호)
+  return m ? parseFloat(m[0]) : t;
+}
+function initSortableTables(root) {
+  (root || document).querySelectorAll('table').forEach(function (table) {
+    if (table.__sortInit) return;
+    var thead = table.tHead;
+    if (!thead || !thead.rows.length) return;
+    table.__sortInit = true;
+    var ths = thead.rows[thead.rows.length - 1].cells;
+    Array.prototype.forEach.call(ths, function (th, idx) {
+      if (th.hasAttribute('data-nosort')) return;
+      th.classList.add('th-sortable');
+      th.addEventListener('click', function () {
+        var tbody = table.tBodies[0];
+        if (!tbody) return;
+        var rows = Array.prototype.slice.call(tbody.rows).filter(function (r) {
+          return r.cells.length > idx && !(r.cells.length === 1 && r.cells[0].hasAttribute('colspan'));
+        });
+        if (rows.length < 2) return;
+        var asc = th.getAttribute('data-dir') !== 'asc';
+        Array.prototype.forEach.call(ths, function (h) { h.classList.remove('sort-asc', 'sort-desc'); h.removeAttribute('data-dir'); });
+        th.setAttribute('data-dir', asc ? 'asc' : 'desc');
+        th.classList.add(asc ? 'sort-asc' : 'sort-desc');
+        rows.sort(function (a, b) {
+          var av = cellSortVal(a.cells[idx]), bv = cellSortVal(b.cells[idx]);
+          var r = (typeof av === 'number' && typeof bv === 'number') ? (av - bv) : String(av).localeCompare(String(bv), 'ko');
+          return asc ? r : -r;
+        });
+        rows.forEach(function (r) { tbody.appendChild(r); });
+      });
+    });
+  });
+}
+if (typeof document !== 'undefined') {
+  var _initSort = function () { if (document.body && document.body.dataset.area === 'admin') initSortableTables(); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _initSort);
+  else _initSort();
+}
