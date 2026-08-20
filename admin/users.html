@@ -233,9 +233,10 @@
   }
 
   /* ---------- 탭 전환 ---------- */
-  document.querySelectorAll('.seg__btn').forEach(function (b) {
+  // 상단 메인 탭 전환 — data-tab 이 있는 버튼만(등급 관리 필터 lv-tab 은 제외)
+  document.querySelectorAll('.seg__btn[data-tab]').forEach(function (b) {
     b.addEventListener('click', function () {
-      document.querySelectorAll('.seg__btn').forEach(function (x) { x.classList.remove('is-on'); });
+      document.querySelectorAll('.seg__btn[data-tab]').forEach(function (x) { x.classList.remove('is-on'); });
       this.classList.add('is-on');
       var tab = this.dataset.tab;
       document.getElementById('tab-pending').hidden = tab !== 'pending';
