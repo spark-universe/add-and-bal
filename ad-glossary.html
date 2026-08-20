@@ -41,16 +41,9 @@
   .gl-map { margin-top: 40px; }
   .gl-map__label { font-size: 1.05rem; font-weight: 800; margin: 0 0 4px; }
   .gl-map__sub { font-size: 0.85rem; color: var(--muted); margin: 0 0 16px; }
-  .bar { display: flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 14px;
-    background: #fff; overflow: hidden; }
-  .bar__cell { flex: 1 1 0; min-width: 150px; padding: 16px 16px; border-right: 1px solid var(--line);
-    position: relative; }
-  .bar__cell:last-child { border-right: none; }
-  .bar__cell.period { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; color: var(--muted);
-    font-size: 0.82rem; font-weight: 700; background: #fafbfe; }
-  .bar__l { font-size: 0.76rem; color: var(--muted); margin-bottom: 7px; white-space: nowrap; }
-  .bar__v { font-size: 1.15rem; font-weight: 800; }
-  .bar__v small { font-size: 0.72rem; color: #34a853; font-weight: 700; }
+  .shot { margin: 12px 0 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+    background: #fff; box-shadow: 0 1px 2px rgba(20,30,60,.04); }
+  .shot img { display: block; width: 100%; height: auto; }
   .pin { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;
     border-radius: 50%; background: var(--blue); color: #fff; font-size: 0.72rem; font-weight: 800;
     margin-right: 6px; vertical-align: middle; }
@@ -69,19 +62,14 @@
     <div class="gl-grid" id="glGrid"></div>
 
     <div class="gl-map">
-      <div class="gl-map__label">30일 성과 지표 바 — 용어가 표시되는 위치</div>
-      <p class="gl-map__sub">광고 설정 화면 상단의 성과 바에서 아래 위치에 지표가 나타납니다.</p>
-      <div class="bar">
-        <div class="bar__cell period">📅 30 days</div>
-        <div class="bar__cell"><div class="bar__l">Customers acquired</div><div class="bar__v">151</div></div>
-        <div class="bar__cell"><div class="bar__l"><span class="pin">2</span>Average order value</div><div class="bar__v">$74.14</div></div>
-        <div class="bar__cell"><div class="bar__l">Sales</div><div class="bar__v">$11.1K</div></div>
-      </div>
-      <div class="bar" style="margin-top:10px;">
-        <div class="bar__cell"><div class="bar__l">Spend</div><div class="bar__v">$2,294</div></div>
-        <div class="bar__cell"><div class="bar__l"><span class="pin">1</span>Average customer acquisition cost</div><div class="bar__v">$15.19</div></div>
-        <div class="bar__cell"><div class="bar__l"><span class="pin">3</span>ROAS</div><div class="bar__v">4.88</div></div>
-      </div>
+      <div class="gl-map__label">캠페인 대시보드 — <span class="pin">2</span> AOV 표시 위치</div>
+      <p class="gl-map__sub">캠페인을 열면 보이는 성과 대시보드입니다. 평균 주문 금액(AOV)이 상단에 표시됩니다.</p>
+      <figure class="shot"><img src="images/glossary/dashboard.png" alt="캠페인 대시보드 — 평균 주문 금액(AOV) 표시 위치"></figure>
+
+      <div class="gl-map__label" style="margin-top:34px;">30일 성과 지표 바 — <span class="pin">1</span> CAC · <span class="pin">2</span> AOV · <span class="pin">3</span> ROAS 표시 위치</div>
+      <p class="gl-map__sub">광고 설정 화면 상단의 성과 바입니다. (한 줄 이미지를 두 줄로 나눠 표시)</p>
+      <figure class="shot"><img src="images/glossary/bar-top.png" alt="30일 성과 바 윗줄 — 고객 수 · AOV · 매출"></figure>
+      <figure class="shot" style="margin-top:10px;"><img src="images/glossary/bar-bottom.png" alt="30일 성과 바 아랫줄 — 광고비 · CAC · ROAS"></figure>
     </div>
 
     <div class="gl-foot">광고 설정 연습용 용어사전 · 챌린지 매뉴얼과 별도로 관리됩니다</div>
