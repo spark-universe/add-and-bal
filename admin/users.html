@@ -165,16 +165,25 @@
     var c = cohorts.find(function (x) { return x.id === id; });
     return (c && c.enroll_date) ? esc(c.enroll_date) : '<span style="color:var(--muted);">-</span>';
   }
-  // 기수 드롭다운 옵션. 현재 값이 목록에 없으면 임시로 포함.
+  // 기수 값 파싱 — 0(기수 없음)을 falsy 로 버리지 않도록
+  function parseCohort(v) { var n = parseInt(v, 10); return isNaN(n) ? defaultCohort : n; }
+  // cohort 번호 → 표시 라벨 (0 = 기수 없음)
+  function cohortLabelOf(id) {
+    if (id == null) id = defaultCohort;              // 옛 데이터 보정
+    if (id === 0) return '기수 없음';
+    var c = cohorts.find(function (x) { return x.id === id; });
+    return c ? esc(c.label) : (id + '기');
+  }
+  // 기수 드롭다운 옵션. '기수 없음'(0)을 항상 선택 가능. 현재 값이 목록에 없으면 임시 포함.
   function cohortOptions(cur) {
-    var seen = {}, opts = '';
+    var seen = { 0: true };
+    var opts = '<option value="0"' + (cur === 0 ? ' selected' : '') + '>기수 없음</option>';
     cohorts.forEach(function (c) {
       seen[c.id] = true;
       opts += '<option value="' + c.id + '"' + (c.id === cur ? ' selected' : '') + '>' + cohortText(c) + '</option>';
     });
     if (!seen[cur]) {
-      var lbl = (cur === 0) ? '미분류' : cur + '기';
-      opts = '<option value="' + cur + '" selected>' + lbl + '</option>' + opts;
+      opts = '<option value="' + cur + '" selected>' + cur + '기</option>' + opts;
     }
     return opts;
   }
@@ -308,7 +317,7 @@
       return '<tr>' +
         '<td><b>' + esc(u.name) + '</b></td>' +
         '<td>' + esc(u.email) + '</td>' +
-        '<td>' + esc((cohorts.find(function (c) { return c.id === (u.cohort || 1); }) || {}).label || ((u.cohort || 1) + '기')) + '</td>' +
+        '<td>' + cohortLabelOf(u.cohort) + '</td>' +
         '<td>' + levelSelect(u) + '</td>' +
         '<td>' + roleSelect(u) + '</td>' +
         '<td>' + reqTag(u) + '</td>' +
@@ -334,6 +343,7 @@
 
   function fillBulkCohort() {
     var opts = '<option value="each">각 행에서 지정</option>';
+    opts += '<option value="0">기수 없음 (으)로</option>';
     cohorts.forEach(function (c) { opts += '<option value="' + c.id + '">' + cohortText(c) + ' (으)로</option>'; });
     els.bulkCohort.innerHTML = opts;
   }
@@ -416,7 +426,7 @@
 
     if (approve) {
       var tr = btn.closest('tr');
-      var cohortVal = parseInt(tr.querySelector('.pend-cohort').value, 10) || defaultCohort;
+      var cohortVal = parseCohort(tr.querySelector('.pend-cohort').value);
       var dateVal = tr.querySelector('.pend-date').value || null;
       btn.disabled = true;
       if (await approveOne(approve, cohortVal, dateVal)) await load();
@@ -445,7 +455,7 @@
       var tr = checks[i].closest('tr');
       var cohortVal, dateVal;
       if (mode === 'each') {
-        cohortVal = parseInt(tr.querySelector('.pend-cohort').value, 10) || defaultCohort;
+        cohortVal = parseCohort(tr.querySelector('.pend-cohort').value);
         dateVal = tr.querySelector('.pend-date').value || null;
       } else {
         cohortVal = Number(mode);
@@ -472,7 +482,7 @@
       var storeN = (storesByUser[u.id] || []).length;
       var subs = subsByUser[u.id] || [];
       var confirmed = subs.filter(function (r) { return r.status === 'confirmed'; }).length;
-      var opts = cohortOptions(u.cohort || 1);
+      var opts = cohortOptions(u.cohort == null ? defaultCohort : u.cohort);
       var req = pendingReq[u.id];   // 등급업 신청(대기)
       var lvCell = levelSelect(u);
       if (req) {
@@ -545,7 +555,7 @@
     var sel = e.target.closest('.cohort-pick');
     if (sel) {
       var id = sel.dataset.id;
-      var val = parseInt(sel.value, 10) || 1;
+      var val = parseCohort(sel.value);
       var res = await sb.from('profiles').update({ cohort: val }).eq('id', id).select();
       if (res.error || !res.data || !res.data.length) {
         alert('기수 변경 실패' + (res.error ? ': ' + res.error.message : '')); return;
