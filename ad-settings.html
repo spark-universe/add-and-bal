@@ -28,9 +28,13 @@
 
     <!-- 상단 지표 (기간 선택) -->
     <div class="ord-metrics" id="advMetrics">
-      <div class="ord-metrics__today is-click" id="advRange" role="button" tabindex="0"
-        title="클릭하면 기간이 바뀝니다 (하루 · 일주일 · 한달)">
-        📅 <span id="advRangeLabel">일주일</span><span class="mr-caret">▾</span>
+      <div class="ord-metrics__today">
+        📅
+        <select id="advRange" class="mr-select" title="성과 기간 선택">
+          <option value="day">1 day</option>
+          <option value="week" selected>7 days</option>
+          <option value="month">30 days</option>
+        </select>
       </div>
       <div class="ord-metric">
         <div class="l">Customers acquired</div>

@@ -1390,11 +1390,14 @@ tbody tr:hover { background: #fafbff; }
   box-shadow: 0 6px 20px rgba(0,0,0,.22); pointer-events: none; }
 .gl-pop b { display: block; font-size: 0.71rem; color: #9db4ff; margin-bottom: 3px; font-weight: 800; }
 
-/* 상단 지표 기간 (📅 라벨 클릭 시 하루/일주일/한달 순환) */
-.ord-metrics__today.is-click { cursor: pointer; user-select: none; transition: background 0.15s; }
-.ord-metrics__today.is-click:hover { background: #f2f4f8; }
-.ord-metrics__today.is-click:focus { outline: none; background: #eef1f5; }
-.mr-caret { color: var(--muted); font-size: 0.7rem; margin-left: 2px; }
+/* 상단 지표 기간 선택 드롭다운 (1 day / 7 days / 30 days) */
+.mr-select { border: 1px solid var(--border); background: #fff; color: var(--text);
+  font-size: 0.82rem; font-weight: 700; font-family: inherit; padding: 5px 26px 5px 10px;
+  border-radius: 8px; cursor: pointer; -webkit-appearance: none; appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'><path d='M1 1l4 4 4-4' fill='none' stroke='%236b7280' stroke-width='1.6' stroke-linecap='round'/></svg>");
+  background-repeat: no-repeat; background-position: right 9px center; }
+.mr-select:hover { border-color: var(--primary); }
+.mr-select:focus { outline: none; border-color: var(--primary); }
 
 .adv-status {
   display: inline-block; font-size: 0.72rem; font-weight: 700;

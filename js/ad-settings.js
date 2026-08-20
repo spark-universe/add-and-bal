@@ -220,21 +220,12 @@
     });
   });
 
-  // 상단 지표 기간: 클릭하면 하루 → 일주일 → 한달 순으로 바뀐다
-  var RANGE_ORDER = ['day', 'week', 'month'];
-  var RANGE_LABEL = { day: '하루', week: '일주일', month: '한달' };
+  // 상단 지표 기간: 드롭다운에서 선택 (1 day / 7 days / 30 days)
   var rangeEl = document.getElementById('advRange');
-  var rangeLabelEl = document.getElementById('advRangeLabel');
-  rangeLabelEl.textContent = RANGE_LABEL[metricRange];
-  function cycleRange() {
-    var i = RANGE_ORDER.indexOf(metricRange);
-    metricRange = RANGE_ORDER[(i + 1) % RANGE_ORDER.length];
-    rangeLabelEl.textContent = RANGE_LABEL[metricRange];
+  rangeEl.value = metricRange;
+  rangeEl.addEventListener('change', function () {
+    metricRange = this.value;
     renderMetrics();
-  }
-  rangeEl.addEventListener('click', cycleRange);
-  rangeEl.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cycleRange(); }
   });
 
   document.getElementById('advBody').addEventListener('click', function (e) {
