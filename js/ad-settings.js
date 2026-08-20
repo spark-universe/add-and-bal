@@ -13,6 +13,15 @@
   var campaigns = [];
   var tab = 'all';
   var practiceTopic = '';
+  var metricRange = 'week';          // 상단 지표 기간: day | week | month
+  var RANGE_MS = { day: 86400000, week: 7 * 86400000, month: 30 * 86400000 };
+
+  // 선택한 기간 안에 들어온 주문만 (ts = 주문을 받은 시각). ts 없는 옛 주문은 포함.
+  function inRange(o) {
+    var win = RANGE_MS[metricRange];
+    if (!win || !o || o.ts == null) return true;
+    return o.ts >= Date.now() - win;
+  }
 
   // esc/money/randInt/round2/campForOrder/adSpendLive/campaignLive 는 js/util.js 의 공통 함수 사용
   function randF(a, b) { return Math.random() * (b - a) + a; }
@@ -42,9 +51,10 @@
   /* ---------- 상단 지표 (이번 연습 광고의 실시간 성과) ---------- */
   function renderMetrics() {
     var ctx = runContext();
+    var orders = ctx.orders.filter(inRange);      // 선택한 기간(하루/일주일/한달)의 주문만
     var sales = 0, spend = 0, customers = 0;
     ctx.mine.forEach(function (c) {
-      var lv = campaignLive(c, ctx.orders, ctx.names);
+      var lv = campaignLive(c, orders, ctx.names);
       sales += lv.sales; spend += lv.spend; customers += lv.customers;
     });
     var aov = customers ? sales / customers : 0;
@@ -154,7 +164,7 @@
         var lv = liveMap[c.name];        // 이번 연습 캠페인이면 실시간 성과
         var v = lv || c;                 // 아니면 저장된 값
         var pending = !!lv && lv.customers === 0;   // 이번 런인데 아직 광고 유입 주문 없음
-        return '<tr data-id="' + c.id + '">' +
+        return '<tr data-id="' + c.id + '" class="adv-row" title="클릭하면 이 캠페인을 수정합니다">' +
           '<td class="ord-cust" style="color:var(--primary);">' + esc(c.name) + '</td>' +
           '<td>' + (c.alert ? '<span class="risk-badge med">⚠ ' + esc(c.alert) + '</span>' : '') + '</td>' +
           '<td>' + (c.status === 'active'
@@ -170,7 +180,9 @@
           '<td>' + esc(c.country) + '</td>' +
           '<td>' + fmtDate(c.start) + '</td>' +
           '<td>' + (c.end ? fmtDate(c.end) : '') + '</td>' +
-          '<td><button class="btn-sm is-danger" data-del="' + c.id + '">삭제</button></td>' +
+          '<td class="adv-rowact" style="white-space:nowrap;">' +
+            '<button class="btn-sm" data-edit="' + c.id + '">수정</button> ' +
+            '<button class="btn-sm is-danger" data-del="' + c.id + '">삭제</button></td>' +
         '</tr>';
       }).join('');
     }
@@ -188,6 +200,10 @@
 
   /* ---------- 이벤트 ---------- */
   document.getElementById('createBtn').addEventListener('click', openCreate);
+  document.getElementById('glossaryBtn').addEventListener('click', function () {
+    window.open('ad-glossary.html', 'adGlossary',
+      'width=520,height=760,menubar=no,toolbar=no,location=no,scrollbars=yes,resizable=yes');
+  });
   document.getElementById('manageBtn').addEventListener('click', function () {
     alert('채널 관리는 이 연습에서 사용되지 않습니다.');
   });
@@ -204,16 +220,33 @@
     });
   });
 
+  // 상단 지표 기간 토글 (하루/일주일/한달)
+  document.getElementById('advRange').addEventListener('click', function (e) {
+    var b = e.target.closest('.mr-btn');
+    if (!b) return;
+    document.querySelectorAll('#advRange .mr-btn').forEach(function (x) { x.classList.remove('is-on'); });
+    b.classList.add('is-on');
+    metricRange = b.dataset.range;
+    renderMetrics();
+  });
+
   document.getElementById('advBody').addEventListener('click', function (e) {
     var del = e.target.closest('button[data-del]');
-    if (!del) return;
-    var id = Number(del.dataset.del);
-    var c = campaigns.find(function (x) { return x.id === id; });
-    if (!c) return;
-    if (!confirm('정말로 삭제하시겠습니까?\n\n캠페인 "' + c.name + '"')) return;
-    campaigns = campaigns.filter(function (x) { return x.id !== id; });
-    save();
-    render();
+    if (del) {
+      var id = Number(del.dataset.del);
+      var c = campaigns.find(function (x) { return x.id === id; });
+      if (!c) return;
+      if (!confirm('정말로 삭제하시겠습니까?\n\n캠페인 "' + c.name + '"')) return;
+      campaigns = campaigns.filter(function (x) { return x.id !== id; });
+      save();
+      render();
+      return;
+    }
+    // 수정 버튼 또는 행 아무 곳이나 클릭 → 캠페인 수정 화면
+    var edit = e.target.closest('button[data-edit]');
+    if (edit) { location.href = 'ad-campaign.html?edit=' + edit.dataset.edit; return; }
+    var tr = e.target.closest('tr[data-id]');
+    if (tr) location.href = 'ad-campaign.html?edit=' + tr.dataset.id;
   });
 
   (async function init() {

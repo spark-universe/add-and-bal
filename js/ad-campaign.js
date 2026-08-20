@@ -12,6 +12,8 @@
    ========================================================= */
 (function () {
   var STORE = 'ad_campaigns';
+  var MAX_ROAS = 6;                 // 예상 ROAS 상한 (현실적인 최대치)
+  var editId = null;                // ?edit=<id> 로 들어오면 그 캠페인을 수정하는 모드
   // 이탈 고객은 기간별로 따로 걸 수 있다 (1~12개월)
   var TERMS = [];
   for (var m = 1; m <= 12; m++) TERMS.push(m + (m === 1 ? ' month' : ' months'));
@@ -330,10 +332,14 @@
 
     // 획득 비용이 객단가에 가깝거나 넘으면 광고를 돌릴수록 손해
     var warn = document.getElementById('sWarn');
+    var roasBase = s.avgCac ? s.tov / s.avgCac : 0;
     if (!s.tov || !s.avgCac) { warn.innerHTML = ''; }
     else if (s.avgCac >= s.tov) {
       warn.innerHTML = '<div class="adv-warn danger">⚠ 고객 한 명을 데려오는 비용(' + money(s.avgCac) +
         ')이 객단가(' + money(s.tov) + ')보다 큽니다. <b>팔수록 손해입니다.</b></div>';
+    } else if (roasBase > MAX_ROAS) {
+      warn.innerHTML = '<div class="adv-warn danger">⚠ 예상 ROAS가 최대 ' + MAX_ROAS + '배를 넘습니다(' +
+        roasBase.toFixed(1) + 'x). <b>CAC를 높이거나 목표 객단가(TOV)를 낮춰</b> 주세요.</div>';
     } else if (r[1] < 2) {
       warn.innerHTML = '<div class="adv-warn">⚠ 예상 ROAS가 2배 미만입니다. 원가와 배송비를 빼면 남는 게 거의 없습니다.</div>';
     } else {
@@ -400,6 +406,11 @@
     refresh();
   });
 
+  document.getElementById('glossaryBtn').addEventListener('click', function () {
+    window.open('ad-glossary.html', 'adGlossary',
+      'width=520,height=760,menubar=no,toolbar=no,location=no,scrollbars=yes,resizable=yes');
+  });
+
   document.getElementById('resetBtn').addEventListener('click', function () {
     document.getElementById('cacAll').value = 0;
     document.getElementById('tov').value = 0;
@@ -429,6 +440,41 @@
     if (!s.tov) { alert('목표 객단가를 입력하세요.'); return; }
     if (!s.avgCac) { alert('고객 획득 비용을 입력하세요.'); return; }
 
+    // ROAS(≈ 객단가 / 획득비용) 는 최대 6배를 넘을 수 없다 — 넘으면 CAC/TOV 를 조정하게 막는다
+    var roasBase = s.tov / s.avgCac;
+    if (roasBase > MAX_ROAS) {
+      alert('ROAS는 최대 ' + MAX_ROAS + '배를 초과할 수 없습니다.\n\n' +
+        '현재 예상 ROAS: ' + roasBase.toFixed(1) + 'x\n' +
+        'CAC(고객 획득 비용)를 높이거나 목표 객단가(TOV)를 낮춰 주세요.');
+      return;
+    }
+
+    var list = [];
+    try { list = JSON.parse(simStore().getItem(STORE)) || []; } catch (e) { list = []; }
+
+    if (editId != null) {
+      // ---- 수정 모드 : 기존 캠페인의 설정값만 갱신, 성과·id·런 태그는 유지 ----
+      var idx = list.findIndex(function (x) { return x.id === editId; });
+      if (idx === -1) { alert('수정할 캠페인을 찾을 수 없습니다.'); location.href = 'ad-settings.html'; return; }
+      var c = list[idx];
+      c.name = s.name;
+      c.budget = s.budget;
+      c.country = s.country;
+      c.tov = s.tov;
+      c.cacs = s.cacs;
+      c.cacAll = num('cacAll');
+      c.segsRaw = JSON.parse(JSON.stringify(segs));
+      c.targetCac = s.avgCac;
+      c.category = s.category;
+      c.start = sched.start;
+      c.end = sched.end;
+      c.status = (sched.end && sched.end <= today) ? 'completed' : 'active';
+      list[idx] = c;
+      simStore().setItem(STORE, JSON.stringify(list));
+      location.href = 'ad-settings.html';
+      return;
+    }
+
     // 성과(고객·매출·광고비)는 캠페인 생성 시엔 0. 발주 연습 완료 시 실제 주문 기준으로 채워진다.
     // (실제 광고비 = 설정 CAC × 그 캠페인에 태그된 실제 주문 수)
     var c = {
@@ -439,6 +485,8 @@
       segment: 'All',
       tov: s.tov,
       cacs: s.cacs,
+      cacAll: num('cacAll'),     // 수정 시 복원용
+      segsRaw: JSON.parse(JSON.stringify(segs)),  // 수정 시 세그먼트 복원용
       targetCac: s.avgCac,       // 설정한 평균 고객 획득 비용
       category: s.category,
       start: sched.start,
@@ -448,8 +496,6 @@
       alert: null,
     };
 
-    var list = [];
-    try { list = JSON.parse(simStore().getItem(STORE)) || []; } catch (e) { list = []; }
     list.unshift(c);
     simStore().setItem(STORE, JSON.stringify(list));
 
@@ -462,9 +508,47 @@
     var me = await Auth.me();                       // 데모 계정이면 sessionStorage 사용
     window.__demoSim = !!(me && me.is_demo);
 
-    // 다음 캠페인 번호를 이름 기본값으로
     var list = [];
     try { list = JSON.parse(simStore().getItem(STORE)) || []; } catch (e) { list = []; }
+
+    // ?edit=<id> 로 들어오면 그 캠페인을 불러와 수정 모드로 진입
+    var editParam = new URLSearchParams(location.search).get('edit');
+    var target = editParam ? list.find(function (x) { return String(x.id) === String(editParam); }) : null;
+
+    await loadCategories();
+
+    if (target) {
+      editId = target.id;
+      document.querySelector('.od-no').textContent = '캠페인 수정';
+      document.querySelector('.od-sub').textContent = '설정값을 바꾸고 저장하면 이 캠페인에 반영됩니다. (지금까지의 성과는 유지됩니다)';
+      document.getElementById('startBtn').textContent = '수정 저장';
+
+      document.getElementById('cname').value = target.name || '';
+      document.getElementById('country').value = target.country || 'United States';
+      document.getElementById('cacAll').value = (target.cacAll != null ? target.cacAll : 0);
+      document.getElementById('budget').value = target.budget || 0;
+      // 세그먼트 복원 (구버전 캠페인은 segsRaw 가 없을 수 있어 기본값 유지)
+      if (target.segsRaw && target.segsRaw.length) segs = JSON.parse(JSON.stringify(target.segsRaw));
+      sched = { start: target.start || today, end: target.end || null, now: !target.end && target.start === today };
+
+      renderSegs();
+      renderSched();
+
+      if (target.category) {
+        document.getElementById('category').value = target.category;
+        await refreshMaxTov();                 // 카테고리 상한 계산 (tov 를 최고가로 덮어씀)
+        var tovEl = document.getElementById('tov');
+        tovEl.value = (maxTov && target.tov > maxTov) ? maxTov : target.tov;   // 저장했던 목표 객단가로 되돌림
+      } else {
+        await loadProducts(null);
+      }
+      clampAll();
+      refresh();
+      renderPreview();
+      return;
+    }
+
+    // ---- 신규 생성 모드 ----
     document.getElementById('cname').value =
       '새 캠페인 ' + String(list.length + 1).padStart(2, '0');
 
@@ -472,7 +556,6 @@
     renderSched();
     refresh();
 
-    await loadCategories();
     await loadProducts(null);
     renderPreview();
   })();

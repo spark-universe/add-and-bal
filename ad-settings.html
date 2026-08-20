@@ -19,15 +19,22 @@
         </p>
       </div>
       <div style="display:flex;gap:8px;flex-shrink:0;">
+        <button class="btn-sm" id="glossaryBtn">📖 용어사전</button>
         <button class="btn-sm" id="manageBtn">Manage channels</button>
         <button class="btn-sm" id="moreBtn">More actions ▾</button>
         <button class="btn-sm is-dark" id="createBtn">Create campaign</button>
       </div>
     </div>
 
-    <!-- 상단 지표 (7일) -->
+    <!-- 상단 지표 (기간 선택) -->
     <div class="ord-metrics" id="advMetrics">
-      <div class="ord-metrics__today">📅 7 days</div>
+      <div class="ord-metrics__today">
+        <div class="mr-toggle" id="advRange">
+          <button class="mr-btn" data-range="day">하루</button>
+          <button class="mr-btn is-on" data-range="week">일주일</button>
+          <button class="mr-btn" data-range="month">한달</button>
+        </div>
+      </div>
       <div class="ord-metric">
         <div class="l">Customers acquired</div>
         <div class="v" id="mCust">0</div>

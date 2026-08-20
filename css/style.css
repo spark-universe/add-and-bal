@@ -1375,6 +1375,15 @@ tbody tr:hover { background: #fafbff; }
 }
 .adv-tab:hover { background: #f2f4f8; }
 .adv-tab.is-on { background: #eef1f5; color: var(--text); }
+/* 캠페인 표: 행을 클릭하면 수정 (버튼 영역 제외) */
+.adv-row { cursor: pointer; }
+.adv-row:hover td { background: #f7f9fc; }
+.adv-row .adv-rowact { cursor: default; }
+/* 상단 지표 기간 토글 (하루/일주일/한달) */
+.mr-toggle { display: inline-flex; gap: 2px; }
+.mr-btn { border: 1px solid var(--border); background: #fff; color: var(--muted);
+  font-size: 0.76rem; font-weight: 700; padding: 5px 9px; border-radius: 7px; cursor: pointer; white-space: nowrap; }
+.mr-btn.is-on { background: var(--text); color: #fff; border-color: var(--text); }
 
 .adv-status {
   display: inline-block; font-size: 0.72rem; font-weight: 700;
