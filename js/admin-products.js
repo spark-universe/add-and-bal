@@ -420,7 +420,7 @@
     btn.disabled = false;
     document.getElementById('previewCount').textContent =
       '(' + pending.length + '개' + (pending.length > 50 ? ' 중 앞 50개' : '') + ')';
-    document.getElementById('previewBody').innerHTML = pending.slice(0, 50).map(function (p) {
+    document.getElementById('previewBody').innerHTML = pending.slice(0, 50).map(function (p, i) {
       var extra = p.images && p.images.length > 1
         ? '<span class="prod-imgcount">+' + (p.images.length - 1) + '</span>' : '';
       var img = p.image_url
@@ -431,9 +431,18 @@
         '<td style="white-space:normal;">' + esc(p.name) + '</td>' +
         '<td>' + money(p.cost) + '</td>' +
         '<td>' + (p.source_url ? '<a href="' + esc(p.source_url) + '" target="_blank">링크</a>' : '-') + '</td>' +
+        '<td><button class="btn-sm is-danger" data-exclude="' + i + '" title="이 상품 올리지 않기">✕</button></td>' +
       '</tr>';
     }).join('');
   }
+
+  // 미리보기에서 개별 제외 (올리기 전에 빼기)
+  document.getElementById('previewBody').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-exclude]');
+    if (!btn) return;
+    pending.splice(Number(btn.dataset.exclude), 1);
+    renderPreview();
+  });
 
   /* ---------- 파일 / 붙여넣기 입력 ---------- */
   function loadText(text) {
@@ -537,6 +546,18 @@
      상품 목록 + 삭제
      ======================================================= */
   var filter = document.getElementById('topicFilter');
+  var selectedIds = {};   // 선택한 상품 id — 주제 필터를 바꿔도 유지
+
+  function selectedCount() { return Object.keys(selectedIds).length; }
+  function updateSelUI() {
+    var n = selectedCount();
+    var btn = document.getElementById('delSelBtn');
+    btn.disabled = n === 0;
+    btn.textContent = n ? '선택 삭제 (' + n + '개)' : '선택 삭제';
+    var boxes = document.querySelectorAll('.rowCheck');
+    var ca = document.getElementById('checkAll');
+    if (ca) ca.checked = boxes.length > 0 && Array.prototype.every.call(boxes, function (c) { return c.checked; });
+  }
 
   async function loadProducts() {
     var q = sb.from('products').select('*').order('created_at', { ascending: false }).limit(LIST_LIMIT);
@@ -558,8 +579,6 @@
   function renderProducts() {
     var total = totalCount();
     document.getElementById('pCount').textContent = total ? '(' + total + '개)' : '';
-    document.getElementById('checkAll').checked = false;
-    document.getElementById('delSelBtn').disabled = true;
 
     var note = document.getElementById('listNote');
     note.textContent = total > products.length
@@ -570,6 +589,7 @@
       document.getElementById('prodBody').innerHTML =
         '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">' +
         '등록된 상품이 없습니다.</td></tr>';
+      updateSelUI();
       return;
     }
     document.getElementById('prodBody').innerHTML = products.map(function (p) {
@@ -577,7 +597,7 @@
         ? '<img class="prod-thumb" src="' + esc(p.image_url) + '" alt="">'
         : '<span class="prod-thumb prod-thumb--empty">?</span>';
       return '<tr' + (p.active ? '' : ' style="opacity:0.45;"') + '>' +
-        '<td><input type="checkbox" class="rowCheck" data-id="' + p.id + '"></td>' +
+        '<td><input type="checkbox" class="rowCheck" data-id="' + p.id + '"' + (selectedIds[p.id] ? ' checked' : '') + '></td>' +
         '<td>' + img + '</td>' +
         '<td>' + esc(p.topic || '-') + '</td>' +
         '<td style="text-align:left;max-width:340px;">' + esc(p.name) + '</td>' +
@@ -587,34 +607,35 @@
         '<td><button class="btn-sm is-danger" data-act="del" data-id="' + p.id + '">삭제</button></td>' +
       '</tr>';
     }).join('');
+    updateSelUI();
   }
 
-  function checkedIds() {
-    return Array.prototype.slice
-      .call(document.querySelectorAll('.rowCheck:checked'))
-      .map(function (c) { return Number(c.dataset.id); });
-  }
-
-  filter.addEventListener('change', loadProducts);
+  filter.addEventListener('change', loadProducts);   // 필터 바꿔도 selectedIds 는 유지됨
 
   document.getElementById('checkAll').addEventListener('change', function () {
     var on = this.checked;
-    document.querySelectorAll('.rowCheck').forEach(function (c) { c.checked = on; });
-    document.getElementById('delSelBtn').disabled = !checkedIds().length;
+    document.querySelectorAll('.rowCheck').forEach(function (c) {
+      c.checked = on; var id = Number(c.dataset.id);
+      if (on) selectedIds[id] = true; else delete selectedIds[id];
+    });
+    updateSelUI();
   });
 
   document.getElementById('prodBody').addEventListener('change', function (e) {
     if (e.target.classList.contains('rowCheck')) {
-      document.getElementById('delSelBtn').disabled = !checkedIds().length;
+      var id = Number(e.target.dataset.id);
+      if (e.target.checked) selectedIds[id] = true; else delete selectedIds[id];
+      updateSelUI();
     }
   });
 
   document.getElementById('delSelBtn').addEventListener('click', async function () {
-    var ids = checkedIds();
+    var ids = Object.keys(selectedIds).map(Number);
     if (!ids.length) return;
-    if (!confirm('정말로 삭제하시겠습니까?\n\n선택한 상품 ' + ids.length + '개가 삭제됩니다.')) return;
+    if (!confirm('정말로 삭제하시겠습니까?\n\n선택한 상품 ' + ids.length + '개가 삭제됩니다.\n(다른 주제로 필터해도 선택은 유지됩니다)')) return;
     var d = await sb.from('products').delete().in('id', ids);
     if (d.error) { alert('삭제 실패: ' + d.error.message); return; }
+    selectedIds = {};   // 삭제 후 선택 초기화
     await refresh();
   });
 
