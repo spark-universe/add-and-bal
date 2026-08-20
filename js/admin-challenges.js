@@ -16,6 +16,9 @@
     title: document.getElementById('fTitle'),
     desc: document.getElementById('fDesc'),
     manual: document.getElementById('fManual'),
+    material: document.getElementById('fMaterial'),
+    materialUrl: document.getElementById('fMaterialUrl'),
+    materialCur: document.getElementById('fMaterialCur'),
     open: document.getElementById('fOpen'),
     due: document.getElementById('fDue'),
     saveBtn: document.getElementById('saveBtn'),
@@ -131,6 +134,7 @@
       title: els.title.value.trim(),
       description: els.desc.value.trim() || null,
       manual_slug: els.manual.value || null,
+      material_url: els.materialUrl.value.trim() || null,
       open_at: localToISO(els.open.value),
       due_at: localToISO(els.due.value),
     };
@@ -139,6 +143,7 @@
     editingId = null;
     els.title.value = els.desc.value = els.open.value = els.due.value = '';
     els.manual.value = '';
+    els.materialUrl.value = ''; els.material.value = ''; els.materialCur.innerHTML = '';
     setRegSelection([cohort], false);    // 기본: 지금 보는 기수
     els.formTitle.textContent = '숙제 등록';
     els.saveBtn.textContent = '등록하기';
@@ -149,6 +154,10 @@
     els.title.value = c.title || '';
     els.desc.value = c.description || '';
     els.manual.value = c.manual_slug || '';
+    els.materialUrl.value = c.material_url || '';
+    els.material.value = '';
+    els.materialCur.innerHTML = c.material_name
+      ? '📎 현재 파일: <b>' + esc(c.material_name) + '</b> (새 파일 선택 시 교체)' : '';
     els.open.value = isoToLocal(c.open_at);
     els.due.value = isoToLocal(c.due_at);
     setRegSelection([c.cohort], true);   // 수정 시엔 그 기수만·변경 불가
@@ -166,7 +175,8 @@
   function rowHtml(c) {
     var n = subCount[c.id] || 0;
     return '<tr' + (c.active ? '' : ' style="opacity:0.45;"') + '>' +
-      '<td style="text-align:left;font-weight:600;">' + esc(c.title) + '</td>' +
+      '<td style="text-align:left;font-weight:600;">' + esc(c.title) +
+        ((c.material_path || c.material_url) ? ' <span title="관련 자료 있음" style="font-weight:400;">📎</span>' : '') + '</td>' +
       '<td>' + fmtDate(c.due_at) + '</td>' +
       '<td>' + (n ? '<a href="challenge-review.html?id=' + c.id + '" style="color:var(--primary);">' + n + '건</a>' : '0건') + '</td>' +
       '<td><button class="btn-sm" data-act="toggle" data-id="' + c.id + '">' +
@@ -293,6 +303,17 @@
     if (!row.title) { alert('숙제 제목을 입력하세요.'); return; }
     if (row.open_at && row.due_at && row.due_at < row.open_at) {
       alert('마감일이 시작일보다 빠릅니다.'); return;
+    }
+
+    els.saveBtn.disabled = true;
+    // 관련 자료 파일 업로드 (선택했을 때만). 안 바꾸면 기존 값 유지.
+    var file = els.material.files && els.material.files[0];
+    if (file) {
+      var path = 'hw/' + Date.now() + '_' + file.name.replace(/[^\w.\-]/g, '_');
+      var up = await sb.storage.from('materials').upload(path, file, { upsert: false });
+      if (up.error) { alert('자료 파일 업로드 실패: ' + up.error.message); els.saveBtn.disabled = false; return; }
+      row.material_path = path;
+      row.material_name = file.name;
     }
 
     var res;

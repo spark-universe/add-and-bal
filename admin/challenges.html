@@ -15,7 +15,7 @@
         <h2>숙제 관리</h2>
         <p>매뉴얼을 보고 하는 숙제를 등록합니다. 선택한 기수의 수강생에게만 표시됩니다.</p>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+      <div id="regCohortCtrl" style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
         <span style="font-size:0.85rem;color:var(--muted);">기수</span>
         <select id="cohortSel" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;font-weight:700;">
           <option value="1">1기생</option>
@@ -24,6 +24,12 @@
       </div>
     </div>
 
+    <div class="seg" style="margin-bottom:16px;">
+      <button class="seg__btn is-on" data-htab="register">숙제 등록</button>
+      <button class="seg__btn" data-htab="review">숙제 검수 <span class="seg__badge" id="revBadge">0</span></button>
+    </div>
+
+    <section id="tab-register">
     <div class="panel">
       <div class="panel__head">
         <span id="formTitle">숙제 등록</span>
@@ -58,6 +64,15 @@
             <div class="field-hint">수강생이 숙제 안에서 이 매뉴얼 챕터로 바로 이동합니다. 챕터는 <a href="manual-schedule.html" style="color:var(--primary);">매뉴얼 공개</a> 목록과 같습니다.</div>
           </div>
 
+          <div class="field" style="grid-column:1/-1;">
+            <label>관련 자료 (선택)</label>
+            <input type="file" id="fMaterial" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;background:#fff;">
+            <div id="fMaterialCur" class="field-hint" style="color:var(--primary);"></div>
+            <input type="url" id="fMaterialUrl" placeholder="또는 외부 링크(URL) — 구글 드라이브 · 노션 등"
+              style="width:100%;margin-top:8px;padding:11px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;">
+            <div class="field-hint">파일을 올리거나 링크를 붙이면 학생이 숙제 안에서 자료를 받거나 열 수 있습니다. (파일·링크 둘 다 가능)</div>
+          </div>
+
           <div class="field">
             <label>시작일시</label>
             <input type="datetime-local" id="fOpen">
@@ -82,6 +97,27 @@
         <div class="panel"><div style="padding:30px;text-align:center;color:var(--muted);">불러오는 중...</div></div>
       </div>
     </div>
+    </section>
+
+    <section id="tab-review" hidden>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+        <select id="chFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;">
+          <option value="">전체 숙제</option>
+        </select>
+      </div>
+      <div class="stat-row">
+        <div class="stat is-highlight"><div class="label">검수 대기</div><div class="value"><span id="sWait">0</span> <span style="font-size:0.9rem;font-weight:600;">건</span></div></div>
+        <div class="stat"><div class="label">통과</div><div class="value"><span id="sPass">0</span> <span style="font-size:0.9rem;font-weight:600;">건</span></div></div>
+        <div class="stat"><div class="label">미통과</div><div class="value"><span id="sFail">0</span> <span style="font-size:0.9rem;font-weight:600;">건</span></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel__head"><span>제출 목록</span></div>
+        <table>
+          <thead><tr><th>수강생</th><th>숙제</th><th>제출일</th><th>결과</th><th>점수</th><th>검수</th></tr></thead>
+          <tbody id="revBody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr></tbody>
+        </table>
+      </div>
+    </section>
   </main>
 </div>
 
@@ -113,5 +149,24 @@
 <script src="../js/util.js"></script><script src="../js/layout.js"></script>
 <script src="../js/auth.js"></script>
 <script src="../js/admin-challenges.js"></script>
+<script src="../js/admin-challenge-review.js"></script>
+<script>
+(function () {
+  document.querySelectorAll('.seg__btn[data-htab]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('.seg__btn[data-htab]').forEach(function (x) { x.classList.remove('is-on'); });
+      this.classList.add('is-on');
+      var t = this.dataset.htab;
+      document.getElementById('tab-register').hidden = t !== 'register';
+      document.getElementById('tab-review').hidden = t !== 'review';
+      var cc = document.getElementById('regCohortCtrl'); if (cc) cc.hidden = t !== 'register';
+    });
+  });
+  // 검수 대기 건수를 탭 뱃지에 동기화
+  var sw = document.getElementById('sWait'), rb = document.getElementById('revBadge');
+  if (sw && rb) new MutationObserver(function () { rb.textContent = sw.textContent; })
+    .observe(sw, { childList: true, characterData: true, subtree: true });
+})();
+</script>
 </body>
 </html>
