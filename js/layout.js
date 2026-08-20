@@ -50,7 +50,6 @@
 
       { key: 'manualsched', section: '챌린지',            ico: '📘', label: '매뉴얼 공개',   href: 'manual-schedule.html' },
       { key: 'challenges',  section: '챌린지',            ico: '📋', label: '숙제 관리',    href: 'challenges.html' },
-      { key: 'chreview',    section: '챌린지',            ico: '✅', label: '숙제 검수',    href: 'challenge-review.html' },
 
       { key: 'products',    section: '발주 &amp; 광고 관리', ico: '🛍️', label: '상품 관리',   href: 'products.html' },
       { key: 'review',      section: '발주 &amp; 광고 관리', ico: '📝', label: '자료 검수',   href: 'review.html' },
