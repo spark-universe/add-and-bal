@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>광고 용어사전</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Pretendard', system-ui, -apple-system, sans-serif;
+    color: #1a1f2b; background: #f5f7fa; -webkit-font-smoothing: antialiased; }
+  .gl-head { position: sticky; top: 0; z-index: 5; background: #fff; border-bottom: 1px solid #e5e8ee;
+    padding: 18px 22px 14px; }
+  .gl-head h1 { margin: 0 0 4px; font-size: 1.15rem; font-weight: 800; }
+  .gl-head p { margin: 0 0 12px; font-size: 0.82rem; color: #6b7280; line-height: 1.5; }
+  .gl-search { width: 100%; padding: 10px 12px; border: 1px solid #d7dbe3; border-radius: 9px;
+    font-size: 0.9rem; font-family: inherit; }
+  .gl-search:focus { outline: none; border-color: #4a6cf7; }
+  .gl-body { padding: 8px 22px 40px; }
+  .gl-group { margin-top: 20px; }
+  .gl-group__name { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+    color: #9aa1ad; margin: 0 0 8px; }
+  .gl-term { background: #fff; border: 1px solid #e5e8ee; border-radius: 11px; padding: 14px 16px; margin-bottom: 10px; }
+  .gl-term__h { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+  .gl-term__name { font-size: 0.98rem; font-weight: 800; }
+  .gl-term__en { font-size: 0.72rem; font-weight: 700; color: #4a6cf7; background: #eef2ff;
+    border-radius: 6px; padding: 2px 7px; }
+  .gl-term__d { font-size: 0.85rem; line-height: 1.65; color: #3d4757; white-space: pre-line; }
+  .gl-empty { text-align: center; color: #9aa1ad; padding: 40px; font-size: 0.88rem; }
+  .gl-foot { text-align: center; color: #aab0bb; font-size: 0.75rem; padding: 0 0 30px; }
+</style>
+</head>
+<body>
+  <div class="gl-head">
+    <h1 id="glTitle">광고 용어사전</h1>
+    <p id="glSub"></p>
+    <input type="text" class="gl-search" id="glSearch" placeholder="용어 검색 (예: ROAS, 객단가, 세그먼트)">
+  </div>
+  <div class="gl-body" id="glBody"></div>
+  <div class="gl-foot">광고 설정 연습용 용어사전 · 챌린지 매뉴얼과 별도로 관리됩니다</div>
+
+<script src="js/ad-glossary-data.js"></script>
+<script>
+(function () {
+  var G = window.AD_GLOSSARY || { groups: [] };
+  document.getElementById('glTitle').textContent = G.title || '광고 용어사전';
+  document.getElementById('glSub').textContent = G.subtitle || '';
+  document.title = G.title || '광고 용어사전';
+
+  var body = document.getElementById('glBody');
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function render(q) {
+    q = (q || '').trim().toLowerCase();
+    var html = '';
+    var any = false;
+
+    (G.groups || []).forEach(function (grp) {
+      var terms = (grp.terms || []).filter(function (t) {
+        if (!q) return true;
+        return (t.term + ' ' + (t.en || '') + ' ' + (t.short || '') + ' ' + (t.full || ''))
+          .toLowerCase().indexOf(q) !== -1;
+      });
+      if (!terms.length) return;
+      any = true;
+      html += '<div class="gl-group"><div class="gl-group__name">' + esc(grp.name) + '</div>';
+      terms.forEach(function (t) {
+        html += '<div class="gl-term">' +
+          '<div class="gl-term__h"><span class="gl-term__name">' + esc(t.term) + '</span>' +
+          (t.en ? '<span class="gl-term__en">' + esc(t.en) + '</span>' : '') + '</div>' +
+          '<div class="gl-term__d">' + esc(t.full || t.short || '') + '</div>' +
+        '</div>';
+      });
+      html += '</div>';
+    });
+
+    body.innerHTML = any ? html : '<div class="gl-empty">검색 결과가 없습니다.</div>';
+  }
+
+  document.getElementById('glSearch').addEventListener('input', function () { render(this.value); });
+  render('');
+})();
+</script>
+</body>
+</html>
