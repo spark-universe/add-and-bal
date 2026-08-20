@@ -13,6 +13,9 @@
   var campaigns = [];
   var tab = 'all';
   var practiceTopic = '';
+  var selectedIds = {};        // 체크박스로 고른 캠페인 id
+  var onlySelected = false;     // '선택만 보기' 켜짐 여부
+  function selCount() { return Object.keys(selectedIds).length; }
   var metricRange = 'week';          // 상단 지표 기간: day | week | month
   var RANGE_MS = { day: 86400000, week: 7 * 86400000, month: 30 * 86400000 };
 
@@ -141,9 +144,11 @@
 
   /* ---------- 캠페인 표 ---------- */
   function shown() {
-    if (tab === 'active') return campaigns.filter(function (c) { return c.status === 'active'; });
-    if (tab === 'completed') return campaigns.filter(function (c) { return c.status === 'completed'; });
-    return campaigns;
+    var list = campaigns;
+    if (tab === 'active') list = list.filter(function (c) { return c.status === 'active'; });
+    else if (tab === 'completed') list = list.filter(function (c) { return c.status === 'completed'; });
+    if (onlySelected) list = list.filter(function (c) { return selectedIds[c.id]; });
+    return list;
   }
 
   function render() {
@@ -151,10 +156,12 @@
     var body = document.getElementById('advBody');
 
     if (!list.length) {
-      body.innerHTML = '<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:48px;">' +
-        (campaigns.length
-          ? '이 조건에 맞는 캠페인이 없습니다.'
-          : '아직 캠페인이 없습니다. 우측 상단 <b>[Create campaign]</b> 으로 광고 캠페인을 만들어보세요.') +
+      body.innerHTML = '<tr><td colspan="15" style="text-align:center;color:var(--muted);padding:48px;">' +
+        (!campaigns.length
+          ? '아직 캠페인이 없습니다. 우측 상단 <b>[Create campaign]</b> 으로 광고 캠페인을 만들어보세요.'
+          : (onlySelected && !selCount())
+            ? '선택한 광고가 없습니다. 왼쪽 <b>체크박스</b>로 볼 광고를 골라주세요.'
+            : '이 조건에 맞는 캠페인이 없습니다.') +
         '</td></tr>';
     } else {
       var ctx = runContext();
@@ -165,6 +172,7 @@
         var v = lv || c;                 // 아니면 저장된 값
         var pending = !!lv && lv.customers === 0;   // 이번 런인데 아직 광고 유입 주문 없음
         return '<tr data-id="' + c.id + '" class="adv-row" title="클릭하면 이 캠페인을 수정합니다">' +
+          '<td class="adv-check"><input type="checkbox" class="advSel" data-id="' + c.id + '"' + (selectedIds[c.id] ? ' checked' : '') + '></td>' +
           '<td class="ord-cust" style="color:var(--primary);">' + esc(c.name) + '</td>' +
           '<td>' + (c.alert ? '<span class="risk-badge med">⚠ ' + esc(c.alert) + '</span>' : '') + '</td>' +
           '<td>' + (c.status === 'active'
@@ -193,6 +201,18 @@
       ? 'Last updated ' + new Date().toLocaleDateString() : '';
     renderMetrics();
     renderSummary();
+    updateSelUI();
+  }
+
+  // 선택 개수/버튼/전체선택 체크 상태 동기화
+  function updateSelUI() {
+    var n = selCount();
+    var btn = document.getElementById('advOnlySel');
+    btn.textContent = n ? '선택만 보기 (' + n + ')' : '선택만 보기';
+    btn.classList.toggle('is-on', onlySelected);
+    var boxes = document.querySelectorAll('#advBody .advSel');
+    var all = document.getElementById('advSelAll');
+    if (all) all.checked = boxes.length > 0 && Array.prototype.every.call(boxes, function (c) { return c.checked; });
   }
 
   /* ---------- 캠페인 만들기 → 별도 화면 ---------- */
@@ -229,6 +249,7 @@
   });
 
   document.getElementById('advBody').addEventListener('click', function (e) {
+    if (e.target.closest('.adv-check')) return;   // 체크박스 칸: 선택용 (이동/편집 아님)
     var del = e.target.closest('button[data-del]');
     if (del) {
       var id = Number(del.dataset.del);
@@ -245,6 +266,32 @@
     if (edit) { location.href = 'ad-campaign.html?edit=' + edit.dataset.edit; return; }
     var tr = e.target.closest('tr[data-id]');
     if (tr) location.href = 'ad-campaign.html?edit=' + tr.dataset.id;
+  });
+
+  // 행 체크박스 → 선택 목록 갱신
+  document.getElementById('advBody').addEventListener('change', function (e) {
+    if (!e.target.classList.contains('advSel')) return;
+    var id = Number(e.target.dataset.id);
+    if (e.target.checked) selectedIds[id] = true; else delete selectedIds[id];
+    if (onlySelected) render();   // 선택만 보기 중이면 해제한 행이 바로 사라지도록
+    else updateSelUI();
+  });
+
+  // 전체 선택 (현재 표에 보이는 행 대상)
+  document.getElementById('advSelAll').addEventListener('change', function () {
+    var on = this.checked;
+    document.querySelectorAll('#advBody .advSel').forEach(function (c) {
+      c.checked = on; var id = Number(c.dataset.id);
+      if (on) selectedIds[id] = true; else delete selectedIds[id];
+    });
+    if (onlySelected) render();
+    else updateSelUI();
+  });
+
+  // 선택만 보기 토글
+  document.getElementById('advOnlySel').addEventListener('click', function () {
+    onlySelected = !onlySelected;
+    render();
   });
 
   (async function init() {

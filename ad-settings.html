@@ -71,6 +71,7 @@
         <span class="adv-tab is-on" data-tab="all">All</span>
         <span class="adv-tab" data-tab="active">Active</span>
         <span class="adv-tab" data-tab="completed">Completed</span>
+        <button class="ord-tab" id="advOnlySel" title="체크한 광고만 보기">선택만 보기</button>
         <span style="flex:1;"></span>
         <span style="font-size:0.78rem;color:var(--muted);" id="advUpdated"></span>
       </div>
@@ -82,6 +83,7 @@
         <table class="ord-table">
           <thead>
             <tr>
+              <th class="adv-check"><input type="checkbox" id="advSelAll" title="전체 선택"></th>
               <th>Name</th><th>Alerts</th><th>Status</th><th>Segments</th>
               <th class="r">Sales</th><th class="r">Avg CAC</th><th class="r">ROAS</th>
               <th class="r">Customers</th><th class="r">AOV</th><th class="r">Spend</th>

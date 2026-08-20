@@ -1379,6 +1379,12 @@ tbody tr:hover { background: #fafbff; }
 .adv-row { cursor: pointer; }
 .adv-row:hover td { background: #f7f9fc; }
 .adv-row .adv-rowact { cursor: default; }
+.adv-check { width: 34px; text-align: center; cursor: default; }
+.adv-row .adv-check { cursor: default; }
+#advOnlySel { background: #fff; color: var(--text); font-family: inherit; cursor: pointer; }
+#advOnlySel:hover { background: #f2f4f8; }
+#advOnlySel.is-on { background: var(--text); color: #fff; border-color: var(--text); }
+#advOnlySel.is-on:hover { background: var(--text); }
 /* 용어 툴팁 ? 아이콘 + 말풍선 */
 .gl-tip { display: inline-flex; align-items: center; justify-content: center;
   width: 15px; height: 15px; border-radius: 50%; border: 1px solid var(--border);
@@ -1389,6 +1395,10 @@ tbody tr:hover { background: #fafbff; }
   font-size: 0.78rem; line-height: 1.55; padding: 8px 11px; border-radius: 9px;
   box-shadow: 0 6px 20px rgba(0,0,0,.22); pointer-events: none; }
 .gl-pop b { display: block; font-size: 0.71rem; color: #9db4ff; margin-bottom: 3px; font-weight: 800; }
+
+/* 광고 성과 바: 지표 셀 내용 가운데 정렬 (발주 페이지 지표 바는 영향 없음) */
+#advMetrics .ord-metric { text-align: center; }
+#advMetrics .ord-metric .l { white-space: normal; }
 
 /* 상단 지표 기간 선택 드롭다운 (1 day / 7 days / 30 days) */
 .mr-select { border: 1px solid var(--border); background: #fff; color: var(--text);
