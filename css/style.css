@@ -1417,6 +1417,7 @@ tbody tr:hover { background: #fafbff; }
   background-repeat: no-repeat; background-position: right 9px center; }
 .mr-select:hover { border-color: var(--primary); }
 .mr-select:focus { outline: none; border-color: var(--primary); }
+.mr-scope { font-size: 0.76rem; font-weight: 700; color: var(--primary); white-space: nowrap; }
 
 .adv-status {
   display: inline-block; font-size: 0.72rem; font-weight: 700;

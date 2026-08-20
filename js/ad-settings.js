@@ -95,14 +95,30 @@
   function renderMetrics() {
     var ctx = runContext();
     var orders = ctx.orders.filter(inRange);      // 선택한 기간(하루/일주일/한달)의 주문만
+
+    // 체크박스로 고른 캠페인이 있으면 그 캠페인들만, 없으면 이번 연습(run) 캠페인 전체
+    var target = selCount()
+      ? campaigns.filter(function (c) { return selectedIds[c.id]; })
+      : ctx.mine;
+
     var sales = 0, spend = 0, customers = 0;
-    ctx.mine.forEach(function (c) {
-      var lv = campaignLive(c, orders, ctx.names);
-      sales += lv.sales; spend += lv.spend; customers += lv.customers;
+    target.forEach(function (c) {
+      var m;
+      if (ctx.names.indexOf(c.name) !== -1) {
+        m = campaignLive(c, orders, ctx.names);   // 이번 연습 런: 실제 주문 기반
+      } else {
+        // 그 외(데모 케이스 등)는 캠페인에 저장된 값(= 주어질 매출·광고비)을 사용
+        m = { sales: Number(c.sales) || 0, spend: Number(c.spend) || 0, customers: Number(c.customers) || 0 };
+      }
+      sales += m.sales; spend += m.spend; customers += m.customers;
     });
+
     var aov = customers ? sales / customers : 0;
     var cac = customers ? spend / customers : 0;
     var roas = spend ? sales / spend : 0;
+
+    var scope = document.getElementById('advMetricScope');
+    if (scope) scope.textContent = selCount() ? '· 선택 ' + selCount() + '개' : '';
 
     document.getElementById('mCust').textContent = customers;
     document.getElementById('mAov').textContent = money(aov);
@@ -312,13 +328,13 @@
     if (tr) location.href = 'ad-campaign.html?edit=' + tr.dataset.id;
   });
 
-  // 행 체크박스 → 선택 목록 갱신
+  // 행 체크박스 → 선택 목록 갱신 (상단 지표도 선택 기준으로 갱신)
   document.getElementById('advBody').addEventListener('change', function (e) {
     if (!e.target.classList.contains('advSel')) return;
     var id = Number(e.target.dataset.id);
     if (e.target.checked) selectedIds[id] = true; else delete selectedIds[id];
     if (onlySelected) render();   // 선택만 보기 중이면 해제한 행이 바로 사라지도록
-    else updateSelUI();
+    else { updateSelUI(); renderMetrics(); }
   });
 
   // 전체 선택 (현재 표에 보이는 행 대상)
@@ -329,7 +345,7 @@
       if (on) selectedIds[id] = true; else delete selectedIds[id];
     });
     if (onlySelected) render();
-    else updateSelUI();
+    else { updateSelUI(); renderMetrics(); }
   });
 
   // 선택만 보기 토글
