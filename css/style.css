@@ -1711,9 +1711,9 @@ tbody tr:hover { background: #fafbff; }
 .lv-badge.is-open { background: var(--pastel-lavender); color: var(--color-purple); }
 .lv-badge.is-lock { background: var(--color-surface-2); color: var(--muted); }
 
-/* 정렬 가능한 표 헤더 */
-table.tbl-sort th[data-sort] { cursor: pointer; user-select: none; white-space: nowrap; }
-table.tbl-sort th[data-sort]:hover { color: var(--primary); }
-table.tbl-sort th[data-sort]::after { content: '⇅'; opacity: 0.3; margin-left: 5px; font-size: 0.8em; }
-table.tbl-sort th.sort-asc::after { content: '▲'; opacity: 0.85; }
-table.tbl-sort th.sort-desc::after { content: '▼'; opacity: 0.85; }
+/* 정렬 가능한 표 헤더 (util.js initSortableTables 가 .th-sortable 부여) */
+th.th-sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+th.th-sortable:hover { color: var(--primary); }
+th.th-sortable::after { content: '⇅'; opacity: 0.3; margin-left: 5px; font-size: 0.8em; font-weight: 400; }
+th.th-sortable.sort-asc::after { content: '▲'; opacity: 0.85; }
+th.th-sortable.sort-desc::after { content: '▼'; opacity: 0.85; }
