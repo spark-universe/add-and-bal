@@ -91,7 +91,9 @@
   document.getElementById('glIntro').innerHTML =
     (G.intro || '').replace(/[①②③]/g, function (m) { return '<span class="n">' + m + '</span>'; });
 
-  document.getElementById('glGrid').innerHTML = (G.terms || []).map(function (t) {
+  document.getElementById('glGrid').innerHTML = (G.terms || []).filter(function (t) {
+    return !t.tipOnly;   // 툴팁 전용 용어는 카드에 넣지 않음
+  }).map(function (t) {
     var badge = t.badge
       ? '<span class="card__badge">' + t.badge + '</span>'
       : '<span class="card__badge card__badge--concept">–</span>';
