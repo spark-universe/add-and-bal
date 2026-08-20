@@ -58,12 +58,17 @@
         </div>
       </div>
       <div class="panel">
-        <div class="panel__head"><span>수강생 리스트</span></div>
-        <table>
+        <div class="panel__head" style="justify-content:space-between;">
+          <span>수강생 리스트</span>
+          <input type="search" id="userSearch" placeholder="🔍 이름 · 이메일 · 전화 검색"
+            style="padding:7px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;width:240px;max-width:45vw;">
+        </div>
+        <table class="tbl-sort">
           <thead>
             <tr>
-              <th>성명</th><th>이메일</th><th>전화번호</th>
-              <th>기수</th><th>수강일</th><th>상태</th><th>스토어</th><th>제출(확정)</th><th>발주&amp;광고</th><th>관리</th>
+              <th data-sort="name">성명</th><th data-sort="email">이메일</th><th>전화번호</th>
+              <th data-sort="cohort">기수</th><th data-sort="enroll_date">수강일</th><th data-sort="status">상태</th>
+              <th data-sort="stores">스토어</th><th data-sort="subs">제출(확정)</th><th data-sort="level">발주&amp;광고</th><th>관리</th>
             </tr>
           </thead>
           <tbody id="userBody">
@@ -141,6 +146,8 @@
 
   var all = [], storesByUser = {}, subsByUser = {}, cohorts = [], defaultCohort = 1, cohortByDate = {}, pendingReq = {};
   var reqByUser = {}, levelFilter = 'all', admins = [], myId = null;
+  var userSort = { key: 'created', dir: 1 };   // 사용자 관리 정렬 상태
+  var userSearch = '';                          // 사용자 관리 검색어
 
   function ymd(iso) { return iso ? iso.slice(0, 10) : ''; }
   function cohortDateOf(id) {
@@ -158,6 +165,25 @@
     if (st === 'approved') return '<span class="tag tag--ok">승인</span>';
     if (st === 'rejected') return '<span class="tag tag--no">거절</span>';
     return '<span class="tag tag--wait">대기</span>';
+  }
+  // 발주·광고 등급을 '표시 전용' 뱃지로 (수정은 '등급 관리' 탭에서만)
+  function levelBadge(u) {
+    return (u.level || 0) >= 1
+      ? '<span class="lv-badge is-open" title="발주·광고 열림">👑 숙련자</span>'
+      : '<span class="lv-badge is-lock" title="챌린지 단계">🐤 초보</span>';
+  }
+  // 사용자 관리 정렬용 비교값
+  function userSortVal(u, key) {
+    if (key === 'stores') return (storesByUser[u.id] || []).length;
+    if (key === 'subs') return (subsByUser[u.id] || []).filter(function (r) { return r.status === 'confirmed'; }).length;
+    if (key === 'level') return (u.level || 0);
+    if (key === 'cohort') return (u.cohort == null ? defaultCohort : u.cohort);
+    if (key === 'created') return u.created_at || '';
+    return (u[key] || '');
+  }
+  function cmpVal(a, b) {
+    if (typeof a === 'number' && typeof b === 'number') return a - b;
+    return String(a).localeCompare(String(b), 'ko');
   }
   // 어드민 표시용: 기수 이름 · 수강일 (어드민은 둘 다 봄)
   function cohortText(c) { return esc(c.label) + (c.enroll_date ? ' · ' + esc(c.enroll_date) : ''); }
@@ -469,40 +495,53 @@
 
   /* ---------- 사용자 관리 (승인됨) ---------- */
   function renderUsers() {
-    var list = all.filter(function (u) { return u.status !== 'pending'; });
     var approved = all.filter(function (u) { return u.status === 'approved'; });
     els.userCount.textContent = approved.length;
     els.userBadge.textContent = approved.length;
 
+    // 대기(별도 탭)·삭제(soft)는 제외
+    var list = all.filter(function (u) { return u.status !== 'pending' && u.status !== 'deleted'; });
+    // 검색
+    var q = userSearch.trim().toLowerCase();
+    if (q) list = list.filter(function (u) {
+      return (u.name || '').toLowerCase().indexOf(q) !== -1
+        || (u.email || '').toLowerCase().indexOf(q) !== -1
+        || (u.phone || '').toLowerCase().indexOf(q) !== -1;
+    });
+    // 정렬
+    list.sort(function (a, b) { return cmpVal(userSortVal(a, userSort.key), userSortVal(b, userSort.key)) * userSort.dir; });
+
+    // 헤더 정렬 방향 표시
+    document.querySelectorAll('#tab-users th[data-sort]').forEach(function (th) {
+      th.classList.remove('sort-asc', 'sort-desc');
+      if (th.dataset.sort === userSort.key) th.classList.add(userSort.dir === 1 ? 'sort-asc' : 'sort-desc');
+    });
+
     if (!list.length) {
-      els.userBody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:40px;">승인된 수강생이 없습니다.</td></tr>';
+      els.userBody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:40px;">' +
+        (q ? '검색 결과가 없습니다.' : '승인된 수강생이 없습니다.') + '</td></tr>';
       return;
     }
     els.userBody.innerHTML = list.map(function (u) {
       var storeN = (storesByUser[u.id] || []).length;
-      var subs = subsByUser[u.id] || [];
-      var confirmed = subs.filter(function (r) { return r.status === 'confirmed'; }).length;
+      var confirmed = (subsByUser[u.id] || []).filter(function (r) { return r.status === 'confirmed'; }).length;
       var opts = cohortOptions(u.cohort == null ? defaultCohort : u.cohort);
-      var req = pendingReq[u.id];   // 등급업 신청(대기)
-      var lvCell = levelSelect(u);
-      if (req) {
-        lvCell += '<div style="margin-top:5px;">🚀 <span class="tag tag--wait">등급업 신청</span> ' +
-          '<button class="btn-link" data-approve="' + u.id + '">승인</button> ' +
-          '<button class="btn-link danger" data-reject="' + u.id + '">거절</button></div>';
-      }
+      var approvedU = u.status === 'approved';
       return '<tr>' +
         '<td><b>' + esc(u.name) + '</b></td>' +
         '<td>' + esc(u.email) + '</td>' +
-        '<td>' + esc(u.phone) + '</td>' +
+        '<td style="white-space:nowrap;">' + esc(u.phone) + '</td>' +
         '<td><select class="cohort-pick" data-id="' + u.id + '" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;">' + opts + '</select></td>' +
         '<td><input type="date" class="user-date" data-id="' + u.id + '" value="' + esc(u.enroll_date || '') + '" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;"></td>' +
         '<td>' + statusTag(u.status) + '</td>' +
         '<td>' + storeN + '개</td>' +
         '<td>' + confirmed + ' / 4</td>' +
-        '<td>' + lvCell + '</td>' +
-        '<td>' +
+        '<td>' + levelBadge(u) + '</td>' +
+        '<td style="white-space:nowrap;">' +
           '<button class="btn-sm" data-detail="' + u.id + '">상세</button> ' +
-          '<button class="btn-sm" data-reset="' + esc(u.email) + '">비번 재설정</button>' +
+          '<button class="btn-sm" data-reset="' + esc(u.email) + '">비번 재설정</button> ' +
+          (approvedU ? '<button class="btn-sm" data-unapprove="' + u.id + '">승인 취소</button> ' : '') +
+          '<button class="btn-sm is-danger" data-delete="' + u.id + '">삭제</button>' +
         '</td>' +
       '</tr>';
     }).join('');
@@ -586,6 +625,25 @@
     var levelId = btn.getAttribute('data-level');
     var approveId = btn.getAttribute('data-approve');
     var rejectId = btn.getAttribute('data-reject');
+    var unapproveId = btn.getAttribute('data-unapprove');
+    var deleteId = btn.getAttribute('data-delete');
+
+    // 승인 취소 (비승인) → 가입 대기 상태로 되돌림
+    if (unapproveId) {
+      var uU = all.filter(function (x) { return x.id === unapproveId; })[0];
+      if (!confirm('"' + (uU ? uU.name : '수강생') + '"님의 승인을 취소할까요?\n가입 대기 상태로 돌아가 로그인할 수 없게 됩니다.')) return;
+      var ru = await sb.from('profiles').update({ status: 'pending' }).eq('id', unapproveId).select();
+      if (ru.error || !ru.data || !ru.data.length) { alert('승인 취소 실패' + (ru.error ? ': ' + ru.error.message : '')); return; }
+      await load(); return;
+    }
+    // 수강생 삭제 (목록에서 제거 + 로그인 차단). 로그인 계정 완전 삭제는 Supabase 대시보드에서.
+    if (deleteId) {
+      var uD = all.filter(function (x) { return x.id === deleteId; })[0];
+      if (!confirm('"' + (uD ? uD.name : '수강생') + '"님을 삭제할까요?\n목록에서 사라지고 로그인할 수 없게 됩니다.\n(로그인 계정 자체의 완전 삭제는 Supabase 대시보드 > Authentication 에서)')) return;
+      var rd = await sb.from('profiles').update({ status: 'deleted' }).eq('id', deleteId).select();
+      if (rd.error || !rd.data || !rd.data.length) { alert('삭제 실패' + (rd.error ? ': ' + rd.error.message : '')); return; }
+      await load(); return;
+    }
 
     // 등급업 신청 승인 → 발주&광고 열기 + 신청 처리
     if (approveId) {
@@ -650,6 +708,18 @@
     var res = await sb.storage.from(BUCKET).createSignedUrl(path, 60);
     if (res.error) { alert('파일 열기 실패: ' + res.error.message); return; }
     window.open(res.data.signedUrl, '_blank');
+  });
+
+  // 사용자 관리: 검색
+  var userSearchEl = document.getElementById('userSearch');
+  if (userSearchEl) userSearchEl.addEventListener('input', function () { userSearch = this.value; renderUsers(); });
+  // 사용자 관리: 헤더 클릭 정렬 (같은 헤더 다시 누르면 방향 반전)
+  document.querySelectorAll('#tab-users th[data-sort]').forEach(function (th) {
+    th.addEventListener('click', function () {
+      var k = th.dataset.sort;
+      if (userSort.key === k) userSort.dir *= -1; else { userSort.key = k; userSort.dir = 1; }
+      renderUsers();
+    });
   });
 
   (async function init() {

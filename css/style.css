@@ -1701,3 +1701,19 @@ tbody tr:hover { background: #fafbff; }
   .prod-form { grid-template-columns: 1fr; }
   .content { padding: 24px 20px; }
 }
+
+/* ---------- 관리자 화면: 버튼 알약 대신 직사각형(모서리만 살짝) ---------- */
+[data-area="admin"] .btn-sm,
+[data-area="admin"] .btn-primary { border-radius: var(--radius-sm); }
+
+/* 발주·광고 등급 표시 뱃지 (표시 전용 — 수정은 '등급 관리' 탭) */
+.lv-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 700; white-space: nowrap; }
+.lv-badge.is-open { background: var(--pastel-lavender); color: var(--color-purple); }
+.lv-badge.is-lock { background: var(--color-surface-2); color: var(--muted); }
+
+/* 정렬 가능한 표 헤더 */
+table.tbl-sort th[data-sort] { cursor: pointer; user-select: none; white-space: nowrap; }
+table.tbl-sort th[data-sort]:hover { color: var(--primary); }
+table.tbl-sort th[data-sort]::after { content: '⇅'; opacity: 0.3; margin-left: 5px; font-size: 0.8em; }
+table.tbl-sort th.sort-asc::after { content: '▲'; opacity: 0.85; }
+table.tbl-sort th.sort-desc::after { content: '▼'; opacity: 0.85; }
