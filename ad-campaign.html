@@ -25,7 +25,7 @@
       <!-- ===== 왼쪽: 설정 ===== -->
       <div>
         <div class="od-box">
-          <div class="od-box__title">평균 고객 획득 비용 (CAC)</div>
+          <div class="od-box__title">평균 고객 획득 비용 (CAC)<span data-gl="cac"></span></div>
           <p class="od-muted" style="margin:0 0 14px;font-size:0.83rem;">
             타겟할 세그먼트마다 고객 한 명을 데려오는 데 쓸 광고비를 정합니다.
           </p>
@@ -67,7 +67,7 @@
           <div class="od-box__title">예산과 목표</div>
           <div class="prod-form">
             <div class="field">
-              <label>목표 객단가 (Target order value)</label>
+              <label>목표 객단가 (Target order value)<span data-gl="tov"></span></label>
               <span class="cac-row__input" style="width:100%;">
                 <span class="cac-row__unit">$</span>
                 <input type="number" id="tov" step="0.01" min="0" value="0">
@@ -126,15 +126,15 @@
           <div class="od-card__head">캠페인 요약</div>
           <div class="od-card__body">
             <table class="od-money">
-              <tr><td>목표 객단가</td><td></td><td class="r" id="sTov">$76.62</td></tr>
-              <tr><td>평균 획득 비용</td><td></td><td class="r" id="sCac">$35.76</td></tr>
+              <tr><td>목표 객단가<span data-gl="tov"></span></td><td></td><td class="r" id="sTov">$76.62</td></tr>
+              <tr><td>평균 획득 비용<span data-gl="cac"></span></td><td></td><td class="r" id="sCac">$35.76</td></tr>
             </table>
             <div id="sSegs" class="adv-seglist"></div>
             <div class="adv-seg" style="margin-top:10px;">
               <span>카테고리</span><b id="sChannels">-</b>
             </div>
             <div class="adv-roas">
-              <span>예상 광고 수익률 (ROAS)</span>
+              <span>예상 광고 수익률 (ROAS)<span data-gl="roas"></span></span>
               <b id="sRoas">2.0x - 2.5x</b>
             </div>
             <div id="sWarn"></div>
@@ -170,6 +170,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase.js"></script>
+<script src="js/ad-glossary-data.js"></script>
 <script src="js/util.js"></script><script src="js/layout.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/ad-campaign.js"></script>
