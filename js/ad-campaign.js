@@ -378,10 +378,8 @@
 
     var list = [];
     try { list = JSON.parse(simStore().getItem(STORE)) || []; } catch (e) { list = []; }
-    var editTarget = (editId != null) ? list.find(function (x) { return x.id === editId; }) : null;
-    var isDemoCase = !!(editTarget && editTarget.demoCase);   // 데모 진단 케이스 수정 중
 
-    if (!s.category && !isDemoCase) { alert('카테고리를 고르세요.'); return; }  // 데모 케이스는 카테고리 없이 진행
+    // 카테고리 선택 기능은 제거됨 — 현재 연습 주제로 자동 지정되므로 별도 확인이 없다
     if (!s.name) { alert('캠페인 이름을 입력하세요.'); return; }
     if (!s.budget) { alert('일 예산을 입력하세요.'); return; }
     if (!s.tov) { alert('목표 객단가를 입력하세요.'); return; }
