@@ -51,7 +51,7 @@ window.AD_DEMO_CASES = [
     key: 'nosale',
     name: '판매 안 됨 (ROAS 조정)',
     cac: 15, tov: 90, budget: 200,
-    note: 'CAC가 너무 낮고 목표 객단가(TOV)가 너무 높아 주문이 거의 발생하지 않습니다.',
+    note: 'CAC가 너무 낮고 목표 객단가(TOV)가 너무 높아 주문이 거의 발생하지 않습니다. 설정상 ROAS는 6.0으로 좋아 보이지만, 실제로는 거의 팔리지 않아 성과 ROAS가 훨씬 낮습니다.',
     // 주문 2건, 매출 매우 낮음, Start 는 1주일 전
     perf: { customers: 2, spend: 30, sales: 54, startDaysAgo: 7 },
     answer: 'CAC는 조금 올리고(>$15), TOV는 조금 낮춰서(<$90) 둘 다 조정하기.\n목표 ROAS는 4배 안팎.\n예) CAC $20 · TOV $85 → ROAS 4.25',

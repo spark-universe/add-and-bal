@@ -86,12 +86,13 @@
     var cases = window.AD_DEMO_CASES || [];
     document.getElementById('cases').innerHTML = cases.map(function (cs, i) {
       var p = cs.perf || {};
-      var roas = p.spend ? r2(p.sales / p.spend) : 0;
+      var roas = p.spend ? r2(p.sales / p.spend) : 0;          // 실제 성과 ROAS (매출÷광고비)
+      var designed = cs.cac ? r2(cs.tov / cs.cac) : 0;         // 설정상 ROAS (TOV÷CAC)
       return '<div class="case">' +
         '<div class="case__name"><span class="num">' + (i + 1) + '</span>' + esc(cs.name) + '</div>' +
         '<div class="meta">' +
-          '<span class="chip">현재 설정 · CAC <b>' + money(cs.cac) + '</b> · TOV <b>' + money(cs.tov) + '</b> · 예산 <b>' + money(cs.budget) + '</b></span>' +
-          '<span class="chip">현재 성과 · 매출 <b>' + money(p.sales) + '</b> · 광고비 <b>' + money(p.spend) + '</b> · ROAS <b>' + roas.toFixed(1) + 'x</b></span>' +
+          '<span class="chip">현재 설정 · CAC <b>' + money(cs.cac) + '</b> · TOV <b>' + money(cs.tov) + '</b> · 예산 <b>' + money(cs.budget) + '</b> · 설정상 ROAS <b>' + designed.toFixed(1) + 'x</b></span>' +
+          '<span class="chip">현재 성과 · 매출 <b>' + money(p.sales) + '</b> · 광고비 <b>' + money(p.spend) + '</b> · 실제 ROAS <b>' + roas.toFixed(1) + 'x</b></span>' +
         '</div>' +
         (cs.note ? '<div class="block block--problem"><div class="block__label">⚠ 문제점</div><div class="block__text">' + esc(cs.note) + '</div></div>' : '') +
         (cs.answer ? '<div class="block block--answer"><div class="block__label">✅ 정답</div><div class="block__text">' + esc(cs.answer) + '</div></div>' : '') +
