@@ -256,8 +256,9 @@
           '<td>' + fmtDate(c.start) + '</td>' +
           '<td>' + (c.end ? fmtDate(c.end) : '') + '</td>' +
           '<td class="adv-rowact" style="white-space:nowrap;">' +
-            '<button class="btn-sm" data-edit="' + c.id + '">수정</button> ' +
-            '<button class="btn-sm is-danger" data-del="' + c.id + '">삭제</button></td>' +
+            '<button class="btn-sm" data-edit="' + c.id + '">' + (c.demoCase ? '문제 풀기' : '수정') + '</button>' +
+            (c.demoCase ? '' : ' <button class="btn-sm is-danger" data-del="' + c.id + '">삭제</button>') +
+          '</td>' +
         '</tr>';
       }).join('');
     }
