@@ -54,7 +54,7 @@
   /* ---------- 데모 계정 전용 진단 케이스 심기 ----------
      is_demo 계정으로 접속하면 문제 있는 광고 3개를 세션에 깔아둔다.
      탭(sessionStorage)마다 따로 생기고, 일반 계정에는 절대 안 뜬다. */
-  var SEED_V = 4;   // 케이스 데이터 버전 — 올리면 예전 세션의 시드도 새로 갱신됨
+  var SEED_V = 5;   // 케이스 데이터 버전 — 올리면 예전 세션의 시드도 새로 갱신됨
   function buildCaseCampaign(cs, i) {
     var p = cs.perf || { customers: 0, spend: 0, sales: 0, startDaysAgo: 0 };
     var d = new Date(); d.setDate(d.getDate() - (p.startDaysAgo || 0));
