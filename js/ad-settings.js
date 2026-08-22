@@ -239,7 +239,6 @@
         return '<tr data-id="' + c.id + '" class="adv-row" title="클릭하면 이 캠페인을 수정합니다">' +
           '<td class="adv-check"><input type="checkbox" class="advSel" data-id="' + c.id + '"' + (selectedIds[c.id] ? ' checked' : '') + '></td>' +
           '<td class="ord-cust" style="color:var(--primary);">' + esc(c.name) +
-            (c.note ? ' <span class="gl-tip" data-tip-head="' + esc(c.name) + '" data-tip-body="' + esc(c.note) + '">?</span>' : '') +
             (c.resolved ? ' <span class="adv-fixed" title="잘 조정됨">✓</span>' : '') +
           '</td>' +
           '<td>' + (c.alert ? '<span class="risk-badge med">⚠ ' + esc(c.alert) + '</span>' : '') + '</td>' +
@@ -324,7 +323,6 @@
 
   document.getElementById('advBody').addEventListener('click', function (e) {
     if (e.target.closest('.adv-check')) return;   // 체크박스 칸: 선택용 (이동/편집 아님)
-    if (e.target.closest('.gl-tip')) return;      // 이름 옆 ? : 툴팁용 (이동/편집 아님)
     var del = e.target.closest('button[data-del]');
     if (del) {
       var id = Number(del.dataset.del);
