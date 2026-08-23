@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>어드민 · 매뉴얼 편집</title>
+<link rel="stylesheet" href="../styles.css"><link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-area="admin" data-active="manual-edit">
+<div class="layout">
+  <div id="sidebar"></div>
+  <main class="content">
+    <div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
+      <div>
+        <h2>매뉴얼 편집</h2>
+        <p>수강생 매뉴얼의 챕터를 직접 추가·수정·삭제합니다. 저장하면 수강생 화면(매뉴얼)에 바로 반영됩니다.
+          공개 시점은 <a href="manual-schedule.html" style="color:var(--primary);">매뉴얼 공개 관리</a>에서 조절합니다.</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0;">
+        <button class="btn-sm" id="migrateBtn" title="현재 코드에 있던 기존 18개 챕터를 DB로 가져옵니다 (최초 1회)">기존 매뉴얼 불러오기</button>
+        <button class="btn-sm is-primary" id="addBtn">＋ 챕터 추가</button>
+      </div>
+    </div>
+
+    <!-- 편집 패널 -->
+    <div class="panel" id="editPanel" hidden style="margin-bottom:18px;">
+      <div class="panel__head">
+        <span id="editTitle">챕터 편집</span>
+        <button class="btn-link" id="closeEdit">닫기</button>
+      </div>
+      <div style="padding:20px 24px;">
+        <div class="prod-form">
+          <div class="field">
+            <label>부 (파트)</label>
+            <input type="text" id="fPart" list="partList" placeholder="예: 스토어 디자인">
+            <datalist id="partList"></datalist>
+          </div>
+          <div class="field">
+            <label>번호</label>
+            <input type="text" id="fNum" placeholder="예: 09">
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label>제목 <span style="color:var(--danger);">*</span></label>
+            <input type="text" id="fTitle" placeholder="예: 메가메뉴">
+          </div>
+          <div class="field">
+            <label>slug (영문 고유값)</label>
+            <input type="text" id="fSlug" placeholder="예: megamenu">
+            <div class="field-hint">수강생 화면 링크(#slug)에 쓰입니다. 기존 챕터는 바꾸지 마세요.</div>
+          </div>
+          <div class="field">
+            <label>순서</label>
+            <input type="number" id="fSort" step="1" min="0" value="0">
+          </div>
+          <div class="field" style="display:flex;align-items:flex-end;">
+            <label style="display:inline-flex;align-items:center;gap:7px;font-size:0.85rem;">
+              <input type="checkbox" id="fSoon"> 준비중 (내용 대신 “준비 중” 표시)
+            </label>
+          </div>
+        </div>
+
+        <div class="field" style="margin-top:8px;">
+          <label>본문 (HTML)</label>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
+            <input type="file" id="fImg" accept="image/*" hidden>
+            <button class="btn-sm" id="imgBtn">🖼 이미지 삽입</button>
+            <button class="btn-sm" id="previewBtn">미리보기</button>
+            <span id="imgMsg" style="font-size:0.82rem;color:var(--muted);"></span>
+          </div>
+          <textarea id="fBody" rows="18"
+            style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;font-family:ui-monospace,Consolas,monospace;font-size:0.82rem;line-height:1.6;resize:vertical;"></textarea>
+          <div class="field-hint">문단 &lt;p&gt;…&lt;/p&gt;, 목록 &lt;ul class="bullets"&gt;&lt;li&gt;…, 단계 &lt;div class="step"&gt;&lt;span class="step-badge"&gt;STEP 1&lt;/span&gt;&lt;span class="step-title"&gt;…&lt;/span&gt;&lt;/div&gt;, 이미지는 위 버튼으로 삽입.</div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;margin-top:12px;">
+          <button class="btn-primary" id="saveBtn">저장</button>
+          <span class="form-saved" id="saved" hidden>저장되었습니다</span>
+          <span id="saveErr" style="color:var(--danger);font-size:0.85rem;"></span>
+        </div>
+
+        <iframe id="previewFrame" hidden
+          style="width:100%;height:460px;border:1px solid var(--border);border-radius:8px;margin-top:14px;background:#fff;"></iframe>
+      </div>
+    </div>
+
+    <!-- 챕터 목록 -->
+    <div class="panel">
+      <div class="panel__head"><span>챕터 목록 <span id="chCount" style="color:var(--muted);font-weight:600;"></span></span></div>
+      <table>
+        <thead>
+          <tr><th style="width:60px;">순서</th><th style="width:60px;">번호</th><th>제목</th><th>부</th><th style="width:70px;">준비중</th><th style="width:150px;">관리</th></tr>
+        </thead>
+        <tbody id="listBody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/util.js"></script><script src="../js/layout.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/admin-manual-edit.js"></script>
+</body>
+</html>
