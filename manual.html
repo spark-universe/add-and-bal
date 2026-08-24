@@ -25,10 +25,18 @@
     </div>
   </aside>
   <main class="main">
+    <div class="mn-topbar">
+      <a class="mn-submit" href="challenge.html">📝 과제 제출하기</a>
+    </div>
     <div id="manualBody"></div>
-    <div class="footer">SHOPIFY 실무 교재 · 3단원 스토어 초기 작업 &nbsp;|&nbsp; 준비 중 챕터는 자료 업데이트 후 채워집니다.</div>
+    <div class="mn-chapnav" id="chapNav" hidden>
+      <button class="mn-chapbtn" id="prevBtn">← 이전 내용 보기</button>
+      <button class="mn-chapbtn is-next" id="nextBtn">다음 챌린지 내용 보기 →</button>
+    </div>
+    <div class="footer">SHOPIFY 실무 교재 &nbsp;|&nbsp; 준비 중 챕터는 자료 업데이트 후 채워집니다.</div>
   </main>
 </div>
+<button class="mn-scrolltop" id="scrollTop" title="맨 위로" hidden>↑</button>
 
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -36,11 +44,13 @@
 <script src="js/auth.js"></script>
 <script>Auth.require();</script>
 <script>
-// 매뉴얼 본문을 DB(manual_chapters)에서 불러와 목차/본문을 렌더링한 뒤 공개 로직 적용
+// 매뉴얼: DB에서 목차/본문을 그려 챕터별로 한 번에 한 챕터만 보여준다
 (async function boot() {
   await renderManual();
-  try { scrollSpy(); } catch (e) {}
-  await cohortVisibility();
+  await applyCohort();
+  initSingle();
+  var doc = document.querySelector('.manual-doc');
+  if (doc) doc.classList.add('ready');
 })();
 
 function mesc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -51,13 +61,7 @@ async function renderManual() {
     var chapters = (res && res.data) || [];
     var nav = '', body = '', lastPart = null;
     chapters.forEach(function (c) {
-      if (c.part !== lastPart) {
-        if (c.part) {
-          nav += '<div class="nav-part">' + mesc(c.part) + '</div>';
-          body += '<div class="part-divider" id="part-' + mesc(c.part) + '"><span>' + mesc(c.part) + '</span></div>';
-        }
-        lastPart = c.part;
-      }
+      if (c.part && c.part !== lastPart) { nav += '<div class="nav-part">' + mesc(c.part) + '</div>'; lastPart = c.part; }
       nav += '<a class="nav-item' + (c.soon ? ' soon' : '') + '" href="#' + mesc(c.slug) + '">' +
         '<span class="nav-num">' + mesc(c.num || '') + '</span><span class="nav-txt">' + mesc(c.title || '') + '</span>' +
         (c.soon ? '<span class="nav-badge">준비중</span>' : '') + '</a>';
@@ -70,22 +74,13 @@ async function renderManual() {
   } catch (e) {}
 }
 
-function scrollSpy() {
-  var links = [].slice.call(document.querySelectorAll('.nav-item'));
-  var map = {}; links.forEach(function (l) { var id = l.getAttribute('href').slice(1); var el = document.getElementById(id); if (el) map[id] = l; });
-  var obs = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { links.forEach(function (l) { l.classList.remove('active'); }); if (map[e.target.id]) map[e.target.id].classList.add('active'); } }); }, { rootMargin: '-10% 0px -80% 0px', threshold: 0 });
-  Object.keys(map).forEach(function (id) { var el = document.getElementById(id); if (el) obs.observe(el); });
-  links.forEach(function (l) { l.addEventListener('click', function () { document.body.classList.remove('nav-open'); }); });
-}
-
-// 챕터 공개/예약: 내 기수(cohort_manual)의 설정으로 아직 공개 안 된 챕터를 숨긴다
-async function cohortVisibility() {
+// 기수 공개/예약: 아직 공개 안 된 챕터는 목차에서 숨기고, 예약 챕터는 잠금 표시
+async function applyCohort() {
   try {
     var ses = await sb.auth.getSession();
     if (!ses.data.session) return;
     var prof = await sb.from('profiles').select('role, cohort').eq('id', ses.data.session.user.id).single();
     var p = (prof && prof.data) || {};
-    // 어드민이 ?cohort=N 으로 열면 그 기수처럼 미리보기. 지정 없으면 어드민은 전체 보기
     var previewCohort = new URLSearchParams(location.search).get('cohort');
     if (p.role === 'admin' && !previewCohort) return;
     var viewCohort = (p.role === 'admin' && previewCohort) ? Number(previewCohort) : (p.cohort || 1);
@@ -94,8 +89,7 @@ async function cohortVisibility() {
     var now = Date.now();
     function fmtDT(t) {
       var d = new Date(t), pad = function (n) { return n < 10 ? '0' + n : n; };
-      return d.getFullYear() + '년 ' + (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' +
-        pad(d.getHours()) + ':' + pad(d.getMinutes());
+      return d.getFullYear() + '년 ' + (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
     }
     res.data.forEach(function (c) {
       var t = c.publish_at ? new Date(c.publish_at).getTime() : null;
@@ -104,79 +98,83 @@ async function cohortVisibility() {
       var sec = document.getElementById(c.slug);
       var nav = document.querySelector('.nav-item[href="#' + c.slug + '"]');
       if (c.status === 'scheduled' && t && t > now) {
-        // 오픈 예정: 목차엔 남기되 잠금 표시, 본문은 예정 일시 안내로 대체
-        if (nav) {
-          nav.classList.add('soon');
-          if (!nav.querySelector('.nav-badge')) nav.insertAdjacentHTML('beforeend', '<span class="nav-badge">오픈 예정</span>');
-        }
+        // 오픈 예정: 목차엔 남기되 잠금, 본문은 예정 일시 안내로 대체
+        if (nav) { nav.classList.add('soon'); if (!nav.querySelector('.nav-badge')) nav.insertAdjacentHTML('beforeend', '<span class="nav-badge">오픈 예정</span>'); }
         if (sec) {
-          var head = sec.querySelector('.sec-head');
-          sec.innerHTML = '';
-          if (head) sec.appendChild(head);
-          var box = document.createElement('div');
-          box.className = 'soon-box';
-          box.innerHTML = '🔒 이 매뉴얼은 <b>' + fmtDT(t) + '</b>에 오픈 예정입니다.';
-          sec.appendChild(box);
+          var head = sec.querySelector('.sec-head'); sec.innerHTML = ''; if (head) sec.appendChild(head);
+          var box = document.createElement('div'); box.className = 'soon-box';
+          box.innerHTML = '🔒 이 매뉴얼은 <b>' + fmtDT(t) + '</b>에 오픈 예정입니다.'; sec.appendChild(box);
         }
       } else {
-        // hidden 등 → 완전히 숨김
-        if (sec) sec.style.display = 'none';
+        // hidden 등 → 목차에서 제외 (본문은 단일 보기라 어차피 숨겨짐)
         if (nav) nav.style.display = 'none';
+        if (sec) sec.setAttribute('data-hidden', '1');
       }
     });
-    // 파트 구분선: 그 파트에 보이는 챕터가 하나도 없으면 구분선도 숨김
-    document.querySelectorAll('.part-divider').forEach(function (div) {
-      var any = false, el = div.nextElementSibling;
-      while (el && !el.classList.contains('part-divider')) {
-        if (el.classList.contains('doc-section') && el.style.display !== 'none') { any = true; break; }
-        el = el.nextElementSibling;
-      }
-      if (!any) div.style.display = 'none';
-    });
-    // 목차 파트 라벨(.nav-part): 그 아래 보이는 항목이 없으면 라벨 숨김
-    document.querySelectorAll('.nav-part').forEach(function (p) {
-      var any = false, el = p.nextElementSibling;
+    // 목차 파트 라벨: 그 아래 보이는 항목이 없으면 라벨 숨김
+    document.querySelectorAll('.nav-part').forEach(function (pl) {
+      var any = false, el = pl.nextElementSibling;
       while (el && !el.classList.contains('nav-part')) {
         if (el.classList.contains('nav-item') && el.style.display !== 'none') { any = true; break; }
         el = el.nextElementSibling;
       }
-      if (!any) p.style.display = 'none';
+      if (!any) pl.style.display = 'none';
     });
+  } catch (e) {}
+}
 
-    // 전부 안 보이면 안내 문구 (전체 숨김 / 전체 예약)
-    var visibleSecs = Array.prototype.slice.call(document.querySelectorAll('.doc-section'))
-      .filter(function (s) { return s.style.display !== 'none'; });
-    if (visibleSecs.length === 0) {
-      var earliest = null;
-      res.data.forEach(function (c) {
-        if (c.status === 'scheduled' && c.publish_at) {
-          var t = new Date(c.publish_at).getTime();
-          if (t > now && (earliest === null || t < earliest)) earliest = t;
-        }
-      });
-      var msg;
-      if (earliest !== null) {
-        msg = '이 매뉴얼은 <b>' + fmtDT(earliest) + '</b>에 오픈 예정입니다.';
-      } else {
-        msg = '이 매뉴얼은 아직 공개 전입니다. 곧 공개될 예정이에요.';
-      }
-      var doc = document.querySelector('.manual-doc');
-      if (doc) {
-        doc.innerHTML =
-          '<div style="min-height:78vh;display:flex;align-items:center;justify-content:center;padding:40px;">' +
-            '<div style="text-align:center;max-width:440px;">' +
-              '<div style="font-size:46px;margin-bottom:14px;">📘</div>' +
-              '<div style="font-size:1.2rem;font-weight:800;color:#1c2024;margin-bottom:10px;">스토어 초기작업 매뉴얼</div>' +
-              '<div style="color:#6b7280;font-size:1rem;line-height:1.65;">' + msg + '</div>' +
-            '</div></div>';
-      }
-    }
-  } catch (e) {
-  } finally {
-    // 숨김/잠금 판단이 끝난 뒤에만 매뉴얼을 보여준다 (잠깐 보였다 사라지는 현상 방지)
-    var doneDoc = document.querySelector('.manual-doc');
-    if (doneDoc) doneDoc.classList.add('ready');
+// 챕터 단일 보기 + 이전/다음 이동 + 맨 위로
+function initSingle() {
+  var order = [].slice.call(document.querySelectorAll('.nav-item'))
+    .filter(function (n) { return n.style.display !== 'none'; })
+    .map(function (n) { return n.getAttribute('href').slice(1); });
+
+  var chapNav = document.getElementById('chapNav');
+  var prevBtn = document.getElementById('prevBtn');
+  var nextBtn = document.getElementById('nextBtn');
+
+  if (!order.length) {
+    var mb = document.getElementById('manualBody');
+    if (mb) mb.innerHTML = '<div style="min-height:60vh;display:flex;align-items:center;justify-content:center;padding:40px;">' +
+      '<div style="text-align:center;max-width:440px;"><div style="font-size:46px;margin-bottom:14px;">📘</div>' +
+      '<div style="color:#6b7280;font-size:1rem;line-height:1.65;">이 매뉴얼은 아직 공개 전입니다. 곧 공개될 예정이에요.</div></div></div>';
+    if (chapNav) chapNav.hidden = true;
+    return;
   }
+
+  function current() { var s = (location.hash || '').slice(1); return order.indexOf(s) !== -1 ? s : order[0]; }
+  function show(slug) {
+    if (order.indexOf(slug) === -1) slug = order[0];
+    document.querySelectorAll('.doc-section').forEach(function (s) { s.classList.remove('is-current'); });
+    var sec = document.getElementById(slug); if (sec) sec.classList.add('is-current');
+    document.querySelectorAll('.nav-item').forEach(function (n) { n.classList.remove('active'); });
+    var nav = document.querySelector('.nav-item[href="#' + slug + '"]'); if (nav) nav.classList.add('active');
+    var i = order.indexOf(slug);
+    prevBtn.style.visibility = i <= 0 ? 'hidden' : 'visible';
+    nextBtn.style.visibility = i >= order.length - 1 ? 'hidden' : 'visible';
+    chapNav.hidden = false;
+    if (('#' + slug) !== location.hash) history.replaceState(null, '', '#' + slug);
+    document.body.classList.remove('nav-open');
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+
+  document.getElementById('nav').addEventListener('click', function (e) {
+    var a = e.target.closest('.nav-item'); if (!a) return;
+    e.preventDefault(); show(a.getAttribute('href').slice(1));
+  });
+  prevBtn.addEventListener('click', function () { var i = order.indexOf(current()); if (i > 0) show(order[i - 1]); });
+  nextBtn.addEventListener('click', function () { var i = order.indexOf(current()); if (i < order.length - 1) show(order[i + 1]); });
+  window.addEventListener('hashchange', function () { show(current()); });
+
+  // 맨 위로 버튼
+  var top = document.getElementById('scrollTop');
+  if (top) {
+    var onScroll = function () { top.hidden = window.scrollY < 240; };
+    window.addEventListener('scroll', onScroll); onScroll();
+    top.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  }
+
+  show(current());
 }
 </script>
 
