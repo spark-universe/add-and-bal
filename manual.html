@@ -83,8 +83,24 @@ async function renderManual() {
       tmp.innerHTML = c.body || '';
       CH.push({ slug: c.slug, title: (c.title || '').toLowerCase(), bodyText: (tmp.textContent || '').toLowerCase() });
     });
-    document.getElementById('nav').innerHTML = nav;
-    document.getElementById('manualBody').innerHTML = body;
+    // 맨 앞에 '챌린지 소개' 화면 (진입 시 제일 먼저 보임)
+    var introNav = '<a class="nav-item nav-intro" href="#intro"><span class="nav-txt">🎯 챌린지 소개</span></a>';
+    var introSec =
+      '<section class="doc-section" id="intro"><div class="mn-intro">' +
+        '<div class="mn-intro__eyebrow">SHOPIFY 챌린지</div>' +
+        '<h1 class="mn-intro__title">쇼피파이 스토어, 직접 만들며 배우는 챌린지</h1>' +
+        '<p class="mn-intro__lead">쇼피파이로 미국 판매용 스토어를 처음부터 끝까지 직접 만들어 보는 실습 과정입니다. ' +
+          '수강생 누구나 어렵지 않게 따라 할 수 있도록, 실제 화면을 그대로 보면서 단계별로 진행하도록 만들었습니다.</p>' +
+        '<div class="mn-intro__how">' +
+          '<div class="mn-intro__card"><b>1. 목차에서 선택</b><span>왼쪽 목차에서 보고 싶은 챕터를 눌러요.</span></div>' +
+          '<div class="mn-intro__card"><b>2. 따라 하기</b><span>화면 캡처를 순서대로 따라 하면 됩니다.</span></div>' +
+          '<div class="mn-intro__card"><b>3. 과제 제출</b><span>챕터를 익힌 뒤 상단 “과제 제출하기”로 제출해요.</span></div>' +
+        '</div>' +
+        '<button class="mn-intro__start" id="introStart">첫 챕터 시작하기 →</button>' +
+      '</div></section>';
+
+    document.getElementById('nav').innerHTML = introNav + nav;
+    document.getElementById('manualBody').innerHTML = introSec + body;
   } catch (e) {}
 }
 
@@ -236,6 +252,10 @@ function initSingle() {
   prevBtn.addEventListener('click', function () { var i = order.indexOf(current()); if (i > 0) show(order[i - 1]); });
   nextBtn.addEventListener('click', function () { var i = order.indexOf(current()); if (i < order.length - 1) show(order[i + 1]); });
   window.addEventListener('hashchange', function () { show(current()); });
+
+  // 챌린지 소개의 '첫 챕터 시작하기' → 첫 실제 챕터로
+  var startBtn = document.getElementById('introStart');
+  if (startBtn) startBtn.addEventListener('click', function () { if (order.length > 1) show(order[1]); });
 
   // 맨 위로 버튼
   var top = document.getElementById('scrollTop');

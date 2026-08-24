@@ -70,6 +70,23 @@ body.manual-page { margin:0; background:#fff; }
 .manual-doc .doc-section{display:none}
 .manual-doc .doc-section.is-current{display:block}
 
+/* 챌린지 소개 (진입 시 첫 화면) */
+.manual-doc .nav-intro{font-weight:700;color:var(--accent-d)}
+.manual-doc .nav-intro.active{background:var(--accent-soft)}
+.manual-doc .mn-intro{padding:40px 0 10px}
+.manual-doc .mn-intro__eyebrow{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.12em;
+  color:var(--accent);background:var(--accent-soft);padding:5px 12px;border-radius:20px;text-transform:uppercase}
+.manual-doc .mn-intro__title{font-size:32px;line-height:1.28;margin:18px 0 12px;letter-spacing:-.01em;font-weight:800}
+.manual-doc .mn-intro__lead{font-size:16.5px;line-height:1.75;color:#454b52;max-width:62ch;margin:0}
+.manual-doc .mn-intro__how{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:28px 0 30px}
+.manual-doc .mn-intro__card{border:1px solid var(--line);border-radius:14px;padding:16px 16px;background:var(--panel)}
+.manual-doc .mn-intro__card b{display:block;font-size:14.5px;margin-bottom:6px;color:var(--ink)}
+.manual-doc .mn-intro__card span{font-size:13.5px;color:var(--muted);line-height:1.6}
+.manual-doc .mn-intro__start{border:none;background:var(--accent);color:#fff;font-weight:700;font-size:15px;
+  padding:13px 24px;border-radius:9999px;cursor:pointer;box-shadow:0 3px 10px rgba(47,107,255,.3);font-family:inherit}
+.manual-doc .mn-intro__start:hover{background:var(--accent-d)}
+@media (max-width:760px){ .manual-doc .mn-intro__how{grid-template-columns:1fr} .manual-doc .mn-intro__title{font-size:26px} }
+
 /* 상단 과제 제출 바 */
 .manual-doc .mn-topbar{display:flex;justify-content:flex-end;align-items:center;padding:22px 0 6px}
 .manual-doc .mn-submit{display:inline-flex;align-items:center;gap:7px;background:var(--accent);color:#fff;
