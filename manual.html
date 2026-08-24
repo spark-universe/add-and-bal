@@ -44,7 +44,11 @@
     <div class="footer">SHOPIFY 실무 교재 &nbsp;|&nbsp; 준비 중 챕터는 자료 업데이트 후 채워집니다.</div>
   </main>
 </div>
-<button class="mn-scrolltop" id="scrollTop" title="맨 위로" hidden>↑</button>
+<button class="mn-scrolltop" id="scrollTop" title="맨 위로 (꾹 눌러 드래그하면 위치 이동)" hidden aria-label="맨 위로">
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
+    <path d="M12 18.5V7M6.5 12.5 12 7l5.5 5.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</button>
 
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -83,8 +87,24 @@ async function renderManual() {
       tmp.innerHTML = c.body || '';
       CH.push({ slug: c.slug, title: (c.title || '').toLowerCase(), bodyText: (tmp.textContent || '').toLowerCase() });
     });
-    document.getElementById('nav').innerHTML = nav;
-    document.getElementById('manualBody').innerHTML = body;
+    // 맨 앞에 '챌린지 소개' 화면 (진입 시 제일 먼저 보임)
+    var introNav = '<a class="nav-item nav-intro" href="#intro"><span class="nav-txt">🎯 챌린지 소개</span></a>';
+    var introSec =
+      '<section class="doc-section" id="intro"><div class="mn-intro">' +
+        '<div class="mn-intro__eyebrow">SHOPIFY 챌린지</div>' +
+        '<h1 class="mn-intro__title">쇼피파이 스토어, 직접 만들며 배우는 챌린지</h1>' +
+        '<p class="mn-intro__lead">쇼피파이로 미국 판매용 스토어를 처음부터 끝까지 직접 만들어 보는 실습 과정입니다. ' +
+          '수강생 누구나 어렵지 않게 따라 할 수 있도록, 실제 화면을 그대로 보면서 단계별로 진행하도록 만들었습니다.</p>' +
+        '<div class="mn-intro__how">' +
+          '<div class="mn-intro__card"><b>1. 목차에서 선택</b><span>왼쪽 목차에서 보고 싶은 챕터를 눌러요.</span></div>' +
+          '<div class="mn-intro__card"><b>2. 따라 하기</b><span>화면 캡처를 순서대로 따라 하면 됩니다.</span></div>' +
+          '<div class="mn-intro__card"><b>3. 과제 제출</b><span>챕터를 익힌 뒤 상단 “과제 제출하기”로 제출해요.</span></div>' +
+        '</div>' +
+        '<button class="mn-intro__start" id="introStart">첫 챕터 시작하기 →</button>' +
+      '</div></section>';
+
+    document.getElementById('nav').innerHTML = introNav + nav;
+    document.getElementById('manualBody').innerHTML = introSec + body;
   } catch (e) {}
 }
 
@@ -237,12 +257,40 @@ function initSingle() {
   nextBtn.addEventListener('click', function () { var i = order.indexOf(current()); if (i < order.length - 1) show(order[i + 1]); });
   window.addEventListener('hashchange', function () { show(current()); });
 
-  // 맨 위로 버튼
+  // 챌린지 소개의 '첫 챕터 시작하기' → 첫 실제 챕터로
+  var startBtn = document.getElementById('introStart');
+  if (startBtn) startBtn.addEventListener('click', function () { if (order.length > 1) show(order[1]); });
+
+  // 맨 위로 버튼 — 탭하면 맨 위로, 꾹 눌러 드래그하면 위치 이동
   var top = document.getElementById('scrollTop');
   if (top) {
     var onScroll = function () { top.hidden = window.scrollY < 240; };
     window.addEventListener('scroll', onScroll); onScroll();
-    top.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+
+    var moved = false, sx = 0, sy = 0, ox = 0, oy = 0;
+    function pt(e) { return e.touches && e.touches[0] ? e.touches[0] : e; }
+    function down(e) {
+      var p = pt(e); moved = false; sx = p.clientX; sy = p.clientY;
+      var r = top.getBoundingClientRect(); ox = r.left; oy = r.top;
+      document.addEventListener('mousemove', move); document.addEventListener('mouseup', up);
+      document.addEventListener('touchmove', move, { passive: false }); document.addEventListener('touchend', up);
+    }
+    function move(e) {
+      var p = pt(e), dx = p.clientX - sx, dy = p.clientY - sy;
+      if (!moved && Math.abs(dx) + Math.abs(dy) > 6) moved = true;
+      if (!moved) return;
+      if (e.cancelable) e.preventDefault();
+      var nx = Math.max(6, Math.min(ox + dx, window.innerWidth - top.offsetWidth - 6));
+      var ny = Math.max(6, Math.min(oy + dy, window.innerHeight - top.offsetHeight - 6));
+      top.style.left = nx + 'px'; top.style.top = ny + 'px'; top.style.right = 'auto'; top.style.bottom = 'auto';
+    }
+    function up() {
+      document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up);
+      document.removeEventListener('touchmove', move); document.removeEventListener('touchend', up);
+      if (!moved) window.scrollTo({ top: 0, behavior: 'smooth' });   // 드래그 아니면 맨 위로
+    }
+    top.addEventListener('mousedown', down);
+    top.addEventListener('touchstart', down, { passive: true });
   }
 
   show(current());
