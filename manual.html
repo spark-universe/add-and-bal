@@ -44,7 +44,11 @@
     <div class="footer">SHOPIFY 실무 교재 &nbsp;|&nbsp; 준비 중 챕터는 자료 업데이트 후 채워집니다.</div>
   </main>
 </div>
-<button class="mn-scrolltop" id="scrollTop" title="맨 위로" hidden>↑</button>
+<button class="mn-scrolltop" id="scrollTop" title="맨 위로 (꾹 눌러 드래그하면 위치 이동)" hidden aria-label="맨 위로">
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true">
+    <path d="M12 18.5V7M6.5 12.5 12 7l5.5 5.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</button>
 
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -257,12 +261,36 @@ function initSingle() {
   var startBtn = document.getElementById('introStart');
   if (startBtn) startBtn.addEventListener('click', function () { if (order.length > 1) show(order[1]); });
 
-  // 맨 위로 버튼
+  // 맨 위로 버튼 — 탭하면 맨 위로, 꾹 눌러 드래그하면 위치 이동
   var top = document.getElementById('scrollTop');
   if (top) {
     var onScroll = function () { top.hidden = window.scrollY < 240; };
     window.addEventListener('scroll', onScroll); onScroll();
-    top.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+
+    var moved = false, sx = 0, sy = 0, ox = 0, oy = 0;
+    function pt(e) { return e.touches && e.touches[0] ? e.touches[0] : e; }
+    function down(e) {
+      var p = pt(e); moved = false; sx = p.clientX; sy = p.clientY;
+      var r = top.getBoundingClientRect(); ox = r.left; oy = r.top;
+      document.addEventListener('mousemove', move); document.addEventListener('mouseup', up);
+      document.addEventListener('touchmove', move, { passive: false }); document.addEventListener('touchend', up);
+    }
+    function move(e) {
+      var p = pt(e), dx = p.clientX - sx, dy = p.clientY - sy;
+      if (!moved && Math.abs(dx) + Math.abs(dy) > 6) moved = true;
+      if (!moved) return;
+      if (e.cancelable) e.preventDefault();
+      var nx = Math.max(6, Math.min(ox + dx, window.innerWidth - top.offsetWidth - 6));
+      var ny = Math.max(6, Math.min(oy + dy, window.innerHeight - top.offsetHeight - 6));
+      top.style.left = nx + 'px'; top.style.top = ny + 'px'; top.style.right = 'auto'; top.style.bottom = 'auto';
+    }
+    function up() {
+      document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up);
+      document.removeEventListener('touchmove', move); document.removeEventListener('touchend', up);
+      if (!moved) window.scrollTo({ top: 0, behavior: 'smooth' });   // 드래그 아니면 맨 위로
+    }
+    top.addEventListener('mousedown', down);
+    top.addEventListener('touchstart', down, { passive: true });
   }
 
   show(current());

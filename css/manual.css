@@ -101,13 +101,15 @@ body.manual-page { margin:0; background:#fff; }
 .manual-doc .mn-chapbtn.is-next{margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)}
 .manual-doc .mn-chapbtn.is-next:hover{background:var(--accent-d);color:#fff}
 
-/* 맨 위로 플로팅 버튼 (약간 좌측) */
-.manual-doc .mn-scrolltop{position:fixed;left:300px;bottom:26px;z-index:60;width:46px;height:46px;border-radius:50%;
-  border:none;background:var(--accent);color:#fff;font-size:1.35rem;line-height:1;cursor:pointer;
-  box-shadow:0 4px 14px rgba(0,0,0,.22);display:flex;align-items:center;justify-content:center}
-.manual-doc .mn-scrolltop:hover{background:var(--accent-d)}
+/* 맨 위로 플로팅 버튼 (우측 하단, 꾹 눌러 드래그하면 이동) */
+.manual-doc .mn-scrolltop{position:fixed;right:26px;bottom:26px;z-index:60;width:48px;height:48px;border-radius:50%;
+  border:none;background:var(--accent);color:#fff;cursor:pointer;touch-action:none;
+  box-shadow:0 6px 16px rgba(47,107,255,.32);display:flex;align-items:center;justify-content:center;
+  transition:background .15s, box-shadow .15s, transform .06s}
+.manual-doc .mn-scrolltop:hover{background:var(--accent-d);box-shadow:0 8px 20px rgba(47,107,255,.4)}
+.manual-doc .mn-scrolltop:active{transform:scale(.94)}
 .manual-doc .mn-scrolltop[hidden]{display:none}
-@media (max-width:1080px){ .manual-doc .mn-scrolltop{left:16px;bottom:18px} }
+@media (max-width:1080px){ .manual-doc .mn-scrolltop{right:16px;bottom:18px} }
 
 /* hero */
 .manual-doc .hero{padding:44px 0 30px;border-bottom:1px solid var(--line);margin-bottom:8px}
