@@ -51,7 +51,18 @@ body.manual-page { margin:0; background:#fff; }
 .manual-doc .nav-txt{flex:1}
 .manual-doc .nav-item.soon{color:#a2a8af}
 .manual-doc .nav-item.soon .nav-num{color:#b7bcc2}
-.manual-doc .nav-badge{font-size:10px;font-weight:700;color:#9aa0a6;background:#eceef0;border-radius:20px;padding:1px 7px}
+.manual-doc .nav-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.manual-doc .nav-badge{font-size:10px;font-weight:700;color:#9aa0a6;background:#eceef0;border-radius:20px;padding:1px 7px;white-space:nowrap;flex:0 0 auto}
+.manual-doc .nav-badge--done{color:#127a4a;background:#e3f6ec}
+.manual-doc .nav-badge--todo{color:#b42318;background:#fdecea}
+.manual-doc .nav-badge--soon{color:#8a6d1a;background:#fbf1d5}
+
+/* 목차 검색 */
+.manual-doc .mn-search{flex:0 0 auto;margin-bottom:12px;display:flex;gap:6px}
+.manual-doc .mn-search input{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-family:inherit;background:#fff;color:var(--ink)}
+.manual-doc .mn-search input:focus{outline:none;border-color:var(--accent)}
+.manual-doc .mn-search select{flex:0 0 auto;padding:6px 6px;border:1px solid var(--line);border-radius:8px;font-size:11.5px;font-family:inherit;background:#fff;color:var(--muted)}
+.manual-doc .nav-item.search-off,.manual-doc .nav-part.search-off{display:none}
 
 .manual-doc .main{flex:1;min-width:0;padding:0 46px 120px;max-width:calc(var(--maxw) + 92px);margin:0 auto}
 

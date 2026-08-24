@@ -18,6 +18,14 @@
     <div class="brand">
       <div class="logo">shopify 챌린지</div>
     </div>
+    <div class="mn-search">
+      <input type="text" id="mnQuery" placeholder="검색어를 입력하세요">
+      <select id="mnScope" title="검색 범위">
+        <option value="title">제목</option>
+        <option value="body">본문 내용</option>
+        <option value="both" selected>제목 + 본문</option>
+      </select>
+    </div>
     <nav id="nav"></nav>
     <div class="mn-foot">
       <a class="mn-foot__link" href="challenge.html">← 훈련 화면으로 돌아가기</a>
@@ -44,14 +52,18 @@
 <script src="js/auth.js"></script>
 <script>Auth.require();</script>
 <script>
-// 매뉴얼: DB에서 목차/본문을 그려 챕터별로 한 번에 한 챕터만 보여준다
+// 매뉴얼: DB에서 목차/본문을 그려 챕터별 단일 보기. 공개는 서버시간(한국) 기준.
 (async function boot() {
   await renderManual();
-  await applyCohort();
+  var ctx = await loadStatus();   // 서버시간 + 공개/과제 상태
+  applyStatus(ctx);               // 뱃지 + 미공개 본문 잠금 (표시 전에 처리)
+  initSearch();
   initSingle();
   var doc = document.querySelector('.manual-doc');
   if (doc) doc.classList.add('ready');
 })();
+
+var CH = [];   // 렌더된 챕터 [{slug,title,bodyText}] — 검색용
 
 function mesc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 
@@ -59,7 +71,7 @@ async function renderManual() {
   try {
     var res = await sb.from('manual_chapters').select('slug,num,title,part,sort,soon,body').order('sort', { ascending: true });
     var chapters = (res && res.data) || [];
-    var nav = '', body = '', lastPart = null;
+    var nav = '', body = '', lastPart = null, tmp = document.createElement('div');
     chapters.forEach(function (c) {
       if (c.part && c.part !== lastPart) { nav += '<div class="nav-part">' + mesc(c.part) + '</div>'; lastPart = c.part; }
       nav += '<a class="nav-item' + (c.soon ? ' soon' : '') + '" href="#' + mesc(c.slug) + '">' +
@@ -68,65 +80,124 @@ async function renderManual() {
       body += '<section class="doc-section" id="' + mesc(c.slug) + '">' +
         '<div class="sec-head"><span class="sec-num">' + mesc(c.num || '') + '</span><h2 class="sec-title">' + mesc(c.title || '') + '</h2></div>' +
         (c.body || '') + '</section>';
+      tmp.innerHTML = c.body || '';
+      CH.push({ slug: c.slug, title: (c.title || '').toLowerCase(), bodyText: (tmp.textContent || '').toLowerCase() });
     });
     document.getElementById('nav').innerHTML = nav;
     document.getElementById('manualBody').innerHTML = body;
   } catch (e) {}
 }
 
-// 기수 공개/예약: 아직 공개 안 된 챕터는 목차에서 숨기고, 예약 챕터는 잠금 표시
-async function applyCohort() {
+// 서버 시간 — 로컬 시계가 아니라 서버(Postgres now())를 기준으로 공개 여부를 판단
+async function getServerNow() {
+  try {
+    var r = await sb.rpc('server_now');
+    if (r && r.data) { var t = Date.parse(r.data); if (!isNaN(t)) return t; }
+  } catch (e) {}
+  return Date.now();   // 폴백
+}
+function fmtKST(v) {
+  var t = (typeof v === 'number') ? v : Date.parse(v);
+  if (isNaN(t)) return '';
+  try {
+    return new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(t));
+  } catch (e) { return new Date(t).toLocaleString('ko-KR'); }
+}
+
+// 공개/과제 상태 로드
+async function loadStatus() {
+  var ctx = { now: await getServerNow(), isAdmin: false, pub: {}, hw: {}, submitted: {} };
   try {
     var ses = await sb.auth.getSession();
-    if (!ses.data.session) return;
-    var prof = await sb.from('profiles').select('role, cohort').eq('id', ses.data.session.user.id).single();
+    if (!ses.data.session) return ctx;
+    var uid = ses.data.session.user.id;
+    var prof = await sb.from('profiles').select('role, cohort').eq('id', uid).single();
     var p = (prof && prof.data) || {};
-    var previewCohort = new URLSearchParams(location.search).get('cohort');
-    if (p.role === 'admin' && !previewCohort) return;
-    var viewCohort = (p.role === 'admin' && previewCohort) ? Number(previewCohort) : (p.cohort || 1);
-    var res = await sb.from('cohort_manual').select('slug,status,publish_at').eq('cohort', viewCohort);
-    if (res.error || !res.data) return;
-    var now = Date.now();
-    function fmtDT(t) {
-      var d = new Date(t), pad = function (n) { return n < 10 ? '0' + n : n; };
-      return d.getFullYear() + '년 ' + (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    var preview = new URLSearchParams(location.search).get('cohort');
+    ctx.isAdmin = (p.role === 'admin' && !preview);
+    var cohort = (p.role === 'admin' && preview) ? Number(preview) : (p.cohort || 1);
+    var cm = await sb.from('cohort_manual').select('slug,status,publish_at').eq('cohort', cohort);
+    (cm.data || []).forEach(function (r) { ctx.pub[r.slug] = { status: r.status, publish_at: r.publish_at }; });
+    if (!ctx.isAdmin) {
+      var ch = await sb.from('challenges').select('id, manual_slug, open_at').eq('cohort', cohort).eq('active', true);
+      (ch.data || []).forEach(function (c) { if (!c.manual_slug) return; (ctx.hw[c.manual_slug] = ctx.hw[c.manual_slug] || []).push(c); });
+      var su = await sb.from('challenge_submissions').select('challenge_id').eq('user_id', uid);
+      (su.data || []).forEach(function (s) { ctx.submitted[s.challenge_id] = true; });
     }
-    res.data.forEach(function (c) {
-      var t = c.publish_at ? new Date(c.publish_at).getTime() : null;
-      var visible = c.status === 'public' || (c.status === 'scheduled' && t && t <= now);
-      if (visible) return;
-      var sec = document.getElementById(c.slug);
-      var nav = document.querySelector('.nav-item[href="#' + c.slug + '"]');
-      if (c.status === 'scheduled' && t && t > now) {
-        // 오픈 예정: 목차엔 남기되 잠금, 본문은 예정 일시 안내로 대체
-        if (nav) { nav.classList.add('soon'); if (!nav.querySelector('.nav-badge')) nav.insertAdjacentHTML('beforeend', '<span class="nav-badge">오픈 예정</span>'); }
-        if (sec) {
-          var head = sec.querySelector('.sec-head'); sec.innerHTML = ''; if (head) sec.appendChild(head);
-          var box = document.createElement('div'); box.className = 'soon-box';
-          box.innerHTML = '🔒 이 매뉴얼은 <b>' + fmtDT(t) + '</b>에 오픈 예정입니다.'; sec.appendChild(box);
-        }
-      } else {
-        // hidden 등 → 목차에서 제외 (본문은 단일 보기라 어차피 숨겨짐)
-        if (nav) nav.style.display = 'none';
-        if (sec) sec.setAttribute('data-hidden', '1');
-      }
-    });
-    // 목차 파트 라벨: 그 아래 보이는 항목이 없으면 라벨 숨김
-    document.querySelectorAll('.nav-part').forEach(function (pl) {
-      var any = false, el = pl.nextElementSibling;
-      while (el && !el.classList.contains('nav-part')) {
-        if (el.classList.contains('nav-item') && el.style.display !== 'none') { any = true; break; }
-        el = el.nextElementSibling;
-      }
-      if (!any) pl.style.display = 'none';
-    });
   } catch (e) {}
+  return ctx;
+}
+
+function isPublished(slug, ctx) {
+  var pi = ctx.pub[slug];
+  if (!pi) return true;                                  // 설정 없으면 기본 공개
+  if (pi.status === 'public') return true;
+  if (pi.status === 'scheduled' && pi.publish_at && Date.parse(pi.publish_at) <= ctx.now) return true;
+  return false;
+}
+function setBadge(nav, text, kind) {
+  if (!nav) return;
+  var b = nav.querySelector('.nav-badge'); if (b) b.remove();
+  nav.insertAdjacentHTML('beforeend', '<span class="nav-badge nav-badge--' + kind + '">' + text + '</span>');
+}
+
+// 미공개는 숨기지 않고 '공개 예정'으로 보여주고, 클릭 시 공개 예정 안내. 공개된 건 과제 상태.
+function applyStatus(ctx) {
+  if (ctx.isAdmin) return;   // 어드민(미리보기 아님): 전부 공개, 뱃지 없음
+  CH.forEach(function (c) {
+    var nav = document.querySelector('.nav-item[href="#' + c.slug + '"]');
+    var sec = document.getElementById(c.slug);
+    if (!isPublished(c.slug, ctx)) {
+      setBadge(nav, '공개 예정', 'soon');
+      if (nav) nav.classList.add('soon');
+      if (sec) {
+        var pi = ctx.pub[c.slug];
+        var msg = (pi && pi.status === 'scheduled' && pi.publish_at)
+          ? '🔒 이 챌린지는 <b>' + fmtKST(pi.publish_at) + '</b>에 공개될 예정입니다.'
+          : '🔒 이 챌린지는 향후 공개될 예정입니다.';
+        var head = sec.querySelector('.sec-head'); sec.innerHTML = ''; if (head) sec.appendChild(head);
+        var box = document.createElement('div'); box.className = 'soon-box'; box.innerHTML = msg; sec.appendChild(box);
+      }
+      return;
+    }
+    // 공개됨 → 연결된 과제(열린 것만) 제출 여부
+    var hws = (ctx.hw[c.slug] || []).filter(function (h) { return !h.open_at || Date.parse(h.open_at) <= ctx.now; });
+    if (hws.length) {
+      var allDone = hws.every(function (h) { return ctx.submitted[h.id]; });
+      setBadge(nav, allDone ? '과제 제출 완료' : '과제 제출 미완료', allDone ? 'done' : 'todo');
+    }
+  });
+}
+
+// 목차 검색 (제목 / 본문 / 제목+본문)
+function initSearch() {
+  var q = document.getElementById('mnQuery'), scope = document.getElementById('mnScope');
+  if (!q || !scope) return;
+  var navEl = document.getElementById('nav');
+  var map = {}; CH.forEach(function (c) { map[c.slug] = c; });
+  function run() {
+    var term = (q.value || '').trim().toLowerCase(), mode = scope.value;
+    navEl.querySelectorAll('.nav-item').forEach(function (n) {
+      if (!term) { n.classList.remove('search-off'); return; }
+      var c = map[n.getAttribute('href').slice(1)] || {};
+      var t = c.title || '', b = c.bodyText || '';
+      var hit = mode === 'title' ? t.indexOf(term) !== -1 : mode === 'body' ? b.indexOf(term) !== -1 : (t.indexOf(term) !== -1 || b.indexOf(term) !== -1);
+      n.classList.toggle('search-off', !hit);
+    });
+    navEl.querySelectorAll('.nav-part').forEach(function (pl) {
+      if (!term) { pl.classList.remove('search-off'); return; }
+      var any = false, el = pl.nextElementSibling;
+      while (el && !el.classList.contains('nav-part')) { if (el.classList.contains('nav-item') && !el.classList.contains('search-off')) { any = true; break; } el = el.nextElementSibling; }
+      pl.classList.toggle('search-off', !any);
+    });
+  }
+  q.addEventListener('input', run);
+  scope.addEventListener('change', run);
 }
 
 // 챕터 단일 보기 + 이전/다음 이동 + 맨 위로
 function initSingle() {
   var order = [].slice.call(document.querySelectorAll('.nav-item'))
-    .filter(function (n) { return n.style.display !== 'none'; })
     .map(function (n) { return n.getAttribute('href').slice(1); });
 
   var chapNav = document.getElementById('chapNav');

@@ -31,6 +31,11 @@ begin
   end if;
 end $$;
 
+-- 서버 시간 조회용 함수 (매뉴얼 공개 판단을 로컬 시계가 아니라 서버 시간 기준으로)
+create or replace function public.server_now()
+  returns timestamptz language sql stable as $$ select now() $$;
+grant execute on function public.server_now() to anon, authenticated;
+
 -- 로그인 사용자 읽기 정책 (없을 때만 — 이미 있으면 건너뜀)
 do $$
 begin
