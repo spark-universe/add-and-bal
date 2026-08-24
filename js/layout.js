@@ -48,6 +48,7 @@
       { key: 'cohorts',     section: '공통',              ico: '🎓', label: '기수 관리',    href: 'cohorts.html' },
       { key: 'events',      section: '공통',              ico: '📅', label: '일정 관리',    href: 'events.html' },
 
+      { key: 'manual-edit', section: '챌린지',            ico: '📖', label: '매뉴얼 편집',   href: 'manual-edit.html' },
       { key: 'manualsched', section: '챌린지',            ico: '📘', label: '매뉴얼 공개',   href: 'manual-schedule.html' },
       { key: 'challenges',  section: '챌린지',            ico: '📋', label: '숙제 관리',    href: 'challenges.html' },
 
