@@ -500,7 +500,7 @@
     // 연결된 매뉴얼 챕터로 바로가기 (새 탭). 연결 안 됐으면 표시 안 함
     var manualHtml = c.manual_slug
       ? '<a class="ch-manual-link" href="manual.html#' + esc(c.manual_slug) + '" target="_blank" rel="noopener">' +
-          '📘 관련 매뉴얼 보기 <span aria-hidden="true">↗</span></a>'
+          '📘 관련 챌린지 보기 <span aria-hidden="true">↗</span></a>'
       : '';
 
     // 관련 자료: 업로드 파일 다운로드 + 외부 링크
