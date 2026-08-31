@@ -97,6 +97,17 @@ body.manual-page { margin:0; background:#fff; }
 .manual-doc .mn-intro__start:hover span{transform:translateX(4px)}
 .manual-doc .mn-intro__start:active{transform:scale(.97)}
 
+/* 완주 보상 배너 */
+.manual-doc .mn-intro__reward{display:flex;align-items:center;gap:16px;margin-top:18px;padding:18px 20px;
+  border:1.5px solid #ffe0a3;border-radius:16px;
+  background:linear-gradient(135deg,#fff8ea 0%,#fff3f6 100%);box-shadow:0 4px 14px rgba(214,158,46,.10)}
+.manual-doc .mn-intro__reward-ico{flex:0 0 auto;font-size:34px;line-height:1;
+  filter:drop-shadow(0 3px 5px rgba(214,158,46,.28))}
+.manual-doc .mn-intro__reward-txt{display:flex;flex-direction:column;gap:3px;min-width:0}
+.manual-doc .mn-intro__reward-txt>b{font-size:13px;font-weight:800;letter-spacing:.02em;color:#b9791a}
+.manual-doc .mn-intro__reward-txt>span{font-size:14.5px;line-height:1.65;color:#5a4a26;word-break:keep-all}
+.manual-doc .mn-intro__reward-hl{color:var(--accent-d);background:var(--accent-soft);border-radius:6px;padding:1px 7px}
+
 /* 진행 단계 카드 */
 .manual-doc .mn-intro__howhead{font-size:15px;font-weight:800;color:var(--ink);margin:30px 2px 12px}
 .manual-doc .mn-intro__how{display:flex;flex-direction:column;gap:10px;margin-bottom:22px}
