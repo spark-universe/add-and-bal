@@ -199,10 +199,10 @@
     }
     return opts;
   }
-  // 심화 과정 영역 (개별 열람 체크)
+  // 단계별 열람 영역 (개별 체크)
   var ACCESS_AREAS = [
-    { k: 'ohome', l: '심화 메인' }, { k: 'basic', l: '기본 설정' }, { k: 'ad', l: '광고 설정' },
-    { k: 'practice', l: '발주 연습' }, { k: 'cbguide', l: '차지백' }
+    { k: 'challenge', l: '챌린지' }, { k: 'advanced', l: '심화 과정' },
+    { k: 'ad', l: '광고 설정' }, { k: 'practice', l: '발주 연습' }
   ];
   var ALL_AREAS = ACCESS_AREAS.map(function (a) { return a.k; });
   function userAccess(u) {
@@ -436,7 +436,7 @@
   // 승인: 기수 + 수강일 저장
   async function approveOne(id, cohortVal, dateVal) {
     var res = await sb.from('profiles')
-      .update({ status: 'approved', cohort: cohortVal, enroll_date: dateVal || null })
+      .update({ status: 'approved', cohort: cohortVal, enroll_date: dateVal || null, access: ['challenge'] })
       .eq('id', id).select();
     if (res.error) { alert('승인 실패: ' + res.error.message); return false; }
     if (!res.data || !res.data.length) { alert('승인 권한이 없어 반영되지 않았습니다. (어드민 정책 SQL 확인)'); return false; }

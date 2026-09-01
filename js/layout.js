@@ -18,21 +18,31 @@
       {
         id: 'challenge', ico: '🐤', label: '챌린지',
         items: [
-          { key: 'chome',    ico: '🏆', label: '챌린지 메인',    href: 'challenge.html' },
-          { key: 'calendar', ico: '📅', label: '일정 보기',      href: 'challenge-calendar.html' },
-          { key: 'all',      ico: '📋', label: '숙제 전체 보기',  href: 'challenge-all.html' },
-          { key: 'mine',     ico: '🗂️', label: '내 숙제',        href: 'challenge-mine.html' },
-          { key: 'manual',   ico: '📘', label: '챌린지 보기',     href: 'manual.html', target: '_blank' },
+          { key: 'chome',    ico: '🏆', label: '챌린지 메인',    href: 'challenge.html',          lock: true, area: 'challenge' },
+          { key: 'calendar', ico: '📅', label: '일정 보기',      href: 'challenge-calendar.html', lock: true, area: 'challenge' },
+          { key: 'all',      ico: '📋', label: '숙제 전체 보기',  href: 'challenge-all.html',      lock: true, area: 'challenge' },
+          { key: 'mine',     ico: '🗂️', label: '내 숙제',        href: 'challenge-mine.html',     lock: true, area: 'challenge' },
+          { key: 'manual',   ico: '📘', label: '챌린지 보기',     href: 'manual.html', target: '_blank', lock: true, area: 'challenge' },
         ],
       },
       {
-        id: 'order', ico: '👑', label: '챌린지 심화 과정',
+        id: 'advanced', ico: '⚙️', label: '심화 과정',
         items: [
-          { key: 'ohome',    ico: '🏠', label: '심화 과정 메인',   href: 'order-home.html',     lock: true },
-          { key: 'basic',    ico: '⚙️', label: '기본 설정',      href: 'basic-settings.html', lock: true },
-          { key: 'ad',       ico: '📢', label: '광고 설정',      href: 'ad-settings.html',    lock: true },
-          { key: 'practice', ico: '📦', label: '발주 연습',      href: 'order-practice.html', lock: true },
-          { key: 'cbguide',  ico: '📕', label: '차지백 가이드',   href: 'chargeback-manual.html', target: '_blank', lock: true },
+          { key: 'ohome',    ico: '🏠', label: '심화 과정 메인',   href: 'order-home.html',     lock: true, area: 'advanced' },
+          { key: 'basic',    ico: '⚙️', label: '기본 설정',      href: 'basic-settings.html', lock: true, area: 'advanced' },
+        ],
+      },
+      {
+        id: 'ad', ico: '📢', label: '광고 설정',
+        items: [
+          { key: 'ad',       ico: '📢', label: '광고 설정',      href: 'ad-settings.html',    lock: true, area: 'ad' },
+        ],
+      },
+      {
+        id: 'practice', ico: '📦', label: '발주 연습',
+        items: [
+          { key: 'practice', ico: '📦', label: '발주 연습',      href: 'order-practice.html', lock: true, area: 'practice' },
+          { key: 'cbguide',  ico: '📕', label: '차지백 가이드',   href: 'chargeback-manual.html', target: '_blank', lock: true, area: 'practice' },
         ],
       },
     ],
@@ -66,7 +76,8 @@
     const cls = ((it.key === active ? 'is-active ' : '') + (it.lock ? 'is-lockable ' : '') + (extraCls || '')).trim();
     const tgt = it.target ? ' target="' + it.target + '" rel="noopener"' : '';
     const ext = it.target === '_blank' ? ' <span class="nav-ext">↗</span>' : '';
-    return '<a class="' + cls + '" href="' + it.href + '"' + tgt + ' data-key="' + it.key + '">' +
+    const areaAttr = it.area ? ' data-area="' + it.area + '"' : '';
+    return '<a class="' + cls + '" href="' + it.href + '"' + tgt + ' data-key="' + it.key + '"' + areaAttr + '>' +
            '<span class="ico">' + it.ico + '</span>' + it.label + ext + '</a>';
   }
 
@@ -164,12 +175,12 @@
         if (p.role === 'admin' || (p.level || 0) >= 1) return;   // 어드민·전체열람은 잠금 없음
         var access = Array.isArray(p.access) ? p.access : [];
         document.querySelectorAll('.nav a.is-lockable').forEach(function (a) {
-          if (access.indexOf(a.getAttribute('data-key')) !== -1) return;   // 이 영역은 열람 허용
+          if (access.indexOf(a.getAttribute('data-area')) !== -1) return;   // 이 영역은 열람 허용
           a.classList.add('is-locked');
           a.insertAdjacentHTML('beforeend', ' <span class="nav-lock">🔒</span>');
           a.addEventListener('click', function (e) {
             e.preventDefault();
-            alert('이 과정은 아직 열람 권한이 없습니다.\n챌린지를 마치고 승인되면 열립니다.');
+            alert('이 영역은 아직 열람 권한이 없습니다.\n담당자에게 문의해 주세요.');
           });
         });
       } catch (e) {}
