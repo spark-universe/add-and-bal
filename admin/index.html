@@ -15,6 +15,8 @@
       <p>발주 &amp; 광고 설정 훈련 관리 대시보드</p>
     </div>
 
+    <div id="adminNoti" class="admin-noti"></div>
+
     <div class="stat-row">
       <a class="stat" href="users.html" style="text-decoration:none;color:inherit;">
         <div class="label">총 가입자</div>
@@ -67,6 +69,23 @@
   }
   function fmtDate(iso) { return iso ? iso.slice(0, 10) : '-'; }
 
+  function renderNoti(upN, hwN, matN) {
+    var box = document.getElementById('adminNoti');
+    if (!box) return;
+    var items = [];
+    if (hwN) items.push({ href: 'challenges.html', ico: '📝', label: '숙제 검수 요청', n: hwN });
+    if (matN) items.push({ href: 'review.html', ico: '📂', label: '자료 검수 대기', n: matN });
+    if (upN) items.push({ href: 'users.html', ico: '🎓', label: '승급(등업) 신청', n: upN });
+    if (!items.length) { box.innerHTML = ''; return; }
+    box.innerHTML = '<div class="an-head">🔔 확인이 필요한 알림</div><div class="an-row">' +
+      items.map(function (it) {
+        return '<a class="an-card" href="' + it.href + '">' +
+          '<span class="an-ico">' + it.ico + '</span>' +
+          '<span class="an-label">' + it.label + '</span>' +
+          '<span class="an-badge">' + it.n + '</span></a>';
+      }).join('') + '</div>';
+  }
+
   async function load() {
     // 프로필 (수강생) 통계
     var pr = await sb.from('profiles').select('id, name, status').neq('role', 'admin');
@@ -80,7 +99,21 @@
     // 제출 통계 + 최근 목록
     var su = await sb.from('submissions').select('*').order('created_at', { ascending: false });
     var subs = (su.data || []);
-    document.getElementById('cReview').textContent = subs.filter(function (r) { return r.status === 'confirmed'; }).length;
+    var matN = subs.filter(function (r) { return r.status === 'confirmed'; }).length;   // 자료 검수 대기
+    document.getElementById('cReview').textContent = matN;
+
+    // 알림용 집계: 승급(등업) 신청 + 숙제 검수 요청
+    var upN = 0, hwN = 0;
+    try {
+      var lr = await sb.from('level_requests').select('id,status').eq('status', 'pending');
+      upN = (lr.data || []).length;
+    } catch (e) {}
+    try {
+      var cs = await sb.from('challenge_submissions').select('id,status,review_status');
+      hwN = (cs.data || []).filter(function (s) { return s.status !== 'draft' && s.review_status === 'pending'; }).length;
+    } catch (e) {}
+    document.getElementById('cUpgrade').textContent = upN;
+    renderNoti(upN, hwN, matN);
 
     var recent = subs.slice(0, 5);
     if (!recent.length) {
