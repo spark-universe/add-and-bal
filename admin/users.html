@@ -94,7 +94,7 @@
       <div class="panel">
         <div class="panel__head"><span>등급 현황 <span id="lvlCount" style="color:var(--muted);font-weight:600;"></span></span></div>
         <table>
-          <thead><tr><th>성명</th><th>이메일</th><th>기수</th><th style="width:150px;">등급</th><th style="width:120px;">권한</th><th>신청 내역</th><th style="width:150px;">신청 처리</th></tr></thead>
+          <thead><tr><th>성명</th><th>이메일</th><th>기수</th><th style="width:270px;">열람 가능 영역</th><th style="width:120px;">권한</th><th>신청 내역</th><th style="width:150px;">신청 처리</th></tr></thead>
           <tbody id="levelBody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr></tbody>
         </table>
       </div>
@@ -199,12 +199,24 @@
     }
     return opts;
   }
-  // 등급(발주·광고 접근) 드롭다운
-  function levelSelect(u) {
-    var open = (u.level || 0) >= 1;
-    return '<select class="lv-sel" data-id="' + u.id + '" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;">' +
-      '<option value="0"' + (!open ? ' selected' : '') + '>잠금 (챌린지)</option>' +
-      '<option value="1"' + (open ? ' selected' : '') + '>열림 (발주·광고)</option></select>';
+  // 심화 과정 영역 (개별 열람 체크)
+  var ACCESS_AREAS = [
+    { k: 'ohome', l: '심화 메인' }, { k: 'basic', l: '기본 설정' }, { k: 'ad', l: '광고 설정' },
+    { k: 'practice', l: '발주 연습' }, { k: 'cbguide', l: '차지백' }
+  ];
+  var ALL_AREAS = ACCESS_AREAS.map(function (a) { return a.k; });
+  function userAccess(u) {
+    if ((u.level || 0) >= 1 && (!u.access || !u.access.length)) return ALL_AREAS.slice(); // 구 숙련자 = 전체
+    return Array.isArray(u.access) ? u.access : [];
+  }
+  // 영역별 열람 체크박스
+  function accessChecks(u) {
+    var acc = userAccess(u);
+    return '<div class="acc-checks">' + ACCESS_AREAS.map(function (a) {
+      var on = acc.indexOf(a.k) !== -1;
+      return '<label class="acc-chk"><input type="checkbox" class="acc-box" data-id="' + u.id +
+        '" data-area="' + a.k + '"' + (on ? ' checked' : '') + '>' + a.l + '</label>';
+    }).join('') + '</div>';
   }
   // 권한 드롭다운
   function roleSelect(u) {
@@ -214,9 +226,24 @@
       '<option value="admin"' + (isAdmin ? ' selected' : '') + '>관리자</option></select>';
   }
   async function doSetLevel(id, to) {
-    var res = await sb.from('profiles').update({ level: to }).eq('id', id).select();
+    // to=1 → 전체 영역 열람, to=0 → 전체 잠금
+    var acc = to >= 1 ? ALL_AREAS.slice() : [];
+    var res = await sb.from('profiles').update({ level: to, access: acc }).eq('id', id).select();
     if (res.error || !res.data || !res.data.length) { alert('등급 변경 실패' + (res.error ? ': ' + res.error.message : '')); return false; }
-    var u = all.filter(function (x) { return x.id === id; })[0]; if (u) u.level = to;
+    var u = all.filter(function (x) { return x.id === id; })[0]; if (u) { u.level = to; u.access = acc; }
+    return true;
+  }
+  // 영역 개별 열람 토글 (체크박스). 전 영역 열리면 level=1, 아니면 0
+  async function doSetAccess(id, area, on) {
+    var u = all.filter(function (x) { return x.id === id; })[0]; if (!u) return false;
+    var acc = userAccess(u).slice();
+    var i = acc.indexOf(area);
+    if (on && i === -1) acc.push(area);
+    if (!on && i !== -1) acc.splice(i, 1);
+    var level = acc.length >= ALL_AREAS.length ? 1 : 0;
+    var res = await sb.from('profiles').update({ access: acc, level: level }).eq('id', id).select();
+    if (res.error || !res.data || !res.data.length) { alert('열람 권한 변경 실패' + (res.error ? ': ' + res.error.message : '')); return false; }
+    u.access = acc; u.level = level;
     return true;
   }
   async function doSetRole(id, role) {
@@ -332,7 +359,7 @@
         '<td><b>' + esc(u.name) + '</b></td>' +
         '<td>' + esc(u.email) + '</td>' +
         '<td>' + cohortLabelOf(u.cohort) + '</td>' +
-        '<td>' + levelSelect(u) + '</td>' +
+        '<td>' + accessChecks(u) + '</td>' +
         '<td>' + roleSelect(u) + '</td>' +
         '<td>' + reqTag(u) + '</td>' +
         '<td>' + act + '</td>' +
@@ -633,8 +660,8 @@
     if (approveId) {
       var reqA = pendingReq[approveId];
       var uA = all.filter(function (x) { return x.id === approveId; })[0];
-      if (!confirm('"' + (uA ? uA.name : '수강생') + '"님의 등급업을 승인할까요? (발주 & 광고 훈련이 열립니다)')) return;
-      var up = await sb.from('profiles').update({ level: (reqA ? reqA.to_level : 1) || 1 }).eq('id', approveId).select();
+      if (!confirm('"' + (uA ? uA.name : '수강생') + '"님의 등급업을 승인할까요? (발주 & 광고 훈련 전체가 열립니다)')) return;
+      var up = await sb.from('profiles').update({ level: (reqA ? reqA.to_level : 1) || 1, access: ALL_AREAS }).eq('id', approveId).select();
       if (up.error || !up.data || !up.data.length) { alert('승인 실패' + (up.error ? ': ' + up.error.message : '')); return; }
       if (reqA) await sb.from('level_requests').update({ status: 'approved', decided_at: new Date().toISOString() }).eq('id', reqA.id);
       await load();
@@ -678,6 +705,12 @@
 
   // 등급 관리 탭: 등급/권한 드롭다운 변경
   els.levelBody.addEventListener('change', async function (e) {
+    var acc = e.target.closest('.acc-box');
+    if (acc) {
+      if (!(await doSetAccess(acc.dataset.id, acc.dataset.area, acc.checked))) acc.checked = !acc.checked;
+      renderLevels(); renderUsers();
+      return;
+    }
     var lv = e.target.closest('.lv-sel');
     if (lv) { if (await doSetLevel(lv.dataset.id, Number(lv.value))) { renderLevels(); renderUsers(); } return; }
     var role = e.target.closest('.role-sel');
