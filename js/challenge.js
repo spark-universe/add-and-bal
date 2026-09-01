@@ -79,6 +79,13 @@
   // 제출 확정된 것만 '제출 인정' (초안 draft 는 미인정). 구버전 submitted 는 확정으로 간주.
   function confirmed(c) { return !!(c.sub && c.sub.status !== 'draft'); }
 
+  // 검수 결과(통과/미통과) 알림 — 이미 본 결과는 localStorage 로 기억해 NEW 를 뗀다
+  function reviewed(c) { return confirmed(c) && (c.sub.review_status === 'pass' || c.sub.review_status === 'fail'); }
+  function revKey(s) { return 'chrev_' + s.id + '_' + (s.reviewed_at || ''); }
+  function isSeen(s) { try { return !!localStorage.getItem(revKey(s)); } catch (e) { return true; } }
+  function markSeen(s) { try { localStorage.setItem(revKey(s), '1'); } catch (e) {} }
+  function isNew(c) { return reviewed(c) && !isSeen(c.sub); }
+
   function statusTag(c) {
     if (confirmed(c)) {
       if (c.sub.review_status === 'pass') return '<span class="tag tag--ok">통과</span>';
@@ -112,6 +119,7 @@
     setText('cScore', score);
 
     await renderPromo(list);
+    renderReviewNoti(list);
 
     var upcoming = list.filter(function (c) { return !confirmed(c) && c.due_at; }).slice(0, 6);
     var body = document.getElementById('chBody');
@@ -133,6 +141,25 @@
         location.href = 'challenge-mine.html?open=' + this.dataset.id;
       });
     });
+  }
+
+  // 새로 검수된(안 본) 결과 알림 배너
+  function renderReviewNoti(list) {
+    var box = document.getElementById('reviewNoti');
+    if (!box) return;
+    var news = list.filter(isNew);
+    if (!news.length) { box.innerHTML = ''; return; }
+    var pass = news.filter(function (c) { return c.sub.review_status === 'pass'; }).length;
+    var fail = news.length - pass;
+    var parts = [];
+    if (pass) parts.push('통과 ' + pass + '건');
+    if (fail) parts.push('미통과 ' + fail + '건');
+    box.innerHTML =
+      '<a class="rev-noti" href="challenge-mine.html">' +
+        '<span class="rev-noti__ico">🔔</span>' +
+        '<span class="rev-noti__txt"><b>새 검수 결과 ' + news.length + '건</b>이 있어요 — ' + parts.join(' · ') +
+          '<span class="rev-noti__go">확인하기 →</span></span>' +
+      '</a>';
   }
 
   /* ===== 등급업(발주&광고 넘어가기) 신청 배너 ===== */
@@ -483,6 +510,11 @@
         review = c.sub.review_status === 'pass' ? '<span class="tag tag--ok">통과</span>'
           : c.sub.review_status === 'fail' ? '<span class="tag tag--no">미통과</span>'
           : '<span class="tag tag--wait">검수 대기</span>';
+        if (isNew(c)) review += ' <span class="ch-new">NEW</span>';
+        if (reviewed(c) && c.sub.reviewed_at) {
+          review += '<div style="font-size:0.72rem;color:var(--muted);margin-top:3px;">' +
+            fmtDeadline(c.sub.reviewed_at) + ' ' + (c.sub.review_status === 'pass' ? '통과' : '미통과') + '</div>';
+        }
         if (c.sub.review_reason) {
           review += '<div style="font-size:0.72rem;color:var(--muted);margin-top:3px;">' +
             esc(c.sub.review_reason) + '</div>';
@@ -527,6 +559,7 @@
   }
 
   function openDetail(c) {
+    if (reviewed(c)) markSeen(c.sub);   // 검수 결과를 열어보면 알림(NEW) 읽음 처리
     var d = daysLeft(c.due_at);
     var overdue = isOver(c.due_at) && !c.sub;
 
@@ -632,7 +665,10 @@
             ? '<div class="ch-review ' + (c.sub.review_status === 'pass' ? 'ok' : 'no') + '" style="margin-top:16px;">' +
                 (c.sub.review_status === 'pass' ? '✅ 검수 통과' : '❌ 미통과') +
                 (c.sub.score != null ? ' · ' + c.sub.score + '점' : '') +
-                (c.sub.review_reason ? '<div style="margin-top:6px;font-weight:400;">' +
+                (c.sub.reviewed_at ? '<div style="margin-top:6px;font-weight:600;">' +
+                  fmtDeadline(c.sub.reviewed_at) + '에 ' +
+                  (c.sub.review_status === 'pass' ? '통과' : '미통과') + ' 처리되었습니다.</div>' : '') +
+                (c.sub.review_reason ? '<div style="margin-top:6px;font-weight:400;">사유: ' +
                   esc(c.sub.review_reason) + '</div>' : '') +
               '</div>'
             : '') +
