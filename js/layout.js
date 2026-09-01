@@ -161,13 +161,15 @@
           if (nameEl) nameEl.textContent = p.name || '테스트 계정';
           return;
         }
-        if (p.role === 'admin' || (p.level || 0) >= 1) return;   // 열린 학생·어드민은 잠금 없음
+        if (p.role === 'admin' || (p.level || 0) >= 1) return;   // 어드민·전체열람은 잠금 없음
+        var access = Array.isArray(p.access) ? p.access : [];
         document.querySelectorAll('.nav a.is-lockable').forEach(function (a) {
+          if (access.indexOf(a.getAttribute('data-key')) !== -1) return;   // 이 영역은 열람 허용
           a.classList.add('is-locked');
           a.insertAdjacentHTML('beforeend', ' <span class="nav-lock">🔒</span>');
           a.addEventListener('click', function (e) {
             e.preventDefault();
-            alert('챌린지 심화 과정은 아직 열리지 않았습니다.\n챌린지를 모두 마치고 승인되면 열립니다.');
+            alert('이 과정은 아직 열람 권한이 없습니다.\n챌린지를 마치고 승인되면 열립니다.');
           });
         });
       } catch (e) {}

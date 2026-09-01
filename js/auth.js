@@ -71,13 +71,22 @@ document.addEventListener('click', function (e) {
   if (me.role === 'admin') return;
   if (me.is_demo) {                       // 데모: 광고 설정/캠페인 만들기만 허용
     window.__demoSim = true;              // 이 계정은 sessionStorage 사용(격리·자동삭제)
-    var page = location.pathname.split('/').pop();
-    if (page !== 'ad-settings.html' && page !== 'ad-campaign.html') {
+    var dpage = location.pathname.split('/').pop();
+    if (dpage !== 'ad-settings.html' && dpage !== 'ad-campaign.html') {
       location.href = Auth.prefix() + 'ad-settings.html';
     }
     return;
   }
-  if ((me.level || 0) >= 1) return;
-  alert('챌린지 심화 과정은 아직 열리지 않았습니다.\n챌린지를 모두 마치고 승인되면 열립니다.');
+  // 영역별 열람: 이 페이지가 속한 영역이 access 에 있으면 허용 (전체열람 level>=1 도 허용)
+  var PAGE_AREA = {
+    'order-home.html': 'ohome', 'basic-settings.html': 'basic',
+    'ad-settings.html': 'ad', 'ad-campaign.html': 'ad',
+    'order-practice.html': 'practice', 'chargeback-manual.html': 'cbguide'
+  };
+  var page = location.pathname.split('/').pop();
+  var area = PAGE_AREA[page];
+  var access = Array.isArray(me.access) ? me.access : [];
+  if ((me.level || 0) >= 1 || (area && access.indexOf(area) !== -1)) return;
+  alert('이 과정은 아직 열람 권한이 없습니다.\n챌린지를 마치고 승인되면 열립니다.');
   location.href = Auth.prefix() + 'index.html';
 })();
