@@ -737,6 +737,9 @@
     myId = admin.id;
     await load();
   })();
+
+  // 기수 관리에서 기수를 만들고 뒤로가기로 돌아오면 bfcache 로 예전 목록이 남는다 → 복귀 시 새로 로드
+  window.addEventListener('pageshow', function (e) { if (e.persisted && myId) load(); });
 })();
 </script>
 </body>
