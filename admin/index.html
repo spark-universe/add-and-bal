@@ -99,7 +99,10 @@
     // 제출 통계 + 최근 목록
     var su = await sb.from('submissions').select('*').order('created_at', { ascending: false });
     var subs = (su.data || []);
-    var matN = subs.filter(function (r) { return r.status === 'confirmed'; }).length;   // 자료 검수 대기
+    // 자료 검수 대기 = 확정됐지만 아직 통과/미통과 안 된 것 (review.html 과 동일 기준)
+    var matN = subs.filter(function (r) {
+      return r.status === 'confirmed' && r.review_status !== 'pass' && r.review_status !== 'fail';
+    }).length;
     document.getElementById('cReview').textContent = matN;
 
     // 알림용 집계: 승급(등업) 신청 + 숙제 검수 요청
