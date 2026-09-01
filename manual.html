@@ -63,9 +63,31 @@
   applyStatus(ctx);               // 뱃지 + 미공개 본문 잠금 (표시 전에 처리)
   initSearch();
   initSingle();
+  initLightbox();
   var doc = document.querySelector('.manual-doc');
   if (doc) doc.classList.add('ready');
 })();
+
+// 이미지 클릭 → 크게 보기 (라이트박스)
+function initLightbox() {
+  var box = null;
+  function close() { if (box) { box.classList.remove('is-open'); var b = box; setTimeout(function () { if (b && b.parentNode) b.parentNode.removeChild(b); }, 180); box = null; document.removeEventListener('keydown', onKey); } }
+  function onKey(e) { if (e.key === 'Escape') close(); }
+  function open(src) {
+    box = document.createElement('div');
+    box.className = 'mn-lightbox';
+    box.innerHTML = '<button class="mn-lightbox__x" aria-label="닫기">×</button><img src="' + src + '" alt="">';
+    document.body.appendChild(box);
+    box.getBoundingClientRect();               // reflow → transition
+    box.classList.add('is-open');
+    box.addEventListener('click', function (e) { if (e.target.tagName !== 'IMG') close(); });
+    document.addEventListener('keydown', onKey);
+  }
+  document.getElementById('manualBody').addEventListener('click', function (e) {
+    var img = e.target.closest('figure.shot img');
+    if (img) open(img.getAttribute('src'));
+  });
+}
 
 var CH = [];   // 렌더된 챕터 [{slug,title,bodyText}] — 검색용
 
