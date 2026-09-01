@@ -91,6 +91,7 @@
         <button class="seg__btn lv-tab" data-lv="locked">잠금</button>
         <button class="seg__btn lv-tab" data-lv="pending">신청 대기</button>
       </div>
+      <div class="lv-save-warn">⚠ 열람 영역을 바꾼 뒤 <b>[저장]</b> 버튼을 눌러야 반영됩니다. 저장 전에 다른 페이지로 이동하면 변경이 사라질 수 있어요.</div>
       <div class="panel">
         <div class="panel__head"><span>등급 현황 <span id="lvlCount" style="color:var(--muted);font-weight:600;"></span></span></div>
         <table>
@@ -216,7 +217,10 @@
       var on = acc.indexOf(a.k) !== -1;
       return '<label class="acc-chk"><input type="checkbox" class="acc-box" data-id="' + u.id +
         '" data-area="' + a.k + '"' + (on ? ' checked' : '') + '>' + a.l + '</label>';
-    }).join('') + '</div>';
+    }).join('') +
+      '<button class="btn-sm acc-save" data-save="' + u.id + '">저장</button>' +
+      '<span class="acc-saved" data-saved="' + u.id + '" hidden>✓ 저장됨</span>' +
+    '</div>';
   }
   // 권한 드롭다운
   function roleSelect(u) {
@@ -233,18 +237,24 @@
     var u = all.filter(function (x) { return x.id === id; })[0]; if (u) { u.level = to; u.access = acc; }
     return true;
   }
-  // 영역 개별 열람 토글 (체크박스). 전 영역 열리면 level=1, 아니면 0
-  async function doSetAccess(id, area, on) {
-    var u = all.filter(function (x) { return x.id === id; })[0]; if (!u) return false;
-    var acc = userAccess(u).slice();
-    var i = acc.indexOf(area);
-    if (on && i === -1) acc.push(area);
-    if (!on && i !== -1) acc.splice(i, 1);
+  // 저장 버튼: 그 행의 체크박스 상태를 한 번에 저장 (연속 클릭 경합 방지). 전 영역이면 level=1
+  async function saveAccess(id, btn) {
+    var boxes = els.levelBody.querySelectorAll('.acc-box[data-id="' + id + '"]');
+    var acc = [];
+    boxes.forEach(function (b) { if (b.checked) acc.push(b.dataset.area); });
     var level = acc.length >= ALL_AREAS.length ? 1 : 0;
+    if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
     var res = await sb.from('profiles').update({ access: acc, level: level }).eq('id', id).select();
-    if (res.error || !res.data || !res.data.length) { alert('열람 권한 변경 실패' + (res.error ? ': ' + res.error.message : '')); return false; }
-    u.access = acc; u.level = level;
-    return true;
+    if (btn) btn.disabled = false;
+    if (res.error || !res.data || !res.data.length) {
+      if (btn) btn.textContent = '저장';
+      alert('저장 실패' + (res.error ? ': ' + res.error.message : ' (권한/정책 확인)')); return;
+    }
+    var u = all.filter(function (x) { return x.id === id; })[0]; if (u) { u.access = acc; u.level = level; }
+    if (btn) { btn.classList.remove('is-dirty'); btn.textContent = '저장'; }
+    var sv = els.levelBody.querySelector('.acc-saved[data-saved="' + id + '"]');
+    if (sv) { sv.hidden = false; setTimeout(function () { sv.hidden = true; }, 2000); }
+    renderUsers();   // 사용자 탭 뱃지 동기화 (등급 관리 표는 유지)
   }
   async function doSetRole(id, role) {
     if (role === 'student' && id === myId) { alert('본인의 관리자 권한은 해제할 수 없습니다.'); renderLevels(); return; }
@@ -631,6 +641,8 @@
   async function onUserClick(e) {
     var btn = e.target.closest('button');
     if (!btn) return;
+    var saveAcc = btn.getAttribute('data-save');
+    if (saveAcc) { await saveAccess(saveAcc, btn); return; }
     var detail = btn.getAttribute('data-detail');
     var reset = btn.getAttribute('data-reset');
     var levelId = btn.getAttribute('data-level');
@@ -703,16 +715,15 @@
   els.userBody.addEventListener('click', onUserClick);
   els.levelBody.addEventListener('click', onUserClick);   // 등급 관리 탭도 같은 동작
 
-  // 등급 관리 탭: 등급/권한 드롭다운 변경
+  // 등급 관리 탭: 체크박스는 '저장 필요'만 표시(저장 버튼으로 일괄 저장) / 권한은 즉시
   els.levelBody.addEventListener('change', async function (e) {
     var acc = e.target.closest('.acc-box');
     if (acc) {
-      if (!(await doSetAccess(acc.dataset.id, acc.dataset.area, acc.checked))) acc.checked = !acc.checked;
-      renderLevels(); renderUsers();
+      var btn = els.levelBody.querySelector('.acc-save[data-save="' + acc.dataset.id + '"]');
+      if (btn) { btn.classList.add('is-dirty'); btn.textContent = '저장하기'; }
+      var sv = els.levelBody.querySelector('.acc-saved[data-saved="' + acc.dataset.id + '"]'); if (sv) sv.hidden = true;
       return;
     }
-    var lv = e.target.closest('.lv-sel');
-    if (lv) { if (await doSetLevel(lv.dataset.id, Number(lv.value))) { renderLevels(); renderUsers(); } return; }
     var role = e.target.closest('.role-sel');
     if (role) { await doSetRole(role.dataset.id, role.value); return; }
   });
@@ -737,6 +748,13 @@
     myId = admin.id;
     await load();
   })();
+
+  // 기수 관리에서 기수를 만들고 뒤로가기로 돌아오면 bfcache 로 예전 목록이 남는다 → 복귀 시 새로 로드
+  window.addEventListener('pageshow', function (e) { if (e.persisted && myId) load(); });
+  // 저장 안 한 열람권한 변경이 있으면 이탈 시 경고
+  window.addEventListener('beforeunload', function (e) {
+    if (document.querySelector('.acc-save.is-dirty')) { e.preventDefault(); e.returnValue = ''; }
+  });
 })();
 </script>
 </body>
