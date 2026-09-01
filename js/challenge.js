@@ -34,7 +34,7 @@
   async function loadServerNow() {
     try { var r = await sb.rpc('server_now'); if (r && r.data) { var t = Date.parse(r.data); if (!isNaN(t)) serverNow = t; } } catch (e) {}
   }
-  var REWORK_MS = 7 * 86400000;   // 반려일로부터 7일
+  var REWORK_MS = 3 * 86400000;   // 반려일로부터 3일
   function fmtDeadline(t) {
     try { return new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(t)); }
     catch (e) { return new Date(t).toLocaleString('ko-KR'); }
@@ -539,8 +539,8 @@
     var isConf = confirmed(c);                       // 제출 확정 여부
     var rejected = isConf && c.sub.review_status === 'fail';          // 반려(미통과)
     var reworkUntil = (rejected && c.sub.reviewed_at) ? Date.parse(c.sub.reviewed_at) + REWORK_MS : null;
-    var canRework = !!reworkUntil && serverNow <= reworkUntil;        // 반려일로부터 7일 이내면 재작업 가능
-    var locked = isConf && !canRework;               // 확정 & (통과/대기/반려7일경과) → 잠금
+    var canRework = !!reworkUntil && serverNow <= reworkUntil;        // 반려일로부터 3일 이내면 재작업 가능
+    var locked = isConf && !canRework;               // 확정 & (통과/대기/반려3일경과) → 잠금
     var overdue = isOver(c.due_at) && !isConf;       // 신규/초안 + 마감 지남 → 제출 불가
     var already = c.sub && c.sub.file_name
       ? '<div class="ch-file">📎 첨부: ' + esc(c.sub.file_name) + '</div>' : '';
@@ -549,7 +549,7 @@
     if (locked) {
       // ===== 잠금(읽기 전용) =====
       var lockMsg = rejected
-        ? '❌ 미통과 · 재작업 기간(반려 후 7일)이 지나 다시 제출할 수 없습니다.'
+        ? '❌ 미통과 · 재작업 기간(반려 후 3일)이 지나 다시 제출할 수 없습니다.'
         : '🔒 제출이 확정되어 더 이상 수정할 수 없습니다.';
       submitSection =
         '<div class="ch-submit">' +
@@ -563,7 +563,7 @@
       // ===== 미확정(초안) 또는 반려 후 재작업 =====
       var draftNote;
       if (canRework) {
-        draftNote = '<div class="ch-rework-note">❌ 미통과되었습니다. <b>반려일로부터 7일 이내</b>(' +
+        draftNote = '<div class="ch-rework-note">❌ 미통과되었습니다. <b>반려일로부터 3일 이내</b>(' +
           fmtDeadline(reworkUntil) + '까지) 수정 후 다시 <b>제출 확정</b>하면 재검수됩니다.</div>';
       } else {
         draftNote = c.sub
