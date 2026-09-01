@@ -29,12 +29,24 @@
   }
   function isOver(due) { return due ? (new Date(due) - new Date() < 0) : false; }
 
+  // 서버(한국) 시간 — 반려 후 재작업 기한 판단에 로컬 시계 대신 사용
+  var serverNow = Date.now();
+  async function loadServerNow() {
+    try { var r = await sb.rpc('server_now'); if (r && r.data) { var t = Date.parse(r.data); if (!isNaN(t)) serverNow = t; } } catch (e) {}
+  }
+  var REWORK_MS = 3 * 86400000;   // 반려일로부터 3일
+  function fmtDeadline(t) {
+    try { return new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(t)); }
+    catch (e) { return new Date(t).toLocaleString('ko-KR'); }
+  }
+
   // 과제 + 내 제출을 합쳐서 가져온다 (내 기수 과제만)
   var myCohortLabel = '';
   var myCohort = 1;                 // 내 기수 (캘린더의 매뉴얼 예약 공개 조회에 사용)
   var manualTitles = {};            // slug → 매뉴얼 제목
   var monthManual = [];             // 이번 달 매뉴얼 예약 공개 (내 기수)
   async function fetchData() {
+    await loadServerNow();
     var prof = await sb.from('profiles').select('cohort, enroll_date').eq('id', user.id).single();
     // 0 = 미분류(그대로 0으로 조회), null 이면 기본 1
     var cohort = (prof.data && prof.data.cohort != null) ? prof.data.cohort : 1;
@@ -525,29 +537,42 @@
     var materialHtml = matParts.join('');
 
     var isConf = confirmed(c);                       // 제출 확정 여부
-    var overdue = isOver(c.due_at) && !isConf;       // 확정 전 + 마감 지남 → 제출 불가
+    var rejected = isConf && c.sub.review_status === 'fail';          // 반려(미통과)
+    var reworkUntil = (rejected && c.sub.reviewed_at) ? Date.parse(c.sub.reviewed_at) + REWORK_MS : null;
+    var canRework = !!reworkUntil && serverNow <= reworkUntil;        // 반려일로부터 3일 이내면 재작업 가능
+    var locked = isConf && !canRework;               // 확정 & (통과/대기/반려3일경과) → 잠금
+    var overdue = isOver(c.due_at) && !isConf;       // 신규/초안 + 마감 지남 → 제출 불가
     var already = c.sub && c.sub.file_name
       ? '<div class="ch-file">📎 첨부: ' + esc(c.sub.file_name) + '</div>' : '';
 
     var submitSection, footBtns;
-    if (isConf) {
-      // ===== 확정됨: 잠금(읽기 전용) =====
+    if (locked) {
+      // ===== 잠금(읽기 전용) =====
+      var lockMsg = rejected
+        ? '❌ 미통과 · 재작업 기간(반려 후 3일)이 지나 다시 제출할 수 없습니다.'
+        : '🔒 제출이 확정되어 더 이상 수정할 수 없습니다.';
       submitSection =
         '<div class="ch-submit">' +
-          '<div class="ch-submit__title">📤 과제 제출 <span class="tag tag--ok">제출 확정됨</span></div>' +
-          '<div class="ch-locked">🔒 제출이 확정되어 더 이상 수정할 수 없습니다.</div>' +
+          '<div class="ch-submit__title">📤 과제 제출 <span class="tag ' + (rejected ? 'tag--no">미통과' : 'tag--ok">제출 확정됨') + '</span></div>' +
+          '<div class="ch-locked">' + lockMsg + '</div>' +
           (c.sub.content ? '<div class="ch-subview">' + esc(c.sub.content) + '</div>' : '') +
           already +
         '</div>';
       footBtns = '<button class="btn-sm" data-close>닫기</button>';
     } else {
-      // ===== 미확정: 임시 저장 + 제출 확정 =====
-      var draftNote = c.sub
-        ? '<div class="ch-draft-note">✎ 임시저장된 초안입니다. <b>제출 확정하기</b>를 눌러야 제출로 인정됩니다.</div>' : '';
+      // ===== 미확정(초안) 또는 반려 후 재작업 =====
+      var draftNote;
+      if (canRework) {
+        draftNote = '<div class="ch-rework-note">❌ 미통과되었습니다. <b>반려일로부터 3일 이내</b>(' +
+          fmtDeadline(reworkUntil) + '까지) 수정 후 다시 <b>제출 확정</b>하면 재검수됩니다.</div>';
+      } else {
+        draftNote = c.sub
+          ? '<div class="ch-draft-note">✎ 임시저장된 초안입니다. <b>제출 확정하기</b>를 눌러야 제출로 인정됩니다.</div>' : '';
+      }
       submitSection =
         '<div class="ch-submit">' +
           '<div class="ch-submit__title">📤 과제 제출' +
-            (c.sub ? ' <span class="tag tag--wait">임시저장</span>' : '') + '</div>' +
+            (canRework ? ' <span class="tag tag--no">재작업</span>' : (c.sub ? ' <span class="tag tag--wait">임시저장</span>' : '')) + '</div>' +
           draftNote +
           '<div class="field">' +
             '<label>제출 내용 (메모 · 링크)</label>' +
