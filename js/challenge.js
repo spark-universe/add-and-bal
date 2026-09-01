@@ -632,7 +632,8 @@
             '<input type="file" id="chFile"' + (overdue ? ' disabled' : '') + '>' +
             already +
           '</div>' +
-          (overdue ? '<div class="adv-warn danger">마감이 지나 제출할 수 없습니다.</div>' : '') +
+          (overdue ? '<div class="adv-warn danger">마감이 지나 제출할 수 없습니다.</div>'
+            : '<div class="ch-confirm-warn">📌 제출 후 반드시 <b>제출 확정하기</b>를 눌러야 채점됩니다. 확정하지 않으면 관리자가 채점할 수 없어 <b>미제출</b>로 분류돼요.</div>') +
           '<div id="chErr" style="color:var(--danger);font-size:0.82rem;"></div>' +
         '</div>';
       footBtns = '<button class="btn-sm" data-close>닫기</button>' +

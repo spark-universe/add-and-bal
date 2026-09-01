@@ -91,6 +91,7 @@
         <button class="seg__btn lv-tab" data-lv="locked">잠금</button>
         <button class="seg__btn lv-tab" data-lv="pending">신청 대기</button>
       </div>
+      <div class="lv-save-warn">⚠ 열람 영역을 바꾼 뒤 <b>[저장]</b> 버튼을 눌러야 반영됩니다. 저장 전에 다른 페이지로 이동하면 변경이 사라질 수 있어요.</div>
       <div class="panel">
         <div class="panel__head"><span>등급 현황 <span id="lvlCount" style="color:var(--muted);font-weight:600;"></span></span></div>
         <table>
@@ -750,6 +751,10 @@
 
   // 기수 관리에서 기수를 만들고 뒤로가기로 돌아오면 bfcache 로 예전 목록이 남는다 → 복귀 시 새로 로드
   window.addEventListener('pageshow', function (e) { if (e.persisted && myId) load(); });
+  // 저장 안 한 열람권한 변경이 있으면 이탈 시 경고
+  window.addEventListener('beforeunload', function (e) {
+    if (document.querySelector('.acc-save.is-dirty')) { e.preventDefault(); e.returnValue = ''; }
+  });
 })();
 </script>
 </body>
