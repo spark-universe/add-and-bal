@@ -79,9 +79,9 @@ document.addEventListener('click', function (e) {
   }
   // 영역별 열람: 이 페이지가 속한 영역이 access 에 있으면 허용 (전체열람 level>=1 도 허용)
   var PAGE_AREA = {
-    'order-home.html': 'ohome', 'basic-settings.html': 'basic',
+    'order-home.html': 'advanced', 'basic-settings.html': 'advanced',
     'ad-settings.html': 'ad', 'ad-campaign.html': 'ad',
-    'order-practice.html': 'practice', 'chargeback-manual.html': 'cbguide'
+    'order-practice.html': 'practice', 'chargeback-manual.html': 'practice'
   };
   var page = location.pathname.split('/').pop();
   var area = PAGE_AREA[page];
