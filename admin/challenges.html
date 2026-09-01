@@ -100,7 +100,13 @@
     </section>
 
     <section id="tab-review" hidden>
-      <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
+        <div class="seg" id="revSeg">
+          <button class="seg__btn" data-st="all">전체 보기</button>
+          <button class="seg__btn is-on" data-st="pending">미검수 보기</button>
+          <button class="seg__btn" data-st="pass">통과 보기</button>
+          <button class="seg__btn" data-st="fail">미통과 보기</button>
+        </div>
         <select id="chFilter" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;">
           <option value="">전체 숙제</option>
         </select>
