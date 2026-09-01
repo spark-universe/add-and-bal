@@ -174,7 +174,8 @@
 
     // 제출 (대기 먼저, 최신순)
     var su = await sb.from('challenge_submissions').select('*').order('created_at', { ascending: false });
-    subs = (su.data || []).sort(function (a, b) {
+    // 제출 확정된 것만 검수 대상 (초안 draft 는 제외). 구버전(status 없음/submitted)은 포함.
+    subs = (su.data || []).filter(function (s) { return s.status !== 'draft'; }).sort(function (a, b) {
       var order = { pending: 0, fail: 1, pass: 2 };
       return (order[a.review_status] || 0) - (order[b.review_status] || 0);
     });

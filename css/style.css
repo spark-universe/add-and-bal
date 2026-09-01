@@ -110,9 +110,16 @@ a { color: inherit; text-decoration: none; }
 .ch-submit {
   margin-top: 18px; border-top: 2px solid var(--border); padding-top: 16px;
 }
-.ch-submit__title { font-weight: 800; font-size: 0.92rem; margin-bottom: 12px; }
+.ch-submit__title { font-weight: 800; font-size: 0.92rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
 .ch-file { font-size: 0.82rem; color: var(--muted); margin-top: 8px; }
 .ch-file a { color: var(--primary); }
+/* 제출 확정 잠금 / 임시저장 안내 / 확정 내용 보기 */
+.ch-locked { background: #eef4ff; border: 1px solid #d6e2ff; color: var(--primary); font-size: 0.85rem;
+  font-weight: 700; border-radius: 8px; padding: 10px 12px; }
+.ch-draft-note { background: #fff8ea; border: 1px solid #f0dfbf; color: #8a6d1a; font-size: 0.82rem;
+  border-radius: 8px; padding: 9px 12px; margin-bottom: 12px; line-height: 1.55; }
+.ch-subview { white-space: pre-wrap; line-height: 1.65; font-size: 0.88rem; color: var(--text);
+  background: #f7f8fa; border: 1px solid var(--border); border-radius: 8px; padding: 11px 13px; margin-top: 10px; }
 
 /* 달력 */
 .cal {

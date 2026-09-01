@@ -64,14 +64,18 @@
       });
   }
 
+  // 제출 확정된 것만 '제출 인정' (초안 draft 는 미인정). 구버전 submitted 는 확정으로 간주.
+  function confirmed(c) { return !!(c.sub && c.sub.status !== 'draft'); }
+
   function statusTag(c) {
-    if (!c.sub) {
-      if (isOver(c.due_at)) return '<span class="tag tag--no">기한 지남</span>';
-      return '<span class="tag tag--wait">미제출</span>';
+    if (confirmed(c)) {
+      if (c.sub.review_status === 'pass') return '<span class="tag tag--ok">통과</span>';
+      if (c.sub.review_status === 'fail') return '<span class="tag tag--no">미통과</span>';
+      return '<span class="tag tag--wait">검수 대기</span>';
     }
-    if (c.sub.review_status === 'pass') return '<span class="tag tag--ok">통과</span>';
-    if (c.sub.review_status === 'fail') return '<span class="tag tag--no">미통과</span>';
-    return '<span class="tag tag--wait">검수 대기</span>';
+    if (c.sub) return '<span class="tag tag--wait">임시저장</span>';   // 초안(확정 전)
+    if (isOver(c.due_at)) return '<span class="tag tag--no">기한 지남</span>';
+    return '<span class="tag tag--wait">미제출</span>';
   }
 
   /* ================= 챌린지 메인 ================= */
@@ -83,10 +87,10 @@
     var list = await fetchData();
     var badge = document.getElementById('chCohort');
     if (badge && myCohortLabel) { badge.textContent = myCohortLabel; badge.hidden = false; }
-    var done = list.filter(function (c) { return c.sub; });
+    var done = list.filter(function (c) { return confirmed(c); });
     var soon = list.filter(function (c) {
       var d = daysLeft(c.due_at);
-      return !c.sub && d != null && d >= 0 && d <= 3;
+      return !confirmed(c) && d != null && d >= 0 && d <= 3;
     });
     var score = done.reduce(function (a, c) { return a + (c.sub.score || 0); }, 0);
 
@@ -97,7 +101,7 @@
 
     await renderPromo(list);
 
-    var upcoming = list.filter(function (c) { return !c.sub && c.due_at; }).slice(0, 6);
+    var upcoming = list.filter(function (c) { return !confirmed(c) && c.due_at; }).slice(0, 6);
     var body = document.getElementById('chBody');
     if (!upcoming.length) {
       body.innerHTML = row(3, list.length ? '마감이 임박한 미제출 숙제가 없습니다.' : '등록된 숙제가 없습니다.');
@@ -412,7 +416,7 @@
     if (!user) return;
     mineList = await fetchData();   // 미제출 과제까지 전부
 
-    var done = mineList.filter(function (c) { return c.sub; });
+    var done = mineList.filter(function (c) { return confirmed(c); });
     var pass = done.filter(function (c) { return c.sub.review_status === 'pass'; }).length;
     var wait = done.filter(function (c) { return c.sub.review_status === 'pending'; }).length;
     var score = done.reduce(function (a, c) { return a + (c.sub.score || 0); }, 0);
@@ -435,9 +439,9 @@
 
   function renderMine() {
     var list = mineList.filter(function (c) {
-      if (mineFilter === 'todo') return !c.sub;
-      if (mineFilter === 'done') return !!c.sub;
-      if (mineFilter === 'pass') return c.sub && c.sub.review_status === 'pass';
+      if (mineFilter === 'todo') return !confirmed(c);
+      if (mineFilter === 'done') return confirmed(c);
+      if (mineFilter === 'pass') return confirmed(c) && c.sub.review_status === 'pass';
       return true;
     });
     document.getElementById('mineCount').textContent =
@@ -450,13 +454,7 @@
     }
     body.innerHTML = list.map(function (c) {
       var review, submitted, score;
-      if (!c.sub) {
-        review = isOver(c.due_at)
-          ? '<span class="tag tag--no">기한 지남</span>'
-          : '<span class="tag tag--wait">미제출</span>';
-        submitted = '-';
-        score = '-';
-      } else {
+      if (confirmed(c)) {
         review = c.sub.review_status === 'pass' ? '<span class="tag tag--ok">통과</span>'
           : c.sub.review_status === 'fail' ? '<span class="tag tag--no">미통과</span>'
           : '<span class="tag tag--wait">검수 대기</span>';
@@ -466,6 +464,16 @@
         }
         submitted = fmtDate(c.sub.created_at);
         score = c.sub.score != null ? c.sub.score + '점' : '-';
+      } else if (c.sub) {          // 초안(확정 전)
+        review = '<span class="tag tag--wait">임시저장</span>';
+        submitted = '<span style="color:var(--muted);">미확정</span>';
+        score = '-';
+      } else {
+        review = isOver(c.due_at)
+          ? '<span class="tag tag--no">기한 지남</span>'
+          : '<span class="tag tag--wait">미제출</span>';
+        submitted = '-';
+        score = '-';
       }
       return '<tr class="ch-click" data-id="' + c.id + '">' +
         '<td style="text-align:left;font-weight:600;">' + esc(c.title) + '</td>' +
@@ -516,8 +524,51 @@
     }
     var materialHtml = matParts.join('');
 
+    var isConf = confirmed(c);                       // 제출 확정 여부
+    var overdue = isOver(c.due_at) && !isConf;       // 확정 전 + 마감 지남 → 제출 불가
     var already = c.sub && c.sub.file_name
       ? '<div class="ch-file">📎 첨부: ' + esc(c.sub.file_name) + '</div>' : '';
+
+    var submitSection, footBtns;
+    if (isConf) {
+      // ===== 확정됨: 잠금(읽기 전용) =====
+      submitSection =
+        '<div class="ch-submit">' +
+          '<div class="ch-submit__title">📤 과제 제출 <span class="tag tag--ok">제출 확정됨</span></div>' +
+          '<div class="ch-locked">🔒 제출이 확정되어 더 이상 수정할 수 없습니다.</div>' +
+          (c.sub.content ? '<div class="ch-subview">' + esc(c.sub.content) + '</div>' : '') +
+          already +
+        '</div>';
+      footBtns = '<button class="btn-sm" data-close>닫기</button>';
+    } else {
+      // ===== 미확정: 임시 저장 + 제출 확정 =====
+      var draftNote = c.sub
+        ? '<div class="ch-draft-note">✎ 임시저장된 초안입니다. <b>제출 확정하기</b>를 눌러야 제출로 인정됩니다.</div>' : '';
+      submitSection =
+        '<div class="ch-submit">' +
+          '<div class="ch-submit__title">📤 과제 제출' +
+            (c.sub ? ' <span class="tag tag--wait">임시저장</span>' : '') + '</div>' +
+          draftNote +
+          '<div class="field">' +
+            '<label>제출 내용 (메모 · 링크)</label>' +
+            '<textarea id="chContent" rows="3" placeholder="과제 결과 링크나 설명을 입력하세요."' +
+              (overdue ? ' disabled' : '') + ' style="width:100%;padding:11px;border:1px solid var(--border);' +
+              'border-radius:8px;font-family:inherit;font-size:0.88rem;resize:vertical;">' +
+              esc(c.sub ? c.sub.content || '' : '') + '</textarea>' +
+          '</div>' +
+          '<div class="field">' +
+            '<label>파일 첨부 (선택)</label>' +
+            '<input type="file" id="chFile"' + (overdue ? ' disabled' : '') + '>' +
+            already +
+          '</div>' +
+          (overdue ? '<div class="adv-warn danger">마감이 지나 제출할 수 없습니다.</div>' : '') +
+          '<div id="chErr" style="color:var(--danger);font-size:0.82rem;"></div>' +
+        '</div>';
+      footBtns = '<button class="btn-sm" data-close>닫기</button>' +
+        (overdue ? '' :
+          '<button class="btn-sm" id="chSave">임시 저장</button>' +
+          '<button class="btn-sm is-primary" id="chConfirm">제출 확정하기</button>');
+    }
 
     var box = document.createElement('div');
     box.className = 'modal-overlay is-open';
@@ -539,7 +590,7 @@
 
           manualHtml + materialHtml +
 
-          (c.sub && c.sub.review_status !== 'pending'
+          (isConf && c.sub.review_status !== 'pending'
             ? '<div class="ch-review ' + (c.sub.review_status === 'pass' ? 'ok' : 'no') + '" style="margin-top:16px;">' +
                 (c.sub.review_status === 'pass' ? '✅ 검수 통과' : '❌ 미통과') +
                 (c.sub.score != null ? ' · ' + c.sub.score + '점' : '') +
@@ -548,32 +599,9 @@
               '</div>'
             : '') +
 
-          // ===== 별도 제출란 =====
-          '<div class="ch-submit">' +
-            '<div class="ch-submit__title">📤 과제 제출' +
-              (c.sub ? ' <span class="tag tag--wait">제출됨</span>' : '') + '</div>' +
-            '<div class="field">' +
-              '<label>제출 내용 (메모 · 링크)</label>' +
-              '<textarea id="chContent" rows="3" placeholder="과제 결과 링크나 설명을 입력하세요."' +
-                (overdue ? ' disabled' : '') + ' style="width:100%;padding:11px;border:1px solid var(--border);' +
-                'border-radius:8px;font-family:inherit;font-size:0.88rem;resize:vertical;">' +
-                esc(c.sub ? c.sub.content || '' : '') + '</textarea>' +
-            '</div>' +
-            '<div class="field">' +
-              '<label>파일 첨부 (선택)</label>' +
-              '<input type="file" id="chFile"' + (overdue ? ' disabled' : '') + '>' +
-              already +
-            '</div>' +
-            (overdue ? '<div class="adv-warn danger">마감이 지나 제출할 수 없습니다.</div>' : '') +
-            '<div id="chErr" style="color:var(--danger);font-size:0.82rem;"></div>' +
-          '</div>' +
+          submitSection +
         '</div>' +
-        '<div class="modal-card__foot">' +
-          '<button class="btn-sm" data-close>닫기</button>' +
-          (overdue ? '' :
-            '<button class="btn-sm is-primary" id="chSubmit">' +
-            (c.sub ? '다시 제출' : '제출하기') + '</button>') +
-        '</div>' +
+        '<div class="modal-card__foot">' + footBtns + '</div>' +
       '</div>';
     document.body.appendChild(box);
 
@@ -581,50 +609,56 @@
       if (e.target === box || e.target.closest('[data-close]')) box.remove();
     });
 
-    var btn = box.querySelector('#chSubmit');
-    if (btn) btn.addEventListener('click', async function () {
+    async function save(finalize) {
       var content = box.querySelector('#chContent').value.trim();
       var file = box.querySelector('#chFile').files[0];
       var errEl = box.querySelector('#chErr');
-      if (!content && !file) { errEl.textContent = '제출 내용이나 파일 중 하나는 입력하세요.'; return; }
+      var hasExisting = !!(c.sub && c.sub.file_path);
+      if (!content && !file && !hasExisting) { errEl.textContent = '제출 내용이나 파일 중 하나는 입력하세요.'; return; }
+      if (finalize && !confirm('제출을 확정하면 더 이상 수정할 수 없습니다.\n확정하시겠습니까?')) return;
 
-      btn.disabled = true;
+      var saveBtn = box.querySelector('#chSave'), confBtn = box.querySelector('#chConfirm');
+      if (saveBtn) saveBtn.disabled = true;
+      if (confBtn) confBtn.disabled = true;
       errEl.textContent = '';
 
       var row = {
         challenge_id: c.id,
         user_id: user.id,
         content: content || null,
-        status: 'submitted',
+        status: finalize ? 'confirmed' : 'draft',
         review_status: 'pending',
         updated_at: new Date().toISOString(),
       };
+      // 새 파일 없으면 기존 첨부 유지
+      if (hasExisting) { row.file_path = c.sub.file_path; row.file_name = c.sub.file_name; }
 
       // 파일 첨부: 경로 첫 폴더가 본인 uid 여야 스토리지 정책을 통과한다
       if (file) {
-        btn.textContent = '업로드 중...';
+        var lbl = confBtn || saveBtn; if (lbl) lbl.textContent = '업로드 중...';
         var path = user.id + '/challenge/' + c.id + '/' + Date.now() + '_' + file.name;
         var up = await sb.storage.from('submissions').upload(path, file, { upsert: true });
         if (up.error) {
-          btn.disabled = false; btn.textContent = '제출하기';
+          if (saveBtn) saveBtn.disabled = false; if (confBtn) { confBtn.disabled = false; confBtn.textContent = '제출 확정하기'; }
           errEl.textContent = '파일 업로드 실패: ' + up.error.message;
           return;
         }
-        row.file_path = path;
-        row.file_name = file.name;
+        row.file_path = path; row.file_name = file.name;
       }
 
       var res = await sb.from('challenge_submissions')
         .upsert(row, { onConflict: 'challenge_id,user_id' });
-
       if (res.error) {
-        btn.disabled = false; btn.textContent = '제출하기';
+        if (saveBtn) saveBtn.disabled = false; if (confBtn) { confBtn.disabled = false; confBtn.textContent = '제출 확정하기'; }
         errEl.textContent = '제출 실패: ' + res.error.message;
         return;
       }
       box.remove();
       location.reload();
-    });
+    }
+
+    var sb1 = box.querySelector('#chSave'); if (sb1) sb1.addEventListener('click', function () { save(false); });
+    var cf1 = box.querySelector('#chConfirm'); if (cf1) cf1.addEventListener('click', function () { save(true); });
   }
 
   /* ---------- 공통 ---------- */

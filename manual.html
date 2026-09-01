@@ -177,8 +177,8 @@ async function loadStatus() {
     if (!ctx.isAdmin) {
       var ch = await sb.from('challenges').select('id, manual_slug, open_at').eq('cohort', cohort).eq('active', true);
       (ch.data || []).forEach(function (c) { if (!c.manual_slug) return; (ctx.hw[c.manual_slug] = ctx.hw[c.manual_slug] || []).push(c); });
-      var su = await sb.from('challenge_submissions').select('challenge_id').eq('user_id', uid);
-      (su.data || []).forEach(function (s) { ctx.submitted[s.challenge_id] = true; });
+      var su = await sb.from('challenge_submissions').select('challenge_id,status').eq('user_id', uid);
+      (su.data || []).forEach(function (s) { if (s.status !== 'draft') ctx.submitted[s.challenge_id] = true; });
     }
   } catch (e) {}
   return ctx;
