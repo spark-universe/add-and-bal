@@ -9,6 +9,9 @@
   var challenges = {};    // id → challenge
   var names = {};         // user_id → 이름
   var filterId = new URLSearchParams(location.search).get('id') || '';
+  var statusFilter = 'pending';   // 기본 = 미검수만 (통과/미통과는 탭으로)
+  var serverNow = Date.now();
+  var REWORK_MS = 3 * 86400000;
 
   // esc 는 js/util.js 의 공통 함수 사용
   function fmtDate(iso) { return iso ? iso.slice(0, 10).replace(/-/g, '.') : '-'; }
@@ -19,12 +22,27 @@
     return '<span class="tag tag--wait">대기</span>';
   }
 
-  function shown() {
+  // 미통과 건: 반려일로부터 3일 재작업 기한 남은 시간
+  function remainHtml(s) {
+    if (s.review_status !== 'fail' || !s.reviewed_at) return '';
+    var ms = Date.parse(s.reviewed_at) + REWORK_MS - serverNow;
+    if (ms <= 0) return '<div style="font-size:0.74rem;color:var(--muted);margin-top:3px;">재작업 기간 종료</div>';
+    var days = Math.floor(ms / 86400000), hrs = Math.floor((ms % 86400000) / 3600000);
+    return '<div style="font-size:0.74rem;color:var(--danger);margin-top:3px;">재작업 ' +
+      (days > 0 ? days + '일 ' : '') + hrs + '시간 남음</div>';
+  }
+
+  function byChallenge() {
     return filterId ? subs.filter(function (s) { return String(s.challenge_id) === String(filterId); }) : subs;
+  }
+  function shown() {
+    var list = byChallenge();
+    if (statusFilter !== 'all') list = list.filter(function (s) { return s.review_status === statusFilter; });
+    return list;
   }
 
   function renderStats() {
-    var list = shown();
+    var list = byChallenge();   // 통계는 상태탭과 무관하게 전체 집계
     document.getElementById('sWait').textContent = list.filter(function (s) { return s.review_status === 'pending'; }).length;
     document.getElementById('sPass').textContent = list.filter(function (s) { return s.review_status === 'pass'; }).length;
     document.getElementById('sFail').textContent = list.filter(function (s) { return s.review_status === 'fail'; }).length;
@@ -35,7 +53,8 @@
     var list = shown();
     var body = document.getElementById('revBody');
     if (!list.length) {
-      body.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">제출된 과제가 없습니다.</td></tr>';
+      body.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">' +
+        (statusFilter === 'pending' ? '검수할 과제가 없습니다.' : '해당하는 제출이 없습니다.') + '</td></tr>';
       return;
     }
     body.innerHTML = list.map(function (s) {
@@ -44,7 +63,7 @@
         '<td>' + esc(names[s.user_id] || '-') + '</td>' +
         '<td style="text-align:left;">' + esc(c.title || '(삭제된 과제)') + '</td>' +
         '<td>' + fmtDate(s.created_at) + '</td>' +
-        '<td>' + reviewTag(s) + '</td>' +
+        '<td>' + reviewTag(s) + remainHtml(s) + '</td>' +
         '<td>' + (s.score != null ? s.score + '점' : '-') + '</td>' +
         '<td><button class="btn-sm is-primary" data-open="' + s.id + '">검수</button></td>' +
       '</tr>';
@@ -154,7 +173,16 @@
     render();
   });
 
+  document.getElementById('revSeg').addEventListener('click', function (e) {
+    var b = e.target.closest('.seg__btn'); if (!b) return;
+    this.querySelectorAll('.seg__btn').forEach(function (x) { x.classList.remove('is-on'); });
+    b.classList.add('is-on');
+    statusFilter = b.dataset.st;
+    render();
+  });
+
   async function load() {
+    try { var r = await sb.rpc('server_now'); if (r && r.data) { var t = Date.parse(r.data); if (!isNaN(t)) serverNow = t; } } catch (e) {}
     // 과제
     var ch = await sb.from('challenges').select('*').order('created_at', { ascending: false });
     challenges = {};
