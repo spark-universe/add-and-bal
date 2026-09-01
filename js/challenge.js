@@ -126,7 +126,13 @@
         '<td>' + statusTag(c) + '</td>' +
       '</tr>';
     }).join('');
-    bindRows(list);
+    // 메인의 과제 행을 클릭하면 '숙제 관리'로 이동해 해당 과제를 바로 연다
+    body.querySelectorAll('[data-id]').forEach(function (el) {
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', function () {
+        location.href = 'challenge-mine.html?open=' + this.dataset.id;
+      });
+    });
   }
 
   /* ===== 등급업(발주&광고 넘어가기) 신청 배너 ===== */
@@ -447,6 +453,13 @@
       });
     });
     renderMine();
+
+    // 메인에서 넘어온 경우: ?open=<id> 과제 상세를 바로 연다
+    var openId = new URLSearchParams(location.search).get('open');
+    if (openId) {
+      var target = mineList.find(function (c) { return String(c.id) === String(openId); });
+      if (target) openDetail(target);
+    }
   }
 
   function renderMine() {
