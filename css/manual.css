@@ -63,6 +63,12 @@ body.manual-page { margin:0; background:#fff; }
 .manual-doc .mn-search input:focus{outline:none;border-color:var(--accent)}
 .manual-doc .mn-search select{flex:0 0 auto;padding:6px 6px;border:1px solid var(--line);border-radius:8px;font-size:11.5px;font-family:inherit;background:#fff;color:var(--muted)}
 .manual-doc .nav-item.search-off,.manual-doc .nav-part.search-off{display:none}
+/* 소메뉴: 부모 챕터가 열려 있을 때만 펼쳐지는 하위 앵커(세금/배송/마켓 등) */
+.manual-doc .nav-subwrap{display:none;margin:2px 0 8px 15px;padding-left:11px;border-left:2px solid var(--line)}
+.manual-doc .nav-item.active:not(.search-off)+.nav-subwrap{display:block}
+.manual-doc .nav-sub{display:block;padding:6px 10px;border-radius:8px;font-size:13px;color:#5b636b;cursor:pointer}
+.manual-doc .nav-sub:hover{background:#eef1f3;color:var(--accent-d)}
+.manual-doc .nav-sub::before{content:"– ";color:var(--muted)}
 
 .manual-doc .main{flex:1;min-width:0;padding:0 46px 120px;max-width:calc(var(--maxw) + 92px);margin:0 auto}
 
