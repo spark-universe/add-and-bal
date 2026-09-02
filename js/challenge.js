@@ -339,7 +339,8 @@
     var byDay = {};   // 과제 마감
     calList.forEach(function (c) {
       if (!c.due_at) return;
-      var d = new Date(c.due_at + 'T00:00:00');
+      var d = new Date(c.due_at);                 // due_at 은 전체 타임스탬프 → 그대로 파싱
+      if (isNaN(d.getTime())) return;
       if (d.getFullYear() === calYear && d.getMonth() === calMonth) {
         (byDay[d.getDate()] = byDay[d.getDate()] || []).push(c);
       }
@@ -366,7 +367,7 @@
       var isToday = (todayISO() === iso(calYear, calMonth, day));
       var hw = (byDay[day] || []).map(function (c) {
         var cls = c.sub ? 'done' : (isOver(c.due_at) ? 'over' : 'todo');
-        return '<span class="cal__ev ' + cls + '" data-id="' + c.id + '">' + esc(c.title) + '</span>';
+        return '<span class="cal__ev ' + cls + '" data-id="' + c.id + '" title="과제 마감">🚩 ' + esc(c.title) + '</span>';
       }).join('');
       var evs = (evDay[day] || []).map(function (e) {
         var mine = e.scope === 'personal' && e.owner_id === user.id;
