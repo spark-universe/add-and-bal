@@ -310,7 +310,7 @@
     var file = els.material.files && els.material.files[0];
     if (file) {
       var path = 'hw/' + Date.now() + '_' + file.name.replace(/[^\w.\-]/g, '_');
-      var up = await sb.storage.from('materials').upload(path, file, { upsert: false });
+      var up = await sb.storage.from('hw-materials').upload(path, file, { upsert: false });  // 비공개 버킷
       if (up.error) { alert('자료 파일 업로드 실패: ' + up.error.message); els.saveBtn.disabled = false; return; }
       row.material_path = path;
       row.material_name = file.name;
