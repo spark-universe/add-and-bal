@@ -577,7 +577,7 @@
         '📎 관련 자료 다운로드' + (c.material_name ? ' (' + esc(c.material_name) + ')' : '') + ' <span aria-hidden="true">↓</span></a>');
     }
     if (c.material_url) {
-      matParts.push('<a class="ch-manual-link" href="' + esc(c.material_url) + '" target="_blank" rel="noopener">' +
+      matParts.push('<a class="ch-manual-link" href="' + esc(safeUrl(c.material_url)) + '" target="_blank" rel="noopener">' +
         '🔗 관련 링크 열기 <span aria-hidden="true">↗</span></a>');
     }
     var materialHtml = matParts.join('');

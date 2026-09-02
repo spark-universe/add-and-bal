@@ -149,6 +149,7 @@
       '<div class="sec-head"><span class="sec-num">' + num + '</span><h2 class="sec-title">' + title + '</h2></div>' +
       $('fBody').value +
       '</section></main></div></div></body></html>';
+    f.setAttribute('sandbox', 'allow-same-origin');  // 미리보기 안에서 스크립트 실행 차단
     f.srcdoc = html;
     f.hidden = false;
     f.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -199,7 +200,7 @@
   });
 
   (async function init() {
-    var user = await Auth.require();
+    var user = await Auth.requireAdmin();   // 로그인만이 아니라 관리자만 (fail-closed)
     if (!user) return;
     await load();
   })();

@@ -580,7 +580,7 @@
     } else {
       html += '<ul style="margin:0 0 18px;padding-left:18px;font-size:0.86rem;line-height:1.8;">';
       stores.forEach(function (s) {
-        var url = s.url ? ' · <a href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(s.url) + '</a>' : '';
+        var url = s.url ? ' · <a href="' + esc(safeUrl(s.url)) + '" target="_blank" rel="noopener">' + esc(s.url) + '</a>' : '';
         var code = s.partner_code ? ' · 코드 ' + esc(s.partner_code) : '';
         html += '<li><b>' + esc(s.name) + '</b> (' + (esc(s.topic) || '주제없음') + ')' + url + code + '</li>';
       });
