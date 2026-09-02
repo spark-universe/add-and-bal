@@ -108,8 +108,11 @@
     // 알림용 집계: 승급(등업) 신청 + 숙제 검수 요청
     var upN = 0, hwN = 0;
     try {
-      var lr = await sb.from('level_requests').select('id,status').eq('status', 'pending');
-      upN = (lr.data || []).length;
+      var lr = await sb.from('level_requests').select('id,status,user_id').eq('status', 'pending');
+      // profs 는 어드민 제외 목록 → 어드민 본인이 실수로 넣은 신청은 집계에서 빠진다
+      var nonAdmin = {};
+      profs.forEach(function (p) { nonAdmin[p.id] = 1; });
+      upN = (lr.data || []).filter(function (r) { return nonAdmin[r.user_id]; }).length;
     } catch (e) {}
     try {
       var cs = await sb.from('challenge_submissions').select('id,status,review_status');

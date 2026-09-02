@@ -167,7 +167,8 @@
     var box = document.getElementById('promoBox');
     if (!box) return;
 
-    var pr = await sb.from('profiles').select('level').eq('id', user.id).single();
+    var pr = await sb.from('profiles').select('level, role').eq('id', user.id).single();
+    if (pr.data && pr.data.role === 'admin') { box.innerHTML = ''; return; }  // 어드민은 등급업 신청 대상 아님
     var level = (pr.data && pr.data.level) || 0;
 
     // 이미 열렸으면 안내만
