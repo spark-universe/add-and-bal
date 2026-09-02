@@ -714,26 +714,32 @@ tr.row-dirty > td { background: #fff7e0; }
   font-size: 0.82rem; color: var(--text); background: #fff; cursor: pointer;
 }
 .panel-link { font-size: 0.85rem; color: var(--primary); white-space: nowrap; }
+/* 표 기본형: 모든 표를 가운데 정렬 + 세로 구분선으로 통일 */
 table { width: 100%; border-collapse: collapse; }
-th, td { padding: 13px 20px; text-align: left; font-size: 0.88rem; }
+th, td { padding: 13px 20px; text-align: center; vertical-align: middle; font-size: 0.88rem;
+  border-right: 1px solid var(--border); }
+th:last-child, td:last-child { border-right: none; }
 thead th {
   background: #fafbfd;
   color: var(--muted);
   font-weight: 600;
+  white-space: nowrap;
   border-bottom: 1px solid var(--border);
 }
 tbody tr { border-bottom: 1px solid #f0f2f6; }
 tbody tr:last-child { border-bottom: none; }
 tbody tr:hover { background: #fafbff; }
 
-/* 리스트 표: 가운데 정렬 + 세로 구분선 */
-.panel th,
-.panel td { text-align: center; vertical-align: middle; }
+/* (구 .panel/#tableWrap 전용이던 규칙은 이제 기본형에 포함됨) */
 .panel th { white-space: nowrap; }
-.panel th,
-.panel td { border-right: 1px solid var(--border); }
-.panel th:last-child,
-.panel td:last-child { border-right: none; }
+
+/* 예외: 금액 요약표는 통일 대상 아님 — 라벨은 왼쪽, 금액은 오른쪽, 세로선 없음 */
+.cb-money th, .cb-money td,
+.breakdown th, .breakdown td,
+.cbr-money th, .cbr-money td,
+.cbr-detail th, .cbr-detail td,
+.od-money th, .od-money td { border-right: none; text-align: left; }
+.cb-money td.r, .breakdown td.r, .cbr-money td.r, .cbr-detail td.r, .od-money td.r { text-align: right; }
 
 .tag {
   display: inline-block;
@@ -1252,7 +1258,7 @@ tbody tr:hover { background: #fafbff; }
 .ord-scroll { overflow-x: auto; }
 .ord-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
 .ord-table th {
-  text-align: left; padding: 10px 12px;
+  text-align: center; padding: 10px 12px;
   background: #f6f7f9; color: var(--muted); font-weight: 600; white-space: nowrap;
   border-bottom: 1px solid var(--border);
 }
@@ -1470,7 +1476,7 @@ tbody tr:hover { background: #fafbff; }
 }
 .adv-status.on { background: rgba(26,171,91,0.14); color: var(--ok); }
 
-.ord-table th.r, .ord-table td.r { text-align: right; }
+.ord-table th.r, .ord-table td.r { text-align: center; }   /* 숫자 칸도 가운데로 통일 */
 
 /* 발주 연습 표: 가운데 정렬 + 세로 구분선 */
 .ord-center th, .ord-center td { text-align: center; vertical-align: middle; }
