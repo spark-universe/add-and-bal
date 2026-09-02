@@ -5,9 +5,19 @@
 
 /* ---------- 문자열/숫자 ---------- */
 function esc(s) {
-  return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
   });
+}
+/* href 안전화: http(s)만 허용. javascript:/data: 등 위험 스킴은 '#'으로 차단,
+   스킴 없는 주소(예: myshop.myshopify.com)는 https:// 로 보정.
+   반드시 esc(safeUrl(x)) 형태로 감싸서 속성에 넣을 것. */
+function safeUrl(u) {
+  var s = String(u == null ? '' : u).trim();
+  if (!s) return '';
+  if (/^https?:\/\//i.test(s)) return s;          // 이미 http(s)
+  if (/^[a-z][a-z0-9+.\-]*:/i.test(s)) return '#'; // 다른 스킴(javascript:, data: 등) → 차단
+  return 'https://' + s;                           // 스킴 없음 → https 로 보정
 }
 function money(n, d) { return '$' + Number(n || 0).toFixed(d == null ? 2 : d); }
 function round2(n) { return Math.round(n * 100) / 100; }

@@ -430,7 +430,7 @@
         '<td style="white-space:nowrap;">' + img + '</td>' +
         '<td style="white-space:normal;">' + esc(p.name) + '</td>' +
         '<td>' + money(p.cost) + '</td>' +
-        '<td>' + (p.source_url ? '<a href="' + esc(p.source_url) + '" target="_blank">링크</a>' : '-') + '</td>' +
+        '<td>' + (p.source_url ? '<a href="' + esc(safeUrl(p.source_url)) + '" target="_blank" rel="noopener">링크</a>' : '-') + '</td>' +
         '<td><button class="btn-sm is-danger" data-exclude="' + i + '" title="이 상품 올리지 않기">✕</button></td>' +
       '</tr>';
     }).join('');

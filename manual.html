@@ -76,7 +76,10 @@ function initLightbox() {
   function open(src) {
     box = document.createElement('div');
     box.className = 'mn-lightbox';
-    box.innerHTML = '<button class="mn-lightbox__x" aria-label="닫기">×</button><img src="' + src + '" alt="">';
+    box.innerHTML = '<button class="mn-lightbox__x" aria-label="닫기">×</button>';
+    var im = document.createElement('img');   // src 를 문자열 조립하지 않고 setAttribute 로 안전하게
+    im.setAttribute('src', src); im.setAttribute('alt', '');
+    box.appendChild(im);
     document.body.appendChild(box);
     box.getBoundingClientRect();               // reflow → transition
     box.classList.add('is-open');

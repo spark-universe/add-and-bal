@@ -139,7 +139,7 @@
 
     bodyEl.innerHTML = stores.map(function (s, i) {
       var urlHtml = s.url
-        ? '<a href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(s.url) + '</a>'
+        ? '<a href="' + esc(safeUrl(s.url)) + '" target="_blank" rel="noopener">' + esc(s.url) + '</a>'
         : '<span style="color:#aab;">미입력</span>';
 
       var hasMemo = !!(s.memo && s.memo.trim());

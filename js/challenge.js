@@ -572,12 +572,12 @@
     // 관련 자료: 업로드 파일 다운로드 + 외부 링크
     var matParts = [];
     if (c.material_path) {
-      var pub = sb.storage.from('materials').getPublicUrl(c.material_path).data.publicUrl;
-      matParts.push('<a class="ch-manual-link" href="' + esc(pub) + '" target="_blank" rel="noopener" download>' +
+      // 비공개 버킷(hw-materials) → 클릭 시 짧은 서명 URL 발급해서 연다(아래 data-hw 핸들러)
+      matParts.push('<a class="ch-manual-link" href="#" data-hw="' + esc(c.material_path) + '">' +
         '📎 관련 자료 다운로드' + (c.material_name ? ' (' + esc(c.material_name) + ')' : '') + ' <span aria-hidden="true">↓</span></a>');
     }
     if (c.material_url) {
-      matParts.push('<a class="ch-manual-link" href="' + esc(c.material_url) + '" target="_blank" rel="noopener">' +
+      matParts.push('<a class="ch-manual-link" href="' + esc(safeUrl(c.material_url)) + '" target="_blank" rel="noopener">' +
         '🔗 관련 링크 열기 <span aria-hidden="true">↗</span></a>');
     }
     var materialHtml = matParts.join('');
@@ -681,8 +681,16 @@
     document.body.appendChild(box);
 
     box.addEventListener('click', function (e) {
+      var hw = e.target.closest('[data-hw]');
+      if (hw) { e.preventDefault(); openHwMaterial(hw.getAttribute('data-hw')); return; }
       if (e.target === box || e.target.closest('[data-close]')) box.remove();
     });
+
+    async function openHwMaterial(path) {
+      var r = await sb.storage.from('hw-materials').createSignedUrl(path, 300);
+      if (r.error || !r.data) { alert('자료를 여는 중 오류가 발생했습니다. 관리자에게 문의해 주세요.'); return; }
+      window.open(r.data.signedUrl, '_blank', 'noopener');
+    }
 
     async function save(finalize) {
       var content = box.querySelector('#chContent').value.trim();

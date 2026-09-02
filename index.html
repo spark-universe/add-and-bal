@@ -163,7 +163,7 @@
     var v = sizeSel.value;
     var limit = (v === 'all') ? sl.length : Math.min(sl.length, Number(v));
     box.innerHTML = '<ul style="margin:0;padding-left:18px;line-height:1.9;font-size:0.9rem;">' + sl.slice(0, limit).map(function (s) {
-      var url = s.url ? ' · <a href="' + esc(s.url) + '" target="_blank" rel="noopener" style="color:var(--primary);">' + esc(s.url) + '</a>' : '';
+      var url = s.url ? ' · <a href="' + esc(safeUrl(s.url)) + '" target="_blank" rel="noopener" style="color:var(--primary);">' + esc(s.url) + '</a>' : '';
       var code = s.partner_code ? ' · 코드 ' + esc(s.partner_code) : '';
       return '<li><b>' + esc(s.name) + '</b> (' + (esc(s.topic) || '주제없음') + ')' + url + code + '</li>';
     }).join('') + '</ul>';
