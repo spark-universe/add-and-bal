@@ -1,10 +1,8 @@
 -- ============================================================
 -- 챕터 2 '미국 현지화 실습'(slug=localize) 본문 교체
---  · 절 순서: 마켓 → 세금 → 배송
---  · 마켓 절: 자체호스팅 영상(manual/videos/localize-market.mp4) + UI 안내 문구
---  · 세금 절: 노션 실제 자료(대한민국 10%→0, 미국 캘리포니아 판매세)
---  · 배송 절: 기존 내용 정돈 + STEP 2·3·4 이미지(localize-ship-01~03)
---  · 각 절 제목의 data-subnav → 사이드바 소메뉴(마켓/세금/배송) 자동 생성
+--  · 절 순서: 마켓 → 세금 → 배송 / 각 절 data-subnav 소메뉴
+--  · 마켓: 자체호스팅 영상 + UI 안내 / 세금: 노션 실제자료 / 배송: 이미지 포함
+--  · 확인 문제(퀴즈) 없음
 --  Supabase SQL Editor 에서 실행. (영상·이미지는 배포로 함께 올라감)
 -- ============================================================
 update public.manual_chapters set body = $body$<h3 class="subsection" id="localize-market" data-subnav="마켓">마켓 설정</h3>
@@ -20,11 +18,9 @@ update public.manual_chapters set body = $body$<h3 class="subsection" id="locali
 <h3 class="subhead">최종 확인 체크리스트</h3>
 <ul class="bullets"><li>Markets 메뉴에 접속했는지 확인</li><li>마켓 생성 → 조건 추가를 진행했는지 확인</li><li>국가/지역에서 미국을 선택하고 완료했는지 확인</li><li>저장 후 미국 마켓이 활성 상태로 표시되는지 확인</li></ul>
 
-<div class="callout quiz"><div class="callout-label">✓ 확인 문제</div><ol class="quiz-list"><li>마켓(Markets) 메뉴에서 관리하는 핵심 항목은 무엇인가요?</li><li>미국 판매를 위해 마켓 조건에 어떤 국가를 추가해야 하나요?</li><li>마켓 설정이 현지화에서 중요한 이유를 한 문장으로 정리해 보세요.</li></ol></div>
-
 
 <h3 class="subsection" id="localize-tax" data-subnav="세금">세금 및 관세 설정</h3>
-<div class="callout overview"><div class="callout-label">이 절 개요</div><p>미국 판매 스토어는 결제 시 <b>판매세(Sales Tax)</b>가 올바르게 계산되도록 세금을 설정해야 합니다. 핵심은 두 가지예요. ① 기본으로 잡혀 있는 <b>대한민국 10% 부가세를 0%</b>로 바꾸고, ② 실제 판매 대상인 <b>미국의 주(예: 캘리포니아)에 판매세 징수</b>를 켜는 것입니다.</p><p>아래 순서를 화면 그대로 따라 하면 됩니다.</p></div>
+<div class="callout overview"><div class="callout-label">이 절 개요</div><p>미국 판매 스토어는 결제 시 <b>판매세(Sales Tax)</b>가 올바르게 계산되도록 세금을 설정해야 합니다. 핵심은 두 가지예요.<br>① 기본으로 잡혀 있는 <b>대한민국 10% 부가세를 0%</b>로 바꾸고,<br>② 실제 판매 대상인 <b>미국의 주(예: 캘리포니아)에 판매세 징수</b>를 켜는 것입니다.</p><p>아래 순서를 화면 그대로 따라 하면 됩니다.</p></div>
 
 <div class="step"><span class="step-badge">STEP 1</span><span class="step-title">설정 열기</span></div>
 <p>쇼피파이 관리자에 접속한 뒤, 왼쪽 아래 <b>설정</b>을 클릭합니다.</p>
@@ -81,8 +77,6 @@ update public.manual_chapters set body = $body$<h3 class="subsection" id="locali
 <h3 class="subhead">최종 확인 체크리스트</h3>
 <ul class="bullets"><li>대한민국 세율을 0%로 바꾸고 저장했는지 확인</li><li>미국 → 새로운 지역에서 징수를 진행했는지 확인</li><li>캘리포니아(또는 필요한 주)를 선택하고 판매세 징수를 켰는지 확인</li><li>미국 세금 징수에 ✔ 표시가 됐는지 확인</li></ul>
 
-<div class="callout quiz"><div class="callout-label">✓ 확인 문제</div><ol class="quiz-list"><li>대한민국 세율을 0%로 바꾸는 이유는 무엇인가요?</li><li>미국의 특정 주에 판매세 징수를 켜려면 어떤 버튼부터 눌러야 하나요?</li><li>예시로 든 캘리포니아를 그대로 켜면 되나요, 아니면 무엇을 기준으로 정해야 하나요?</li></ol></div>
-
 
 <h3 class="subsection" id="localize-shipping" data-subnav="배송">배송 설정</h3>
 <div class="callout overview"><div class="callout-label">이 절 개요</div><p>배송 설정은 고객이 결제 화면에서 <b>배송 가능 여부와 배송비</b>를 볼 수 있게 하는 필수 설정입니다. 배송 지역이나 옵션이 없으면 고객이 주문을 완료하지 못할 수 있으니, 스토어 오픈 전 반드시 확인하세요.</p><p>기본 배송 프로필을 기준으로 배송 지역을 추가하고, 배송 옵션을 설정한 뒤 저장하는 순서로 진행합니다.</p></div>
@@ -123,6 +117,4 @@ update public.manual_chapters set body = $body$<h3 class="subsection" id="locali
 
 <h3 class="subhead">최종 확인 체크리스트</h3>
 <ul class="bullets"><li>일반 프로필에 접속했는지 확인</li><li>배송 지역(미국 또는 판매 국가)이 추가되어 있는지 확인</li><li>배송 옵션 이름·요금·운송 시간이 입력되어 있는지 확인</li><li>마지막에 저장 버튼을 눌렀는지 확인</li></ul>
-
-<div class="callout quiz"><div class="callout-label">✓ 확인 문제</div><ol class="quiz-list"><li>배송 지역/배송 프로필을 설정하는 이유는 무엇인가요?</li><li>미국 내 배송을 위해 어떤 지역을 배송 대상으로 추가해야 하나요?</li><li>배송비 요금은 어떤 방식으로 설정할 수 있나요?</li></ol></div>
 $body$ where slug = 'localize';
