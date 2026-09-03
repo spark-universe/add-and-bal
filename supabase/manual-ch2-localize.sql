@@ -3,9 +3,9 @@
 --  · 절 순서: 마켓 → 세금 → 배송
 --  · 마켓 절: 구글 드라이브 영상 임베드 + UI 업데이트 안내 문구
 --  · 세금 절: 노션 실제 자료(대한민국 10%→0, 미국 캘리포니아 판매세)
---  · 배송 절: 기존 내용 정돈(일부 이미지 준비 중)
+--  · 배송 절: 기존 내용 정돈 + STEP 2·3·4 이미지 추가(localize-ship-01~03)
 --  · 각 절 제목의 data-subnav → 사이드바 소메뉴(마켓/세금/배송) 자동 생성
---  Supabase SQL Editor 에서 실행. (이미지 localize-tax-01~12.png 는 배포로 함께 올라감)
+--  Supabase SQL Editor 에서 실행. (이미지들은 배포로 함께 올라감)
 --  영상: 드라이브 파일이 '링크가 있는 모든 사용자-뷰어'로 공유돼 있어야 재생됨.
 -- ============================================================
 update public.manual_chapters set body = $body$<h3 class="subsection" id="localize-market" data-subnav="마켓">마켓 설정</h3>
@@ -95,15 +95,15 @@ update public.manual_chapters set body = $body$<h3 class="subsection" id="locali
 
 <div class="step"><span class="step-badge">STEP 2</span><span class="step-title">배송 지역 추가하기</span></div>
 <p>일반 프로필 화면 아래쪽 <b>배송 지역</b> 항목에서, 아직 지역이 없다면 고객이 결제할 수 있도록 배송 가능 지역을 추가해야 합니다. <b>지역 추가</b> 버튼을 클릭합니다.</p>
-<div class="img-missing">🖼 이미지 준비 중</div>
+<figure class="shot"><img loading="lazy" src="manual/images/localize-ship-01.jpg" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 3</span><span class="step-title">배송할 국가 및 지역 선택하기</span></div>
 <p>새 배송 지역 창에서 배송할 국가·지역을 선택합니다. 예시로 <b>북아메리카</b>와 <b>미국</b>을 선택합니다. 미국 판매 스토어라면 최소한 <b>미국</b>은 반드시 선택되어 있어야 합니다.</p>
-<div class="img-missing">🖼 이미지 준비 중</div>
+<figure class="shot"><img loading="lazy" src="manual/images/localize-ship-02.jpg" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 4</span><span class="step-title">선택한 배송 지역 완료하기</span></div>
 <p>국가·지역을 선택했다면 우측 하단의 <b>완료</b>를 클릭합니다. 완료를 눌러야 선택한 지역이 프로필에 반영됩니다.</p>
-<div class="img-missing">🖼 이미지 준비 중</div>
+<figure class="shot"><img loading="lazy" src="manual/images/localize-ship-03.jpg" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 5</span><span class="step-title">배송 옵션 추가하기</span></div>
 <p>배송 지역을 추가했다면 그 지역 안에 <b>배송 옵션</b>을 추가해야 합니다. 옵션이 없으면 고객이 결제 단계에서 배송 방법을 선택할 수 없습니다. 추가된 지역 안에서 <b>배송 옵션 추가</b>를 클릭합니다.</p>
