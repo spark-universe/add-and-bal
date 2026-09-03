@@ -20,7 +20,7 @@ update public.manual_chapters set body = $body$<h3 class="subsection" id="locali
 
 
 <h3 class="subsection" id="localize-tax" data-subnav="세금">세금 및 관세 설정</h3>
-<div class="callout overview"><div class="callout-label">이 절 개요</div><p>미국 판매 스토어는 결제 시 <b>판매세(Sales Tax)</b>가 올바르게 계산되도록 세금을 설정해야 합니다. 핵심은 두 가지예요. ① 기본으로 잡혀 있는 <b>대한민국 10% 부가세를 0%</b>로 바꾸고, ② 실제 판매 대상인 <b>미국의 주(예: 캘리포니아)에 판매세 징수</b>를 켜는 것입니다.</p><p>아래 순서를 화면 그대로 따라 하면 됩니다.</p></div>
+<div class="callout overview"><div class="callout-label">이 절 개요</div><p>미국 판매 스토어는 결제 시 <b>판매세(Sales Tax)</b>가 올바르게 계산되도록 세금을 설정해야 합니다. 핵심은 두 가지예요.<br>① 기본으로 잡혀 있는 <b>대한민국 10% 부가세를 0%</b>로 바꾸고,<br>② 실제 판매 대상인 <b>미국의 주(예: 캘리포니아)에 판매세 징수</b>를 켜는 것입니다.</p><p>아래 순서를 화면 그대로 따라 하면 됩니다.</p></div>
 
 <div class="step"><span class="step-badge">STEP 1</span><span class="step-title">설정 열기</span></div>
 <p>쇼피파이 관리자에 접속한 뒤, 왼쪽 아래 <b>설정</b>을 클릭합니다.</p>
