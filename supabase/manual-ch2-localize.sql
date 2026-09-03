@@ -1,11 +1,31 @@
 -- ============================================================
 -- 챕터 2 '미국 현지화 실습'(slug=localize) 본문 교체
---  · 세금 절: 노션 실제 자료(대한민국 10%→0, 미국 캘리포니아 판매세)로 교체
---  · 배송/마켓 절: 기존 내용 정돈, 끝의 잔여물 제거
---  · 각 절 제목에 data-subnav 앵커(세금/배송/마켓) → 사이드바 소메뉴 자동 생성
---  Supabase SQL Editor 에서 실행. (이미지: manual/images/localize-tax-01~12.png 는 배포로 함께 올라감)
+--  · 절 순서: 마켓 → 세금 → 배송
+--  · 마켓 절: 구글 드라이브 영상 임베드 + UI 업데이트 안내 문구
+--  · 세금 절: 노션 실제 자료(대한민국 10%→0, 미국 캘리포니아 판매세)
+--  · 배송 절: 기존 내용 정돈 + STEP 2·3·4 이미지 추가(localize-ship-01~03)
+--  · 각 절 제목의 data-subnav → 사이드바 소메뉴(마켓/세금/배송) 자동 생성
+--  Supabase SQL Editor 에서 실행. (이미지들은 배포로 함께 올라감)
+--  영상: 드라이브 파일이 '링크가 있는 모든 사용자-뷰어'로 공유돼 있어야 재생됨.
 -- ============================================================
-update public.manual_chapters set body = $body$<h3 class="subsection" id="localize-tax" data-subnav="세금">세금 및 관세 설정</h3>
+update public.manual_chapters set body = $body$<h3 class="subsection" id="localize-market" data-subnav="마켓">마켓 설정</h3>
+<div class="callout overview"><div class="callout-label">이 절 개요</div><p>마켓(Markets) 설정은 스토어가 판매할 <b>국가·지역</b>을 관리하는 기본 설정입니다. 마켓이 제대로 설정되어 있지 않으면 특정 국가 고객의 접속·결제 과정에서 국가·통화·언어·배송 조건이 정상 적용되지 않을 수 있습니다.</p><p>미국 판매를 기준으로 새 마켓을 만들고, 조건에 미국을 추가한 뒤 저장하는 순서로 진행합니다.</p></div>
+
+<div class="callout note"><div class="callout-label">⚠ 중요</div><p>※ 마켓은 현재 쇼피파이 UI 업데이트로 인하여 “설정 → 마켓”이 아닌 쇼피파이 초기 접속 화면에서 <b>“Markets” 또는 “시장”</b>을 참조해 주세요!</p></div>
+<p>마켓 설정은 아래 영상을 보고 그대로 따라 하시면 됩니다. (Markets 메뉴 → 마켓 생성 → 조건에 미국 추가 → 저장)</p>
+<div class="mn-video"><iframe src="https://drive.google.com/file/d/1JhoVcOQ1EUesqnDMqQoTHoONMt64Stjw/preview" allow="autoplay; fullscreen" allowfullscreen loading="lazy" title="마켓 설정 영상"></iframe></div>
+<p class="mn-video-note">영상이 보이지 않으면 <a href="https://drive.google.com/file/d/1JhoVcOQ1EUesqnDMqQoTHoONMt64Stjw/view" target="_blank" rel="noopener">새 창에서 바로 보기</a></p>
+
+<h3 class="subhead">마켓 설정 시 주의사항</h3>
+<p>마켓 설정은 판매 국가·통화·언어·도메인·결제·배송 설정과 연결되는 기본 설정입니다. 미국 판매라면 미국 마켓이 활성화되어 있어야 하고, 이후 배송·세금 설정에서도 미국이 정상적으로 연결되어 있는지 함께 확인하는 것이 좋습니다.</p>
+
+<h3 class="subhead">최종 확인 체크리스트</h3>
+<ul class="bullets"><li>Markets 메뉴에 접속했는지 확인</li><li>마켓 생성 → 조건 추가를 진행했는지 확인</li><li>국가/지역에서 미국을 선택하고 완료했는지 확인</li><li>저장 후 미국 마켓이 활성 상태로 표시되는지 확인</li></ul>
+
+<div class="callout quiz"><div class="callout-label">✓ 확인 문제</div><ol class="quiz-list"><li>마켓(Markets) 메뉴에서 관리하는 핵심 항목은 무엇인가요?</li><li>미국 판매를 위해 마켓 조건에 어떤 국가를 추가해야 하나요?</li><li>마켓 설정이 현지화에서 중요한 이유를 한 문장으로 정리해 보세요.</li></ol></div>
+
+
+<h3 class="subsection" id="localize-tax" data-subnav="세금">세금 및 관세 설정</h3>
 <div class="callout overview"><div class="callout-label">이 절 개요</div><p>미국 판매 스토어는 결제 시 <b>판매세(Sales Tax)</b>가 올바르게 계산되도록 세금을 설정해야 합니다. 핵심은 두 가지예요. ① 기본으로 잡혀 있는 <b>대한민국 10% 부가세를 0%</b>로 바꾸고, ② 실제 판매 대상인 <b>미국의 주(예: 캘리포니아)에 판매세 징수</b>를 켜는 것입니다.</p><p>아래 순서를 화면 그대로 따라 하면 됩니다.</p></div>
 
 <div class="step"><span class="step-badge">STEP 1</span><span class="step-title">설정 열기</span></div>
@@ -75,15 +95,15 @@ update public.manual_chapters set body = $body$<h3 class="subsection" id="locali
 
 <div class="step"><span class="step-badge">STEP 2</span><span class="step-title">배송 지역 추가하기</span></div>
 <p>일반 프로필 화면 아래쪽 <b>배송 지역</b> 항목에서, 아직 지역이 없다면 고객이 결제할 수 있도록 배송 가능 지역을 추가해야 합니다. <b>지역 추가</b> 버튼을 클릭합니다.</p>
-<div class="img-missing">🖼 이미지 준비 중</div>
+<figure class="shot"><img loading="lazy" src="manual/images/localize-ship-01.jpg" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 3</span><span class="step-title">배송할 국가 및 지역 선택하기</span></div>
 <p>새 배송 지역 창에서 배송할 국가·지역을 선택합니다. 예시로 <b>북아메리카</b>와 <b>미국</b>을 선택합니다. 미국 판매 스토어라면 최소한 <b>미국</b>은 반드시 선택되어 있어야 합니다.</p>
-<div class="img-missing">🖼 이미지 준비 중</div>
+<figure class="shot"><img loading="lazy" src="manual/images/localize-ship-02.jpg" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 4</span><span class="step-title">선택한 배송 지역 완료하기</span></div>
 <p>국가·지역을 선택했다면 우측 하단의 <b>완료</b>를 클릭합니다. 완료를 눌러야 선택한 지역이 프로필에 반영됩니다.</p>
-<div class="img-missing">🖼 이미지 준비 중</div>
+<figure class="shot"><img loading="lazy" src="manual/images/localize-ship-03.jpg" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 5</span><span class="step-title">배송 옵션 추가하기</span></div>
 <p>배송 지역을 추가했다면 그 지역 안에 <b>배송 옵션</b>을 추가해야 합니다. 옵션이 없으면 고객이 결제 단계에서 배송 방법을 선택할 수 없습니다. 추가된 지역 안에서 <b>배송 옵션 추가</b>를 클릭합니다.</p>
@@ -107,44 +127,4 @@ update public.manual_chapters set body = $body$<h3 class="subsection" id="locali
 <ul class="bullets"><li>일반 프로필에 접속했는지 확인</li><li>배송 지역(미국 또는 판매 국가)이 추가되어 있는지 확인</li><li>배송 옵션 이름·요금·운송 시간이 입력되어 있는지 확인</li><li>마지막에 저장 버튼을 눌렀는지 확인</li></ul>
 
 <div class="callout quiz"><div class="callout-label">✓ 확인 문제</div><ol class="quiz-list"><li>배송 지역/배송 프로필을 설정하는 이유는 무엇인가요?</li><li>미국 내 배송을 위해 어떤 지역을 배송 대상으로 추가해야 하나요?</li><li>배송비 요금은 어떤 방식으로 설정할 수 있나요?</li></ol></div>
-
-
-<h3 class="subsection" id="localize-market" data-subnav="마켓">마켓 설정</h3>
-<div class="callout overview"><div class="callout-label">이 절 개요</div><p>마켓(Markets) 설정은 스토어가 판매할 <b>국가·지역</b>을 관리하는 기본 설정입니다. 마켓이 제대로 설정되어 있지 않으면 특정 국가 고객의 접속·결제 과정에서 국가·통화·언어·배송 조건이 정상 적용되지 않을 수 있습니다.</p><p>미국 판매를 기준으로 새 마켓을 만들고, 조건에 미국을 추가한 뒤 저장하는 순서로 진행합니다.</p></div>
-
-<div class="step"><span class="step-badge">STEP 1</span><span class="step-title">Markets 메뉴 접속하기</span></div>
-<p>관리자 페이지 왼쪽 메뉴에서 <b>Markets</b>를 클릭합니다. 이 메뉴에서 판매할 국가·지역을 관리할 수 있습니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/image324.jpg" alt=""></figure>
-
-<div class="step"><span class="step-badge">STEP 2</span><span class="step-title">마켓 생성하기</span></div>
-<p>현재 마켓 목록을 확인한 뒤, 새 판매 국가/지역을 추가하려면 우측 상단의 <b>마켓 생성</b>을 클릭합니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/image318.jpg" alt=""></figure>
-
-<div class="step"><span class="step-badge">STEP 3</span><span class="step-title">조건 추가하기</span></div>
-<p>새 마켓 화면에서 마켓 이름과 조건을 설정합니다. 어떤 국가/지역을 포함할지 정하기 위해 <b>조건 추가</b>를 클릭합니다.</p>
-<div class="img-missing">🖼 이미지 준비 중</div>
-
-<div class="step"><span class="step-badge">STEP 4</span><span class="step-title">판매 국가 선택하기</span></div>
-<p>조건 창에서 포함할 국가/지역을 검색합니다. 검색창에 <b>미국</b>을 입력한 뒤 목록에서 미국 체크박스를 클릭합니다. 미국 판매라면 이 단계에서 반드시 미국이 선택되어야 합니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/image292.jpg" alt=""></figure>
-
-<div class="step"><span class="step-badge">STEP 5</span><span class="step-title">선택한 조건 완료하기</span></div>
-<p>미국이 선택된 것을 확인한 뒤 우측 하단의 <b>완료</b>를 클릭합니다. 완료를 눌러야 선택한 국가가 마켓 조건에 반영됩니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/image284.jpg" alt=""></figure>
-
-<div class="step"><span class="step-badge">STEP 6</span><span class="step-title">마켓 설정 저장하기</span></div>
-<p>조건에 미국이 추가된 것을 확인하고 화면 상단의 <b>저장</b>을 클릭합니다. 저장하지 않으면 새 마켓 설정이 반영되지 않으니 반드시 저장까지 진행하세요.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/image302.jpg" alt=""></figure>
-
-<div class="step"><span class="step-badge">STEP 7</span><span class="step-title">마켓 생성 완료 확인하기</span></div>
-<p>저장 후 Markets 목록으로 돌아와 새 마켓을 확인합니다. <b>미국 마켓</b>이 <b>활성</b> 상태로 보이고, 포함 항목에 <b>1개 지역</b>이 표시되면 정상적으로 생성된 것입니다.</p>
-<div class="img-missing">🖼 이미지 준비 중</div>
-
-<h3 class="subhead">마켓 설정 시 주의사항</h3>
-<p>마켓 설정은 판매 국가·통화·언어·도메인·결제·배송 설정과 연결되는 기본 설정입니다. 미국 판매라면 미국 마켓이 활성화되어 있어야 하고, 이후 배송·세금 설정에서도 미국이 정상적으로 연결되어 있는지 함께 확인하는 것이 좋습니다.</p>
-
-<h3 class="subhead">최종 확인 체크리스트</h3>
-<ul class="bullets"><li>Markets 메뉴에 접속했는지 확인</li><li>마켓 생성 → 조건 추가를 진행했는지 확인</li><li>국가/지역에서 미국을 선택하고 완료했는지 확인</li><li>저장 후 미국 마켓이 활성 상태로 표시되는지 확인</li></ul>
-
-<div class="callout quiz"><div class="callout-label">✓ 확인 문제</div><ol class="quiz-list"><li>마켓(Markets) 메뉴에서 관리하는 핵심 항목은 무엇인가요?</li><li>미국 판매를 위해 마켓 조건에 어떤 국가를 추가해야 하나요?</li><li>마켓 설정이 현지화에서 중요한 이유를 한 문장으로 정리해 보세요.</li></ol></div>
 $body$ where slug = 'localize';
