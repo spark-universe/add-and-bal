@@ -106,10 +106,20 @@ async function renderManual() {
       nav += '<a class="nav-item' + (c.soon ? ' soon' : '') + '" href="#' + mesc(c.slug) + '">' +
         '<span class="nav-num">' + mesc(c.num || '') + '</span><span class="nav-txt">' + mesc(c.title || '') + '</span>' +
         (c.soon ? '<span class="nav-badge">준비중</span>' : '') + '</a>';
+      tmp.innerHTML = c.body || '';
+      // 본문에 data-subnav 로 표시된 소절이 있으면 목차에 소메뉴(앵커) 추가
+      var subEls = tmp.querySelectorAll('[data-subnav]');
+      if (subEls.length) {
+        var subHtml = '';
+        [].forEach.call(subEls, function (el) {
+          var sid = el.getAttribute('id'), slabel = el.getAttribute('data-subnav');
+          if (sid && slabel) subHtml += '<a class="nav-sub" href="#' + mesc(sid) + '">' + mesc(slabel) + '</a>';
+        });
+        if (subHtml) nav += '<div class="nav-subwrap" data-parent="' + mesc(c.slug) + '">' + subHtml + '</div>';
+      }
       body += '<section class="doc-section" id="' + mesc(c.slug) + '">' +
         '<div class="sec-head"><span class="sec-num">' + mesc(c.num || '') + '</span><h2 class="sec-title">' + mesc(c.title || '') + '</h2></div>' +
         (c.body || '') + '</section>';
-      tmp.innerHTML = c.body || '';
       CH.push({ slug: c.slug, title: (c.title || '').toLowerCase(), bodyText: (tmp.textContent || '').toLowerCase() });
     });
     // 맨 앞에 '챌린지 소개' 화면 (진입 시 제일 먼저 보임)
@@ -289,6 +299,17 @@ function initSingle() {
   }
 
   document.getElementById('nav').addEventListener('click', function (e) {
+    var sub = e.target.closest('.nav-sub');
+    if (sub) {                                   // 소메뉴: 부모 챕터를 연 뒤 해당 소절로 스크롤
+      e.preventDefault();
+      var wrap = sub.closest('.nav-subwrap');
+      var parent = wrap && wrap.getAttribute('data-parent');
+      var tid = sub.getAttribute('href').slice(1);
+      if (parent) show(parent);
+      var t = document.getElementById(tid);
+      if (t) requestAnimationFrame(function () { t.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+      return;
+    }
     var a = e.target.closest('.nav-item'); if (!a) return;
     e.preventDefault(); show(a.getAttribute('href').slice(1));
   });
