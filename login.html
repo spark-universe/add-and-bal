@@ -58,7 +58,10 @@
     var res = await sb.auth.signInWithPassword({ email: email, password: pw });
     if (res.error) {
       btn.disabled = false;
-      return show('로그인 실패: ' + res.error.message);
+      var m = res.error.message || '';
+      if (/email not confirmed/i.test(m)) return show('이메일 인증이 완료되지 않았습니다. 가입 때 받은 메일의 인증 링크를 먼저 클릭해 주세요.');
+      if (/invalid login credentials/i.test(m)) return show('이메일 또는 비밀번호가 올바르지 않습니다.');
+      return show('로그인 실패: ' + m);
     }
 
     // 프로필로 역할/승인 상태 확인 후 라우팅

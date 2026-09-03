@@ -99,8 +99,11 @@
       return show('가입 실패: ' + res.error.message, false);
     }
 
-    show('가입이 완료되었습니다. 관리자 승인 후 로그인할 수 있습니다.', true);
-    setTimeout(function () { window.location.href = 'login.html'; }, 1600);
+    var needConfirm = !res.data.session;   // 이메일 인증이 켜져 있으면 가입 직후 세션이 없음
+    show(needConfirm
+      ? '가입이 접수되었습니다. 메일함에서 인증 링크를 클릭한 뒤, 관리자 승인이 되면 로그인할 수 있어요.'
+      : '가입이 완료되었습니다. 관리자 승인 후 로그인할 수 있습니다.', true);
+    setTimeout(function () { window.location.href = 'login.html'; }, needConfirm ? 3600 : 1600);
   });
 })();
 </script>
