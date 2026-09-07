@@ -187,7 +187,24 @@
     // 챌린지 진행 상황 (검수 통과 기준)
     var total = list.length;
     var passed = list.filter(function (c) { return c.sub && c.sub.review_status === 'pass'; }).length;
-    var eligible = total > 0 && passed === total;
+
+    // 등업 조건: (1) 내 기수의 모든 챕터가 공개됐고 (2) 과제를 모두 통과
+    var allPublished = true;
+    try {
+      var mcAll = await sb.from('manual_chapters').select('slug');
+      var cmMine = await sb.from('cohort_manual').select('slug,status,publish_at').eq('cohort', myCohort);
+      var pub = {};
+      (cmMine.data || []).forEach(function (r) { pub[r.slug] = r; });
+      (mcAll.data || []).forEach(function (m) {
+        var pi = pub[m.slug];
+        // isPublished 규칙: 설정 없으면 공개 / public / scheduled+시각도래 = 공개
+        var ok = !pi || pi.status === 'public' ||
+          (pi.status === 'scheduled' && pi.publish_at && Date.parse(pi.publish_at) <= serverNow);
+        if (!ok) allPublished = false;
+      });
+    } catch (e) {}
+
+    var eligible = allPublished && total > 0 && passed === total;
 
     // 최근 신청 상태
     var lr = await sb.from('level_requests').select('*')
@@ -214,8 +231,10 @@
       '<div class="promo ' + (last && last.status === 'rejected' ? 'is-reject' : '') + '">' +
         '<div class="promo__body">' +
           '<div class="promo__title">🚀 챌린지 심화 과정으로 넘어가기</div>' +
-          '<div class="promo__desc">챌린지 과제를 <b>모두 검수 통과</b>하면 신청할 수 있습니다. ' +
-            '(검수 통과 ' + passed + ' / ' + total + ')</div>' +
+          '<div class="promo__desc">' + (allPublished
+            ? '챌린지 과제를 <b>모두 검수 통과</b>하면 신청할 수 있습니다.'
+            : '<b>모든 챌린지가 공개</b>되고 과제를 <b>모두 통과</b>하면 신청할 수 있어요. (아직 공개 전 챌린지가 남아 있습니다)') +
+            ' (검수 통과 ' + passed + ' / ' + total + ')</div>' +
           rejectMsg +
         '</div>' +
         '<button class="btn-primary promo__btn" id="promoApply"' + (eligible ? '' : ' disabled') + '>' +
