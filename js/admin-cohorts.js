@@ -6,7 +6,8 @@
    ========================================================= */
 (function () {
   var cohorts = [];
-  var countByCohort = {};   // 기수번호 → 수강생 수
+  var studentsByCohort = {};   // 기수번호 → 승인된 수강생 목록
+  var unassigned = [];         // 미분류(미승인 또는 기수 미배정)
 
   var els = {
     newLabel: document.getElementById('newLabel'),
@@ -30,8 +31,8 @@
         '등록된 기수가 없습니다.</td></tr>';
       return;
     }
-    els.body.innerHTML = cohorts.map(function (c) {
-      var n = countByCohort[c.id] || 0;
+    var rows = cohorts.map(function (c) {
+      var n = (studentsByCohort[c.id] || []).length;
       return '<tr' + (c.active ? '' : ' style="opacity:0.5;"') + '>' +
         '<td>' + c.id + '</td>' +
         '<td><b style="font-size:0.95rem;">' + esc(c.label) + '</b></td>' +
@@ -39,7 +40,7 @@
           '<input type="date" class="co-enroll" data-id="' + c.id + '" value="' + esc(c.enroll_date || '') +
           '" style="padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.95rem;font-weight:600;' +
           'color:var(--text);font-family:inherit;"></td>' +
-        '<td>' + n + '명</td>' +
+        '<td><button class="btn-link" data-act="students" data-id="' + c.id + '">' + n + '명</button></td>' +
         '<td><button class="btn-sm" data-act="toggle" data-id="' + c.id + '">' +
           (c.active ? '노출중' : '숨김') + '</button></td>' +
         '<td>' +
@@ -49,6 +50,16 @@
         '</td>' +
       '</tr>';
     }).join('');
+    // 미분류: 아직 승인 안 됐거나 기수 미배정인 수강생 (승인 시 기수가 배정됨)
+    var extra = '<tr style="background:#fafbfc;">' +
+      '<td style="color:var(--muted);">–</td>' +
+      '<td style="text-align:center;"><b>미분류</b> <span style="color:var(--muted);font-weight:400;font-size:0.82rem;">(미승인·기수 미배정)</span></td>' +
+      '<td style="text-align:center;color:var(--muted);">–</td>' +
+      '<td><button class="btn-link" data-act="students" data-id="0">' + unassigned.length + '명</button></td>' +
+      '<td style="color:var(--muted);">–</td>' +
+      '<td style="color:var(--muted);font-size:0.85rem;">승인 시 기수가 배정됩니다</td>' +
+      '</tr>';
+    els.body.innerHTML = rows + extra;
   }
 
   els.addBtn.addEventListener('click', async function () {
@@ -71,6 +82,7 @@
     var btn = e.target.closest('button[data-act]');
     if (!btn) return;
     var id = Number(btn.dataset.id);
+    if (btn.dataset.act === 'students') { openStudents(id); return; }   // 미분류(0) 포함
     var c = cohorts.find(function (x) { return x.id === id; });
     if (!c) return;
 
@@ -92,6 +104,26 @@
     }
     if (btn.dataset.act === 'del') { openDelete(c); return; }
   });
+
+  /* ---------- 기수별 수강생 목록 ---------- */
+  var stuModal = document.getElementById('stuModal');
+  function openStudents(id) {
+    var list = (id === 0) ? unassigned : (studentsByCohort[id] || []);
+    var name = (id === 0) ? '미분류' : ((cohorts.find(function (x) { return x.id === id; }) || {}).label || ('기수 ' + id));
+    document.getElementById('stuTitle').textContent = name + ' 수강생 (' + list.length + '명)';
+    document.getElementById('stuBody').innerHTML = list.length
+      ? list.map(function (p) {
+          var st = p.status === 'approved' ? '<span class="tag tag--ok">승인</span>'
+            : (p.status === 'rejected' ? '<span class="tag tag--no">거절</span>' : '<span class="tag tag--wait">대기</span>');
+          return '<tr><td style="text-align:left;">' + esc(p.name || '-') + '</td>' +
+            '<td style="text-align:left;color:var(--muted);word-break:break-all;">' + esc(p.email || '-') + '</td>' +
+            '<td style="text-align:center;">' + st + '</td></tr>';
+        }).join('')
+      : '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px;">해당 수강생이 없습니다.</td></tr>';
+    stuModal.classList.add('is-open');
+  }
+  document.getElementById('stuClose').addEventListener('click', function () { stuModal.classList.remove('is-open'); });
+  stuModal.addEventListener('click', function (e) { if (e.target === stuModal) stuModal.classList.remove('is-open'); });
 
   /* ---------- 기수 삭제 ---------- */
   var delModal = document.getElementById('delModal');
@@ -115,7 +147,7 @@
   async function openDelete(c) {
     if (cohorts.length <= 1) { alert('기수가 하나뿐이라 삭제할 수 없습니다.'); return; }
     delId = c.id;
-    var students = countByCohort[c.id] || 0;
+    var students = (studentsByCohort[c.id] || []).length;
     var hw = await sb.from('challenges').select('id', { count: 'exact', head: true }).eq('cohort', c.id);
     delHw = hw.count || 0;
 
@@ -203,11 +235,15 @@
     if (res.error) { alert('기수를 불러오지 못했습니다: ' + res.error.message); return; }
     cohorts = res.data || [];
 
-    countByCohort = {};
-    var pr = await sb.from('profiles').select('cohort').neq('role', 'admin');
+    studentsByCohort = {}; unassigned = [];
+    var pr = await sb.from('profiles').select('id,name,email,cohort,status').neq('role', 'admin').order('name');
     (pr.data || []).forEach(function (p) {
-      var k = p.cohort || 1;
-      countByCohort[k] = (countByCohort[k] || 0) + 1;
+      // 승인 + 실제 기수(1 이상)만 해당 기수에 집계. 미승인·기수0/null 은 미분류로.
+      if (p.status === 'approved' && p.cohort && p.cohort >= 1) {
+        (studentsByCohort[p.cohort] = studentsByCohort[p.cohort] || []).push(p);
+      } else {
+        unassigned.push(p);
+      }
     });
     render();
   }
