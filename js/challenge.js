@@ -28,6 +28,12 @@
     return Math.floor(ms / 86400000);
   }
   function isOver(due) { return due ? (new Date(due) - new Date() < 0) : false; }
+  // 캘린더 숙제 색상: 제출됨=done / 아직 공개 전=soon / 마감 지남=over / 진행중=todo
+  function hwCls(c) {
+    if (subById[c.id]) return 'done';
+    if (c.open_at && new Date(c.open_at).getTime() > serverNow) return 'soon';
+    return isOver(c.due_at) ? 'over' : 'todo';
+  }
 
   // 서버(한국) 시간 — 반려 후 재작업 기한 판단에 로컬 시계 대신 사용
   var serverNow = Date.now();
@@ -45,6 +51,8 @@
   var myCohort = 1;                 // 내 기수 (캘린더의 매뉴얼 예약 공개 조회에 사용)
   var manualTitles = {};            // slug → 매뉴얼 제목
   var monthManual = [];             // 이번 달 매뉴얼 예약 공개 (내 기수)
+  var scheduleList = [];            // 내 기수 숙제 일정(공개 전 포함, 제목·일정만)
+  var subById = {};                 // challenge_id → 내 제출(색상용)
   async function fetchData() {
     await loadServerNow();
     var prof = await sb.from('profiles').select('cohort, enroll_date').eq('id', user.id).single();
@@ -305,6 +313,15 @@
     user = await require();
     if (!user) return;
     calList = await fetchData();
+    // 숙제 일정(공개 전 포함) — 전용 RPC. 없으면 열린 숙제만으로 폴백.
+    var sch = await sb.rpc('my_homework_schedule');
+    if (sch && !sch.error && sch.data) {
+      scheduleList = sch.data;
+    } else {
+      scheduleList = calList.map(function (c) { return { id: c.id, title: c.title, open_at: c.open_at, due_at: c.due_at }; });
+    }
+    subById = {};
+    calList.forEach(function (c) { subById[c.id] = c.sub || null; });
     // 매뉴얼 제목표 (slug → 제목) 한 번 로드
     var mt = await sb.from('manual_chapters').select('slug, title');
     (mt.data || []).forEach(function (r) { manualTitles[r.slug] = r.title; });
@@ -328,7 +345,14 @@
       var evEl = e.target.closest('[data-ev]');
       if (evEl) { var ev = monthEvents.find(function (x) { return String(x.id) === evEl.dataset.ev; }); if (ev) openEvent(ev); return; }
       var hwEl = e.target.closest('[data-id]');
-      if (hwEl) { var c = calList.find(function (x) { return String(x.id) === hwEl.dataset.id; }); if (c) openDetail(c); return; }
+      if (hwEl) {
+        var cid = hwEl.dataset.id;
+        var c = calList.find(function (x) { return String(x.id) === cid; });
+        if (c) { openDetail(c); return; }                 // 공개된 숙제 → 상세/제출
+        var up = scheduleList.find(function (x) { return String(x.id) === cid; });
+        if (up) openHwInfo(up);                            // 아직 공개 전 → 일정 안내만
+        return;
+      }
       var cell = e.target.closest('.cal__cell[data-day]');
       if (cell) openEvent(null, Number(cell.dataset.day));
     });
@@ -363,7 +387,7 @@
     // 과제: 공개일(open_at)~마감(due_at) 기간이 있으면 연결 띠(band), 없으면 단일 마감 마커
     var bands = [];        // { c, s: 시작(날짜), e: 마감(날짜) }
     var singleDue = {};    // day -> [c]  (기간 없는 숙제)
-    calList.forEach(function (c) {
+    scheduleList.forEach(function (c) {
       if (!c.due_at) return;
       var due = new Date(c.due_at); if (isNaN(due.getTime())) return;
       var dueD = new Date(due.getFullYear(), due.getMonth(), due.getDate());
@@ -403,7 +427,7 @@
         return dayDate.getTime() >= b.s.getTime() && dayDate.getTime() <= b.e.getTime();
       }).map(function (b) {
         var c = b.c;
-        var cls = c.sub ? 'done' : (isOver(c.due_at) ? 'over' : 'todo');
+        var cls = hwCls(c);
         var isStart = dayDate.getTime() === b.s.getTime();
         var isEnd = dayDate.getTime() === b.e.getTime();
         var pos = (isStart ? ' band-start' : '') + (isEnd ? ' band-end' : '');
@@ -412,8 +436,7 @@
           (showLabel ? ('🚩 ' + esc(c.title)) : '&nbsp;') + '</span>';
       }).join('');
       var hw = (singleDue[day] || []).map(function (c) {
-        var cls = c.sub ? 'done' : (isOver(c.due_at) ? 'over' : 'todo');
-        return '<span class="cal__ev ' + cls + '" data-id="' + c.id + '" title="과제 마감">🚩 ' + esc(c.title) + '</span>';
+        return '<span class="cal__ev ' + hwCls(c) + '" data-id="' + c.id + '" title="과제 마감">🚩 ' + esc(c.title) + '</span>';
       }).join('');
       var evs = (evDay[day] || []).map(function (e) {
         var mine = e.scope === 'personal' && e.owner_id === user.id;
@@ -452,6 +475,29 @@
         '<div class="modal-card__foot">' +
           '<a class="btn-primary" href="manual.html#' + esc(r.slug) + '">매뉴얼 보러 가기 →</a>' +
         '</div>' +
+      '</div>';
+    document.body.appendChild(box);
+    box.addEventListener('click', function (e) {
+      if (e.target === box || e.target.closest('[data-close]')) box.remove();
+    });
+  }
+
+  // 아직 공개 전인 숙제 마커 클릭 → 일정 안내만 (내용은 공개일에 열림)
+  function openHwInfo(item) {
+    var box = document.createElement('div');
+    box.className = 'modal-overlay is-open';
+    box.innerHTML =
+      '<div class="modal-card" style="max-width:420px;">' +
+        '<div class="modal-card__head"><h3>🚩 ' + esc(item.title) + '</h3>' +
+          '<button class="modal-close" data-close>×</button></div>' +
+        '<div class="modal-card__body">' +
+          '<div class="ch-meta">' +
+            (item.open_at ? '<span class="ord-chip">공개 예정 ' + esc(fmtDate(item.open_at)) + '</span>' : '') +
+            (item.due_at ? '<span class="ord-chip">마감 ' + esc(fmtDate(item.due_at)) + '</span>' : '') +
+          '</div>' +
+          '<p style="line-height:1.7;font-size:0.9rem;margin:14px 0 0;color:var(--muted);">아직 공개 전인 과제예요. 공개일이 되면 내용 확인과 제출을 할 수 있어요.</p>' +
+        '</div>' +
+        '<div class="modal-card__foot"><button class="btn-sm" data-close>닫기</button></div>' +
       '</div>';
     document.body.appendChild(box);
     box.addEventListener('click', function (e) {
