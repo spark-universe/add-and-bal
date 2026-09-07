@@ -60,26 +60,26 @@ update public.manual_chapters set body = $body$<h3 class="subhead">스토어 구
 
 
 <h3 class="subsection" id="plan-m2" data-subnav="방법2 · 베스트 스토어">방법 2. 성공 스토어(Best Store) 보기</h3>
-<div class="callout note"><div class="callout-label">💡 참고</div><p>Shopify 공식 성공 사례에서 카테고리별 우수 스토어를 볼 수 있습니다. 접속 주소: <b>shopify.com/success-stories</b></p></div>
+<div class="callout note"><div class="callout-label">💡 참고</div><p>Shopify 공식 성공 사례에서 카테고리별 우수 스토어를 볼 수 있습니다. 접속 주소: <b>shopify.com/kr/case-studies</b></p></div>
 
-<div class="step"><span class="step-badge">STEP 1</span><span class="step-title">성공 사례 페이지 접속</span></div>
-<p>주소창에 <b>shopify.com/success-stories</b>를 입력해 접속합니다.</p>
+<div class="step"><span class="step-badge">STEP 1</span><span class="step-title">성공 사례 접속 · 마켓</span></div>
+<p>위 주소로 접속한 뒤, 화면의 <b>마켓</b> 부분(빨간 네모)을 클릭합니다.</p>
 <figure class="shot"><img loading="lazy" src="manual/images/plan-m2-01.png" alt=""></figure>
 
-<div class="step"><span class="step-badge">STEP 2</span><span class="step-title">카테고리 필터 열기</span></div>
-<p><b>Filter by category</b>에서 <b>All</b> 부분을 클릭합니다.</p>
+<div class="step"><span class="step-badge">STEP 2</span><span class="step-title">관심 카테고리 선택</span></div>
+<p>빨간 네모 표시 중 <b>관심 있는 카테고리</b>를 클릭합니다.</p>
 <figure class="shot"><img loading="lazy" src="manual/images/plan-m2-02.png" alt=""></figure>
 
-<div class="step"><span class="step-badge">STEP 3</span><span class="step-title">관심 카테고리 선택</span></div>
-<p>관심 있는 카테고리를 체크합니다. (본 매뉴얼은 <b>Beauty</b>로 진행했습니다.)</p>
+<div class="step"><span class="step-badge">STEP 3</span><span class="step-title">스토어 선택</span></div>
+<p>이후 나오는 목록에서 <b>보고 싶은 스토어</b>를 클릭합니다.</p>
 <figure class="shot"><img loading="lazy" src="manual/images/plan-m2-03.png" alt=""></figure>
 
-<div class="step"><span class="step-badge">STEP 4</span><span class="step-title">스토어 선택</span></div>
-<p>검색된 결과에서 원하는 스토어를 클릭합니다. (본 매뉴얼은 <b>Les Coconuts</b>로 진행했습니다.)</p>
+<div class="step"><span class="step-badge">STEP 4</span><span class="step-title">아래로 스크롤</span></div>
+<p>페이지를 <b>아래로 스크롤</b>합니다.</p>
 <figure class="shot"><img loading="lazy" src="manual/images/plan-m2-04.png" alt=""></figure>
 
-<div class="step"><span class="step-badge">STEP 5</span><span class="step-title">스토어 링크 열기</span></div>
-<p>링크로 표시된 부분을 클릭합니다.</p>
+<div class="step"><span class="step-badge">STEP 5</span><span class="step-title">스토어 링크 찾기</span></div>
+<p>빨간 네모처럼 <b>링크로 된 부분</b>을 찾아 클릭합니다. (글마다 위치가 다르고, 일부는 링크가 없을 수 있어요.)</p>
 <figure class="shot"><img loading="lazy" src="manual/images/plan-m2-05.png" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 6</span><span class="step-title">벤치마킹 진행</span></div>
