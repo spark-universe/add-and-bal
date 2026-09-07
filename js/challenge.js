@@ -384,20 +384,20 @@
   function renderCal() {
     document.getElementById('calLabel').textContent = calYear + '년 ' + MON[calMonth];
 
-    // 과제: 공개일(open_at)~마감(due_at) 기간이 있으면 연결 띠(band), 없으면 단일 마감 마커
-    var bands = [];        // { c, s: 시작(날짜), e: 마감(날짜) }
-    var singleDue = {};    // day -> [c]  (기간 없는 숙제)
+    // 과제: 공개일(🏁)과 마감일(🚩)을 각각 그 날짜에 표시 (띠 대신 두 마커 — 끊겨 보이지 않게)
+    function inMonth(d) { return d.getFullYear() === calYear && d.getMonth() === calMonth; }
+    var openDay = {};   // day -> [c]  공개/시작일
+    var dueDay = {};    // day -> [c]  마감일
     scheduleList.forEach(function (c) {
-      if (!c.due_at) return;
-      var due = new Date(c.due_at); if (isNaN(due.getTime())) return;
-      var dueD = new Date(due.getFullYear(), due.getMonth(), due.getDate());
-      var start = c.open_at ? new Date(c.open_at) : null;
-      if (start && !isNaN(start.getTime())) {
-        var sD = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-        if (sD.getTime() < dueD.getTime()) { bands.push({ c: c, s: sD, e: dueD }); return; }
+      if (c.due_at) {
+        var due = new Date(c.due_at);
+        if (!isNaN(due.getTime()) && inMonth(due)) (dueDay[due.getDate()] = dueDay[due.getDate()] || []).push(c);
       }
-      if (due.getFullYear() === calYear && due.getMonth() === calMonth) {
-        (singleDue[due.getDate()] = singleDue[due.getDate()] || []).push(c);
+      if (c.open_at) {
+        var op = new Date(c.open_at);
+        // 공개일==마감일(같은 날)이면 마감 마커만 표시(중복 방지)
+        var sameDay = c.due_at && new Date(c.due_at).toDateString() === op.toDateString();
+        if (!isNaN(op.getTime()) && inMonth(op) && !sameDay) (openDay[op.getDate()] = openDay[op.getDate()] || []).push(c);
       }
     });
     var evDay = {};   // 일정
@@ -420,22 +420,13 @@
     for (var i = 0; i < first; i++) cells.push('<div class="cal__cell is-empty"></div>');
     for (var day = 1; day <= days; day++) {
       var isToday = (todayISO() === iso(calYear, calMonth, day));
-      // 기간형 숙제: 시작~마감 사이 날마다 연결된 띠로
-      var dayDate = new Date(calYear, calMonth, day);
-      var weekday = dayDate.getDay();
-      var bandHtml = bands.filter(function (b) {
-        return dayDate.getTime() >= b.s.getTime() && dayDate.getTime() <= b.e.getTime();
-      }).map(function (b) {
-        var c = b.c;
-        var cls = hwCls(c);
-        var isStart = dayDate.getTime() === b.s.getTime();
-        var isEnd = dayDate.getTime() === b.e.getTime();
-        var pos = (isStart ? ' band-start' : '') + (isEnd ? ' band-end' : '');
-        var showLabel = isStart || weekday === 0 || day === 1;   // 시작일·주 시작(일요일)·1일에 제목 표시
-        return '<span class="cal__ev cal__band ' + cls + pos + '" data-id="' + c.id + '" title="숙제 기간">' +
-          (showLabel ? ('🚩 ' + esc(c.title)) : '&nbsp;') + '</span>';
+      // 과제 공개일(🏁) — 아직 공개 전이면 파란색(soon)
+      var openHtml = (openDay[day] || []).map(function (c) {
+        var future = c.open_at && new Date(c.open_at).getTime() > serverNow;
+        return '<span class="cal__ev ' + (future ? 'soon' : 'todo') + '" data-id="' + c.id + '" title="과제 공개(시작)">🏁 ' + esc(c.title) + '</span>';
       }).join('');
-      var hw = (singleDue[day] || []).map(function (c) {
+      // 과제 마감일(🚩)
+      var hw = (dueDay[day] || []).map(function (c) {
         return '<span class="cal__ev ' + hwCls(c) + '" data-id="' + c.id + '" title="과제 마감">🚩 ' + esc(c.title) + '</span>';
       }).join('');
       var evs = (evDay[day] || []).map(function (e) {
@@ -447,7 +438,7 @@
         return '<span class="cal__ev manual" data-mslug="' + esc(r.slug) + '" title="매뉴얼 예약 공개">📘 ' + esc(manualTitles[r.slug] || r.slug) + ' 공개</span>';
       }).join('');
       cells.push('<div class="cal__cell' + (isToday ? ' is-today' : '') + '" data-day="' + day + '">' +
-        '<span class="cal__num">' + day + '</span>' + bandHtml + hw + mans + evs + '</div>');
+        '<span class="cal__num">' + day + '</span>' + openHtml + hw + mans + evs + '</div>');
     }
     document.getElementById('cal').innerHTML = cells.join('');
   }
