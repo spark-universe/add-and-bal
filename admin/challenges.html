@@ -27,6 +27,7 @@
     <div class="seg" style="margin-bottom:16px;">
       <button class="seg__btn is-on" data-htab="register">숙제 등록</button>
       <button class="seg__btn" data-htab="review">숙제 검수 <span class="seg__badge" id="revBadge">0</span></button>
+      <button class="seg__btn" data-htab="board">과제 현황판</button>
     </div>
 
     <section id="tab-register">
@@ -124,6 +125,14 @@
         </table>
       </div>
     </section>
+
+    <!-- ===== 과제 현황판 (수강생 × 숙제) ===== -->
+    <section id="tab-board" hidden>
+      <div class="page-head" style="margin-bottom:10px;">
+        <p>선택한 기수의 <b>수강생 × 숙제</b> 현황입니다. 셀을 눌러 채점하고, 숙제 열의 <b>[일괄 통과]</b>로 검수 대기건을 한 번에 처리하세요.</p>
+      </div>
+      <div id="boardWrap"><div class="bd-empty">불러오는 중...</div></div>
+    </section>
   </main>
 </div>
 
@@ -156,6 +165,7 @@
 <script src="../js/auth.js"></script>
 <script src="../js/admin-challenges.js"></script>
 <script src="../js/admin-challenge-review.js"></script>
+<script src="../js/admin-challenge-board.js"></script>
 <script>
 (function () {
   document.querySelectorAll('.seg__btn[data-htab]').forEach(function (b) {
@@ -165,7 +175,10 @@
       var t = this.dataset.htab;
       document.getElementById('tab-register').hidden = t !== 'register';
       document.getElementById('tab-review').hidden = t !== 'review';
-      var cc = document.getElementById('regCohortCtrl'); if (cc) cc.hidden = t !== 'register';
+      document.getElementById('tab-board').hidden = t !== 'board';
+      // 기수 선택기는 등록·현황판에서 사용
+      var cc = document.getElementById('regCohortCtrl'); if (cc) cc.hidden = (t !== 'register' && t !== 'board');
+      if (t === 'board' && window.ChallengeBoard) window.ChallengeBoard.load();
     });
   });
   // 검수 대기 건수를 탭 뱃지에 동기화
