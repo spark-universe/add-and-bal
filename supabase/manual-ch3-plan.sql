@@ -2,13 +2,13 @@
 -- 챕터 3 '스토어 구상'(slug=plan) 본문 교체
 --  · 레퍼런스 조사 3가지: 방법1(Shop 벤치마킹)/방법2(성공 스토어)/방법3(구글 트렌드)
 --  · 각 방법 data-subnav 앵커 → 사이드바 소메뉴
---  · 상단 '스토어 구상 워크시트 내려받기'(자사 호스팅 PDF) 버튼
---  Supabase SQL Editor 에서 실행. (이미지/PDF 는 배포로 함께 올라감: manual/images/plan-*, manual/files/store-plan.pdf)
+--  · 상단 '스토어 구상 워크시트 내려받기'(자사 호스팅 DOCX) 버튼
+--  Supabase SQL Editor 에서 실행. (이미지/워크시트는 배포로 함께: manual/images/plan-*, manual/files/store-plan.docx)
 -- ============================================================
 update public.manual_chapters set body = $body$<h3 class="subhead">스토어 구상 — 레퍼런스 조사</h3>
 <div class="callout overview"><div class="callout-label">이 챕터 개요</div><p>내 스토어를 만들기 전에, 잘 만들어진 다른 스토어와 트렌드를 먼저 조사합니다. 아래 <b>3가지 방법</b>으로 레퍼런스를 모은 뒤, 마지막의 <b>워크시트</b>를 내려받아 내 스토어 구상을 정리하세요.</p></div>
 
-<a class="mn-download" href="manual/files/store-plan.pdf" download="Shopify 샵 구상 (챌린지).pdf">📄 스토어 구상 워크시트 내려받기</a>
+<a class="mn-download" href="manual/files/store-plan.docx" download="Shopify 샵 구상.docx">📄 스토어 구상 워크시트 내려받기</a>
 
 
 <h3 class="subsection" id="plan-m1" data-subnav="방법1 · Shop 벤치마킹">방법 1. Shop에서 벤치마킹</h3>
