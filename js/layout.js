@@ -20,8 +20,7 @@
         items: [
           { key: 'chome',    ico: '🏆', label: '챌린지 메인',    href: 'challenge.html',          lock: true, area: 'challenge' },
           { key: 'calendar', ico: '📅', label: '일정 보기',      href: 'challenge-calendar.html', lock: true, area: 'challenge' },
-          { key: 'all',      ico: '📋', label: '숙제 전체 보기',  href: 'challenge-all.html',      lock: true, area: 'challenge' },
-          { key: 'mine',     ico: '🗂️', label: '내 숙제',        href: 'challenge-mine.html',     lock: true, area: 'challenge' },
+          { key: 'mine',     ico: '📋', label: '숙제',           href: 'challenge-mine.html',     lock: true, area: 'challenge' },
           { key: 'manual',   ico: '📘', label: '챌린지 보기',     href: 'manual.html', target: '_blank', lock: true, area: 'challenge' },
         ],
       },
