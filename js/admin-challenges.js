@@ -177,6 +177,7 @@
     return '<tr' + (c.active ? '' : ' style="opacity:0.45;"') + '>' +
       '<td style="text-align:left;font-weight:600;">' + esc(c.title) +
         ((c.material_path || c.material_url) ? ' <span title="관련 자료 있음" style="font-weight:400;">📎</span>' : '') + '</td>' +
+      '<td>' + (c.open_at ? fmtDate(c.open_at) : '<span style="color:var(--muted);">즉시</span>') + '</td>' +
       '<td>' + fmtDate(c.due_at) + '</td>' +
       '<td>' + (n ? '<a href="challenge-review.html?id=' + c.id + '" style="color:var(--primary);">' + n + '건</a>' : '0건') + '</td>' +
       '<td><button class="btn-sm" data-act="toggle" data-id="' + c.id + '">' +
@@ -190,7 +191,7 @@
   }
   function groupHtml(title, slug, list) {
     var rows = list.length ? list.map(rowHtml).join('') :
-      '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:14px;">아직 숙제가 없습니다.</td></tr>';
+      '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:14px;">아직 숙제가 없습니다.</td></tr>';
     var headBtn = slug !== null
       ? '<button class="btn-sm" data-add="' + esc(slug) + '">＋ 이 단원에 숙제 추가</button>'
       : (list.length ? '<button class="btn-link danger" data-delgroup="1">이 목록 전체 삭제</button>' : '');
@@ -199,7 +200,7 @@
         '<span>📘 ' + esc(title) + ' <span style="color:var(--muted);font-weight:600;">(' + list.length + '개)</span></span>' +
         headBtn +
       '</div>' +
-      '<table><thead><tr><th style="text-align:left;">제목</th><th style="width:120px;">마감일</th>' +
+      '<table><thead><tr><th style="text-align:left;">제목</th><th style="width:120px;">공개 예정</th><th style="width:120px;">마감일</th>' +
         '<th style="width:80px;">제출</th><th style="width:90px;">표시</th><th style="width:140px;">관리</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table>' +
     '</div>';
