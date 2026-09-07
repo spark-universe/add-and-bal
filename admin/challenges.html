@@ -128,8 +128,9 @@
 
     <!-- ===== 과제 현황판 (수강생 × 숙제) ===== -->
     <section id="tab-board" hidden>
-      <div class="page-head" style="margin-bottom:10px;">
-        <p>선택한 기수의 <b>수강생 × 숙제</b> 현황입니다. 셀을 눌러 채점하고, 숙제 열의 <b>[일괄 통과]</b>로 검수 대기건을 한 번에 처리하세요.</p>
+      <div class="page-head" style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+        <p style="margin:0;">선택한 기수의 <b>수강생 × 숙제</b> 현황입니다. 셀을 눌러 채점하고, 숙제 열의 <b>[일괄 통과]</b>로 검수 대기건을 한 번에 처리하세요.</p>
+        <button class="btn-sm is-primary" id="boardExport" style="white-space:nowrap;flex:0 0 auto;">⬇ 엑셀로 내보내기</button>
       </div>
       <div id="boardWrap"><div class="bd-empty">불러오는 중...</div></div>
     </section>

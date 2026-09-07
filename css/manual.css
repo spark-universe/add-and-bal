@@ -73,6 +73,9 @@ body.manual-page { margin:0; background:#fff; }
 .manual-doc .mn-video{position:relative;width:100%;padding-bottom:56.25%;margin:16px 0 6px;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 2px 14px rgba(0,0,0,.12)}
 .manual-doc .mn-video iframe,.manual-doc .mn-video video{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:contain;background:#000}
 .manual-doc .mn-video-note{font-size:13px;color:var(--muted);margin:0 0 8px}
+/* 자료 다운로드 버튼 (워크시트 등) */
+.manual-doc .mn-download{display:inline-flex;align-items:center;gap:8px;margin:10px 0 6px;padding:12px 18px;background:var(--accent);color:#fff;border-radius:10px;font-weight:700;font-size:15px;text-decoration:none;box-shadow:0 2px 10px rgba(63,111,255,.25)}
+.manual-doc .mn-download:hover{background:var(--accent-d)}
 
 .manual-doc .main{flex:1;min-width:0;padding:0 46px 120px;max-width:calc(var(--maxw) + 92px);margin:0 auto}
 
