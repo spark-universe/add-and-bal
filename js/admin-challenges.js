@@ -182,6 +182,7 @@
       '<td><button class="btn-sm" data-act="toggle" data-id="' + c.id + '">' +
         (c.active ? '표시중' : '숨김') + '</button></td>' +
       '<td>' +
+        '<button class="btn-link" data-act="preview" data-id="' + c.id + '">미리 보기</button> ' +
         '<button class="btn-link" data-act="edit" data-id="' + c.id + '">수정</button> ' +
         '<button class="btn-link danger" data-act="del" data-id="' + c.id + '">삭제</button>' +
       '</td>' +
@@ -375,6 +376,7 @@
     if (!c) return;
 
     if (btn.dataset.act === 'edit') { fillForm(c); return; }
+    if (btn.dataset.act === 'preview') { openPreview(c); return; }
 
     if (btn.dataset.act === 'toggle') {
       var r = await sb.from('challenges').update({ active: !c.active }).eq('id', id);
@@ -395,6 +397,47 @@
       await load();
     }
   });
+
+  // 수강생이 보는 '숙제 제출 화면' 미리 보기 (조작 불가)
+  function openPreview(c) {
+    var manualHtml = c.manual_slug
+      ? '<a class="ch-manual-link" href="manual.html#' + esc(c.manual_slug) + '" target="_blank" rel="noopener">📘 관련 챌린지 보기 <span aria-hidden="true">↗</span></a>'
+      : '';
+    var matParts = [];
+    if (c.material_path) matParts.push('<span class="ch-manual-link" style="cursor:default;">📎 관련 자료 다운로드' + (c.material_name ? ' (' + esc(c.material_name) + ')' : '') + '</span>');
+    if (c.material_url) matParts.push('<a class="ch-manual-link" href="' + esc(safeUrl(c.material_url)) + '" target="_blank" rel="noopener">🔗 관련 링크 열기 <span aria-hidden="true">↗</span></a>');
+    var box = document.createElement('div');
+    box.className = 'modal-overlay is-open';
+    box.innerHTML =
+      '<div class="modal-card" style="max-width:600px;">' +
+        '<div class="modal-card__head">' +
+          '<h3>' + esc(c.title) + '</h3>' +
+          '<button class="modal-close" data-close>×</button>' +
+        '</div>' +
+        '<div class="modal-card__body">' +
+          '<div style="background:#eef3ff;color:var(--primary);border-radius:8px;padding:9px 12px;font-size:0.83rem;font-weight:600;margin-bottom:14px;">👁 미리 보기 — 수강생에게 보이는 제출 화면입니다 (여기서는 조작되지 않아요)</div>' +
+          '<div class="ch-meta">' + (c.due_at ? '<span class="ord-chip">마감 ' + fmtDate(c.due_at) + '</span>' : '') + '</div>' +
+          (c.description ? '<p style="white-space:pre-wrap;line-height:1.7;font-size:0.9rem;margin:14px 0;">' + esc(c.description) + '</p>' : '') +
+          manualHtml + matParts.join('') +
+          '<div class="ch-submit">' +
+            '<div class="ch-submit__title">📤 과제 제출</div>' +
+            '<div class="field"><label>제출 내용 (메모 · 링크)</label>' +
+              '<textarea rows="3" placeholder="과제 결과 링크나 설명을 입력하세요." disabled style="width:100%;padding:11px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:0.88rem;resize:vertical;background:#f6f7f9;"></textarea></div>' +
+            '<div class="field"><label>파일 첨부 (선택)</label><input type="file" disabled></div>' +
+            '<div class="ch-confirm-warn">📌 제출 후 반드시 <b>제출 확정하기</b>를 눌러야 채점됩니다. 확정하지 않으면 미제출로 분류돼요.</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="modal-card__foot">' +
+          '<button class="btn-sm" data-close>닫기</button>' +
+          '<button class="btn-sm" disabled>임시 저장</button>' +
+          '<button class="btn-sm is-primary" disabled>제출 확정하기</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(box);
+    box.addEventListener('click', function (e) {
+      if (e.target === box || e.target.closest('[data-close]')) box.remove();
+    });
+  }
 
   (async function init() {
     var admin = await Auth.requireAdmin();
