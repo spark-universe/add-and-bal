@@ -300,7 +300,12 @@
 
     // 달력 클릭: 일정 마커 → 수정, 빈 날짜 → 추가, 과제 마커 → 상세
     document.getElementById('cal').addEventListener('click', function (e) {
-      if (e.target.closest('.cal__ev.manual')) return;   // 매뉴얼 예약 공개 마커는 클릭 무시
+      var mEl = e.target.closest('.cal__ev.manual');
+      if (mEl) {   // 매뉴얼 예약 공개 마커 → 정보 + 바로가기 팝업
+        var r = monthManual.find(function (x) { return x.slug === mEl.getAttribute('data-mslug'); });
+        if (r) openManualInfo(r);
+        return;
+      }
       var evEl = e.target.closest('[data-ev]');
       if (evEl) { var ev = monthEvents.find(function (x) { return String(x.id) === evEl.dataset.ev; }); if (ev) openEvent(ev); return; }
       var hwEl = e.target.closest('[data-id]');
@@ -336,13 +341,20 @@
   function renderCal() {
     document.getElementById('calLabel').textContent = calYear + '년 ' + MON[calMonth];
 
-    var byDay = {};   // 과제 마감
+    // 과제: 공개일(open_at)~마감(due_at) 기간이 있으면 연결 띠(band), 없으면 단일 마감 마커
+    var bands = [];        // { c, s: 시작(날짜), e: 마감(날짜) }
+    var singleDue = {};    // day -> [c]  (기간 없는 숙제)
     calList.forEach(function (c) {
       if (!c.due_at) return;
-      var d = new Date(c.due_at);                 // due_at 은 전체 타임스탬프 → 그대로 파싱
-      if (isNaN(d.getTime())) return;
-      if (d.getFullYear() === calYear && d.getMonth() === calMonth) {
-        (byDay[d.getDate()] = byDay[d.getDate()] || []).push(c);
+      var due = new Date(c.due_at); if (isNaN(due.getTime())) return;
+      var dueD = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+      var start = c.open_at ? new Date(c.open_at) : null;
+      if (start && !isNaN(start.getTime())) {
+        var sD = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+        if (sD.getTime() < dueD.getTime()) { bands.push({ c: c, s: sD, e: dueD }); return; }
+      }
+      if (due.getFullYear() === calYear && due.getMonth() === calMonth) {
+        (singleDue[due.getDate()] = singleDue[due.getDate()] || []).push(c);
       }
     });
     var evDay = {};   // 일정
@@ -365,7 +377,22 @@
     for (var i = 0; i < first; i++) cells.push('<div class="cal__cell is-empty"></div>');
     for (var day = 1; day <= days; day++) {
       var isToday = (todayISO() === iso(calYear, calMonth, day));
-      var hw = (byDay[day] || []).map(function (c) {
+      // 기간형 숙제: 시작~마감 사이 날마다 연결된 띠로
+      var dayDate = new Date(calYear, calMonth, day);
+      var weekday = dayDate.getDay();
+      var bandHtml = bands.filter(function (b) {
+        return dayDate.getTime() >= b.s.getTime() && dayDate.getTime() <= b.e.getTime();
+      }).map(function (b) {
+        var c = b.c;
+        var cls = c.sub ? 'done' : (isOver(c.due_at) ? 'over' : 'todo');
+        var isStart = dayDate.getTime() === b.s.getTime();
+        var isEnd = dayDate.getTime() === b.e.getTime();
+        var pos = (isStart ? ' band-start' : '') + (isEnd ? ' band-end' : '');
+        var showLabel = isStart || weekday === 0 || day === 1;   // 시작일·주 시작(일요일)·1일에 제목 표시
+        return '<span class="cal__ev cal__band ' + cls + pos + '" data-id="' + c.id + '" title="숙제 기간">' +
+          (showLabel ? ('🚩 ' + esc(c.title)) : '&nbsp;') + '</span>';
+      }).join('');
+      var hw = (singleDue[day] || []).map(function (c) {
         var cls = c.sub ? 'done' : (isOver(c.due_at) ? 'over' : 'todo');
         return '<span class="cal__ev ' + cls + '" data-id="' + c.id + '" title="과제 마감">🚩 ' + esc(c.title) + '</span>';
       }).join('');
@@ -375,15 +402,42 @@
           esc(fmtTime(e.start_at)) + ' ' + esc(e.title) + '</span>';
       }).join('');
       var mans = (mDay[day] || []).map(function (r) {
-        return '<span class="cal__ev manual" title="매뉴얼 예약 공개">📘 ' + esc(manualTitles[r.slug] || r.slug) + ' 공개</span>';
+        return '<span class="cal__ev manual" data-mslug="' + esc(r.slug) + '" title="매뉴얼 예약 공개">📘 ' + esc(manualTitles[r.slug] || r.slug) + ' 공개</span>';
       }).join('');
       cells.push('<div class="cal__cell' + (isToday ? ' is-today' : '') + '" data-day="' + day + '">' +
-        '<span class="cal__num">' + day + '</span>' + hw + mans + evs + '</div>');
+        '<span class="cal__num">' + day + '</span>' + bandHtml + hw + mans + evs + '</div>');
     }
     document.getElementById('cal').innerHTML = cells.join('');
   }
   function iso(y, m, d) {
     return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+  }
+
+  // 매뉴얼 예약 공개 마커 클릭 → 정보 + 매뉴얼 바로가기
+  function openManualInfo(r) {
+    var title = manualTitles[r.slug] || r.slug;
+    var box = document.createElement('div');
+    box.className = 'modal-overlay is-open';
+    box.innerHTML =
+      '<div class="modal-card" style="max-width:440px;">' +
+        '<div class="modal-card__head">' +
+          '<h3>📘 ' + esc(title) + '</h3>' +
+          '<button class="modal-close" data-close>×</button>' +
+        '</div>' +
+        '<div class="modal-card__body">' +
+          '<div class="ch-meta"><span class="ord-chip">공개 예정 · ' + esc(fmtDate(r.publish_at)) + '</span></div>' +
+          '<p style="line-height:1.7;font-size:0.9rem;margin:14px 0 0;color:var(--muted);">' +
+            '이 챕터는 위 일시에 공개될 예정이에요. 아래 버튼으로 매뉴얼로 이동할 수 있어요.<br>' +
+            '(아직 공개 전이면 매뉴얼에서 “공개 예정”으로 표시됩니다.)</p>' +
+        '</div>' +
+        '<div class="modal-card__foot">' +
+          '<a class="btn-primary" href="manual.html#' + esc(r.slug) + '">매뉴얼 보러 가기 →</a>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(box);
+    box.addEventListener('click', function (e) {
+      if (e.target === box || e.target.closest('[data-close]')) box.remove();
+    });
   }
 
   /* ===== 일정 추가/수정 모달 ===== */
