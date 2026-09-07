@@ -74,6 +74,22 @@
   </div>
 </div>
 
+<!-- 기수별 수강생 목록 -->
+<div class="modal-overlay" id="stuModal">
+  <div class="modal-card" style="max-width:520px;">
+    <div class="modal-card__head">
+      <h3 id="stuTitle">수강생</h3>
+      <button type="button" class="modal-close" id="stuClose">&times;</button>
+    </div>
+    <div class="modal-card__body" style="max-height:62vh;overflow:auto;padding:0;">
+      <table style="width:100%;">
+        <thead><tr><th style="text-align:left;">성명</th><th style="text-align:left;">이메일</th><th style="width:80px;text-align:center;">상태</th></tr></thead>
+        <tbody id="stuBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../js/supabase.js"></script>
 <script src="../js/util.js"></script><script src="../js/layout.js"></script>
