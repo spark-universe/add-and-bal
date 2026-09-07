@@ -92,11 +92,18 @@
         <button class="seg__btn lv-tab" data-lv="pending">신청 대기</button>
       </div>
       <div class="lv-save-warn">⚠ 열람 영역을 바꾼 뒤 <b>[저장]</b> 버튼을 눌러야 반영됩니다. 저장 전에 다른 페이지로 이동하면 변경이 사라질 수 있어요.</div>
+      <div class="lv-bulk" style="display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-bottom:14px;padding:12px 14px;background:var(--primary-soft);border-radius:10px;">
+        <b style="font-size:0.86rem;white-space:nowrap;">열람 영역 일괄 설정</b>
+        <span id="bulkAreas" style="display:flex;gap:12px;flex-wrap:wrap;font-size:0.86rem;"></span>
+        <span style="flex:1;min-width:12px;"></span>
+        <select id="bulkTarget" style="padding:6px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.84rem;background:#fff;"></select>
+        <button class="btn-primary btn-sm" id="bulkApply">적용</button>
+      </div>
       <div class="panel">
         <div class="panel__head"><span>등급 현황 <span id="lvlCount" style="color:var(--muted);font-weight:600;"></span></span></div>
         <table>
-          <thead><tr><th>성명</th><th>이메일</th><th>기수</th><th style="width:270px;">열람 가능 영역</th><th style="width:120px;">권한</th><th>신청 내역</th><th style="width:150px;">신청 처리</th></tr></thead>
-          <tbody id="levelBody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr></tbody>
+          <thead><tr><th style="width:34px;text-align:center;"><input type="checkbox" id="lvPickAll" title="전체 선택"></th><th>성명</th><th>이메일</th><th>기수</th><th style="width:270px;">열람 가능 영역</th><th style="width:120px;">권한</th><th>신청 내역</th><th style="width:150px;">신청 처리</th></tr></thead>
+          <tbody id="levelBody"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr></tbody>
         </table>
       </div>
     </section>
@@ -140,6 +147,10 @@
     lvOpenCnt: document.getElementById('lvOpenCnt'),
     lvLockCnt: document.getElementById('lvLockCnt'),
     lvPendCnt: document.getElementById('lvPendCnt'),
+    lvPickAll: document.getElementById('lvPickAll'),
+    bulkAreas: document.getElementById('bulkAreas'),
+    bulkTarget: document.getElementById('bulkTarget'),
+    bulkApply: document.getElementById('bulkApply'),
     modal: document.getElementById('detailModal'),
     detailBody: document.getElementById('detailBody'),
     detailTitle: document.getElementById('detailTitle'),
@@ -327,10 +338,56 @@
     admins = ad.data || [];
 
     fillBulkCohort();
+    fillBulkAccess();
     renderPending();
     renderUsers();
     renderLevels();
   }
+
+  /* ---------- 등급 관리: 열람 영역 일괄 설정 ---------- */
+  function fillBulkAccess() {
+    if (!els.bulkAreas) return;
+    els.bulkAreas.innerHTML = ACCESS_AREAS.map(function (a) {
+      return '<label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;">' +
+        '<input type="checkbox" class="bulk-area" value="' + a.k + '">' + a.l + '</label>';
+    }).join('');
+    var opts = '<option value="checked">✅ 체크한 사람에게</option>';
+    cohorts.forEach(function (c) { opts += '<option value="cohort:' + c.id + '">' + cohortText(c) + ' 전체</option>'; });
+    opts += '<option value="cohort:0">미분류 전체</option>';
+    els.bulkTarget.innerHTML = opts;
+  }
+  async function bulkApplyAccess() {
+    var areas = [];
+    els.bulkAreas.querySelectorAll('.bulk-area:checked').forEach(function (b) { areas.push(b.value); });
+    var target = els.bulkTarget.value, ids = [];
+    if (target === 'checked') {
+      els.levelBody.querySelectorAll('.lv-pick:checked').forEach(function (b) { ids.push(b.dataset.id); });
+      if (!ids.length) { alert('먼저 표에서 대상 수강생을 체크하세요.'); return; }
+    } else if (target.indexOf('cohort:') === 0) {
+      var co = Number(target.split(':')[1]);
+      ids = all.filter(function (u) { return u.status === 'approved' && (u.cohort || 0) === co; }).map(function (u) { return u.id; });
+      if (!ids.length) { alert('해당 대상에 승인된 수강생이 없습니다.'); return; }
+    }
+    var level = areas.length >= ALL_AREAS.length ? 1 : 0;
+    var labelMap = {}; ACCESS_AREAS.forEach(function (a) { labelMap[a.k] = a.l; });
+    var lbl = areas.length ? areas.map(function (k) { return labelMap[k]; }).join(', ') : '없음(전체 잠금)';
+    if (!confirm(ids.length + '명에게 열람 영역을 [' + lbl + '](으)로 설정합니다.\n기존 영역은 덮어써집니다. 진행할까요?')) return;
+    els.bulkApply.disabled = true; els.bulkApply.textContent = '적용 중...';
+    var res = await sb.from('profiles').update({ access: areas, level: level }).in('id', ids).select('id');
+    els.bulkApply.disabled = false; els.bulkApply.textContent = '적용';
+    if (res.error) { alert('일괄 적용 실패: ' + res.error.message); return; }
+    var done = (res.data || []).length;
+    (res.data || []).forEach(function (row) {
+      var u = all.filter(function (x) { return x.id === row.id; })[0];
+      if (u) { u.access = areas.slice(); u.level = level; }
+    });
+    renderLevels(); renderUsers();
+    alert(done + '명 적용 완료' + (done < ids.length ? (' (' + (ids.length - done) + '명은 권한/정책으로 반영 안 됨)') : ''));
+  }
+  if (els.bulkApply) els.bulkApply.addEventListener('click', bulkApplyAccess);
+  if (els.lvPickAll) els.lvPickAll.addEventListener('change', function () {
+    els.levelBody.querySelectorAll('.lv-pick').forEach(function (b) { b.checked = els.lvPickAll.checked; });
+  });
 
   /* ---------- 등급 관리 ---------- */
   function reqTag(u) {
@@ -366,6 +423,7 @@
         ? '<button class="btn-link" data-approve="' + u.id + '">승인</button> <button class="btn-link danger" data-reject="' + u.id + '">거절</button>'
         : '<span style="color:var(--muted);font-size:0.82rem;">-</span>';
       return '<tr>' +
+        '<td style="text-align:center;"><input type="checkbox" class="lv-pick" data-id="' + u.id + '"></td>' +
         '<td><b>' + esc(u.name) + '</b></td>' +
         '<td>' + esc(u.email) + '</td>' +
         '<td>' + cohortLabelOf(u.cohort) + '</td>' +
@@ -379,6 +437,7 @@
     if (levelFilter === 'all' && admins.length) {
       admins.forEach(function (a) {
         rows.push('<tr style="background:#faf7ff;">' +
+          '<td></td>' +
           '<td><b>' + esc(a.name) + '</b></td>' +
           '<td>' + esc(a.email) + '</td>' +
           '<td>-</td>' +
@@ -389,7 +448,8 @@
     }
     els.levelBody.innerHTML = rows.length
       ? rows.join('')
-      : '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">해당하는 수강생이 없습니다.</td></tr>';
+      : '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:40px;">해당하는 수강생이 없습니다.</td></tr>';
+    if (els.lvPickAll) els.lvPickAll.checked = false;
   }
 
   function fillBulkCohort() {
