@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>사이트 URL · 협력자 코드 확인 방법</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+  :root{ --line:#e7e9ee; --muted:#8a9199; --accent:#3f6fff; --accent-d:#274bd6; --accent-soft:#eef3ff; --text:#20262d; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:#f6f7f9; color:var(--text);
+    font-family:Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; line-height:1.65; }
+  .wrap{ max-width:760px; margin:0 auto; padding:24px 20px 90px; }
+  .back{ display:inline-flex; align-items:center; gap:6px; font-size:0.86rem; color:var(--muted);
+    text-decoration:none; margin-bottom:18px; }
+  .back:hover{ color:var(--accent-d); }
+  .sg-head{ display:flex; align-items:center; gap:12px; margin:4px 0 6px; }
+  .sg-ico{ font-size:26px; }
+  .sg-title{ font-size:1.5rem; font-weight:800; margin:0; }
+  .sg-lead{ color:var(--muted); font-size:0.92rem; margin:0 0 8px; }
+  .callout{ background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:0 8px 8px 0;
+    padding:12px 15px; margin:18px 0; font-size:0.9rem; }
+  .callout b{ color:var(--accent-d); }
+  .step{ position:relative; display:flex; align-items:center; gap:12px; margin:44px 0 12px; padding:12px 16px;
+    background:linear-gradient(90deg,var(--accent-soft),transparent); border-left:3px solid var(--accent); border-radius:0 8px 8px 0; }
+  .step::before{ content:""; position:absolute; left:0; right:0; top:-22px; height:1px; background:var(--line); }
+  .step:first-of-type::before{ display:none; }
+  .step:first-of-type{ margin-top:22px; }
+  .step-badge{ font-size:12px; font-weight:800; letter-spacing:.06em; color:#fff; background:var(--accent);
+    border-radius:6px; padding:4px 10px; white-space:nowrap; }
+  .step-title{ font-size:1.05rem; font-weight:700; }
+  .shot{ margin:12px 0 6px; }
+  .shot img{ width:100%; border:1px solid var(--line); border-radius:10px; display:block;
+    box-shadow:0 2px 12px rgba(0,0,0,.06); }
+  .note{ font-size:0.9rem; color:#4b5560; margin:6px 0 0; }
+  code{ background:#eef0f3; border-radius:5px; padding:1px 6px; font-size:0.9em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="my-info.html">← 내 스토어 정보로 돌아가기</a>
+
+  <div class="sg-head">
+    <span class="sg-ico">📖</span>
+    <h1 class="sg-title">사이트 URL · 협력자 코드 확인 방법</h1>
+  </div>
+  <p class="sg-lead">스토어를 추가할 때 입력하는 <b>사이트 URL</b>과 <b>협력자 코드(보안 코드)</b>를 확인하는 방법입니다.</p>
+
+  <div class="callout"><b>💡 미리 알아두기</b><br>사이트 URL은 <code>nnnnn-nn.myshopify.com</code> 형식이고, 협력자 코드는 쇼피파이 <b>사용자 → 보안</b> 화면의 <b>보안 코드</b> 값입니다.</div>
+
+  <div class="step"><span class="step-badge">STEP 1</span><span class="step-title">설정 열기</span></div>
+  <p>쇼피파이에 로그인한 뒤, 왼쪽 아래의 <b>설정</b>을 클릭합니다.</p>
+  <figure class="shot"><img loading="lazy" src="manual/images/storeguide-01.png" alt="설정 위치"></figure>
+
+  <div class="step"><span class="step-badge">STEP 2</span><span class="step-title">Domains(도메인) 열기</span></div>
+  <p>설정 목록에서 <b>Domains</b>(도메인)을 클릭합니다.</p>
+  <figure class="shot"><img loading="lazy" src="manual/images/storeguide-02.jpg" alt="Domains 메뉴"></figure>
+
+  <div class="step"><span class="step-badge">STEP 3</span><span class="step-title">사이트 URL 확인</span></div>
+  <p><code>nnnnn-nn.myshopify.com</code> 형식으로 된 URL이 <b>사이트 URL</b>입니다. 이 주소를 스토어 추가 시 <b>스토어 URL</b> 칸에 입력하세요.</p>
+  <figure class="shot"><img loading="lazy" src="manual/images/storeguide-03.png" alt="myshopify.com URL"></figure>
+
+  <div class="step"><span class="step-badge">STEP 4</span><span class="step-title">협력자(보안) 코드 확인</span></div>
+  <p><b>사용자 → 보안</b>으로 이동해 <b>보안 코드</b> 칸의 값을 확인합니다. 이 값이 <b>협력자 코드</b>입니다.</p>
+  <figure class="shot"><img loading="lazy" src="manual/images/storeguide-04.png" alt="보안 코드 위치"></figure>
+
+  <div class="callout" style="margin-top:34px;"><b>✅ 정리</b><br>스토어 추가 화면에서 <b>스토어 URL</b>에는 STEP 3의 <code>myshopify.com</code> 주소를, <b>협력자 코드</b>에는 STEP 4의 보안 코드를 입력하면 됩니다.</div>
+
+  <a class="back" href="my-info.html" style="margin-top:24px;">← 내 스토어 정보로 돌아가기</a>
+</div>
+</body>
+</html>
