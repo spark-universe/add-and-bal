@@ -305,9 +305,14 @@ function initSingle() {
       var wrap = sub.closest('.nav-subwrap');
       var parent = wrap && wrap.getAttribute('data-parent');
       var tid = sub.getAttribute('href').slice(1);
-      if (parent) show(parent);
+      var sameChapter = (parent && parent === current());
+      if (parent && !sameChapter) show(parent);   // 이미 그 챕터면 맨 위로 안 올리고 현재 위치에서 이동
       var t = document.getElementById(tid);
-      if (t) requestAnimationFrame(function () { t.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+      if (t) {
+        if (sameChapter) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        else requestAnimationFrame(function () { t.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+      }
+      document.body.classList.remove('nav-open');   // 모바일 목차 닫기
       return;
     }
     var a = e.target.closest('.nav-item'); if (!a) return;
