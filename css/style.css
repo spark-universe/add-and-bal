@@ -190,6 +190,28 @@ a { color: inherit; text-decoration: none; }
 .cal__ev.cal__band.band-start { border-top-left-radius: 6px; border-bottom-left-radius: 6px; margin-left: 0; padding-left: 6px; }
 .cal__ev.cal__band.band-end { border-top-right-radius: 6px; border-bottom-right-radius: 6px; margin-right: 0; padding-right: 6px; }
 .cal__ev:hover { filter: brightness(0.95); }
+
+/* ===== 과제 현황판 (수강생 × 숙제 매트릭스) ===== */
+.bd-empty { padding: 34px; text-align: center; color: var(--muted); }
+.bd-legend { font-size: 0.8rem; margin: 2px 2px 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.bd-lg { padding: 2px 9px; border-radius: 20px; font-weight: 700; }
+.bd-noneleg { background: #eef0f4; color: #7b8390; padding: 2px 9px; border-radius: 20px; font-weight: 700; }
+.bd-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+.bd-table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
+.bd-table th, .bd-table td { border-right: 1px solid #eef0f4; border-bottom: 1px solid #eef0f4; padding: 8px 10px; font-size: 0.82rem; text-align: center; white-space: nowrap; }
+.bd-colh { min-width: 96px; max-width: 150px; vertical-align: top; background: #f6f7f9; }
+.bd-colttl { font-weight: 700; overflow: hidden; text-overflow: ellipsis; max-width: 140px; margin: 0 auto 4px; }
+.bd-bulk { font-size: 0.72rem; color: var(--primary); background: none; border: 0; cursor: pointer; text-decoration: underline; }
+.bd-stick { position: sticky; left: 0; z-index: 2; background: #fff; }
+.bd-corner { z-index: 3; background: #f6f7f9; }
+.bd-name { text-align: left; font-weight: 600; min-width: 110px; max-width: 170px; overflow: hidden; text-overflow: ellipsis; }
+.bd-cell.bd-none { color: #c2c8d0; }
+.bd-cell.bd-draft, .bd-lg.bd-draft { background: #fff4e0; color: #a86b00; }
+.bd-cell.bd-wait, .bd-lg.bd-wait { background: #eaf1ff; color: #2c5fd0; }
+.bd-cell.bd-pass, .bd-lg.bd-pass { background: #e7f7ee; color: #1a7b46; font-weight: 700; }
+.bd-cell.bd-fail, .bd-lg.bd-fail { background: #ffe6e6; color: #c92a2a; font-weight: 700; }
+.bd-cell[data-cell] { cursor: pointer; }
+.bd-cell[data-cell]:hover { filter: brightness(0.96); }
 .cal__cell[data-day] { cursor: pointer; }
 .cal__cell[data-day]:hover { background: #f7f9fc; }
 
