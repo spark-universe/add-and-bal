@@ -138,6 +138,43 @@
     if (cell) { var p = cell.dataset.cell.split('|'); openGrade(Number(p[0]), Number(p[1])); }
   });
 
+  // 엑셀(CSV) 내보내기 — UTF-8 BOM 으로 한글 안 깨지게
+  function csvCell(v) {
+    v = String(v == null ? '' : v);
+    return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+  }
+  function exportCsv() {
+    if (!students.length || !challenges.length) { alert('내보낼 데이터가 없습니다.'); return; }
+    var header = ['수강생'].concat(challenges.map(function (c) { return c.title || ('숙제' + c.id); }))
+      .concat(['통과', '미통과', '검수대기', '미제출']);
+    var lines = [header.map(csvCell).join(',')];
+    students.forEach(function (u) {
+      var pass = 0, fail = 0, wait = 0, none = 0;
+      var cells = challenges.map(function (c) {
+        var s = (subs[u.id] || {})[c.id];
+        if (!s) { none++; return '미제출'; }
+        if (s.status === 'draft') { none++; return '초안'; }
+        if (s.review_status === 'pass') { pass++; return (s.score != null ? s.score : '통과'); }
+        if (s.review_status === 'fail') { fail++; return '미통과'; }
+        wait++; return '검수대기';
+      });
+      var row = [u.name || ''].concat(cells).concat([pass, fail, wait, none]);
+      lines.push(row.map(csvCell).join(','));
+    });
+    var label = (cohortSel && cohortSel.options[cohortSel.selectedIndex]) ? cohortSel.options[cohortSel.selectedIndex].text : ('기수' + cohort());
+    var d = new Date();
+    var stamp = d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2);
+    var fname = '과제현황_' + String(label).replace(/[^\w가-힣]+/g, '_') + '_' + stamp + '.csv';
+    var blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = fname;   // 정상 사이트라 blob 다운로드 허용됨
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+  }
+  var exportBtn = document.getElementById('boardExport');
+  if (exportBtn) exportBtn.addEventListener('click', exportCsv);
+
   if (cohortSel) cohortSel.addEventListener('change', function () {
     var t = document.getElementById('tab-board');
     if (t && !t.hidden) load();
