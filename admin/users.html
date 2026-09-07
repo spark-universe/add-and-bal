@@ -39,7 +39,7 @@
             <tr>
               <th style="width:40px;"><input type="checkbox" id="pendAll" title="전체 선택"></th>
               <th>성명</th><th>전화번호</th><th>구글 이메일</th><th>신청일</th>
-              <th style="width:150px;">수강일</th><th style="width:140px;">기수(자동)</th><th style="width:130px;">처리</th>
+              <th style="width:140px;">기수</th><th style="width:150px;">수강일(자동)</th><th style="width:130px;">처리</th>
             </tr>
           </thead>
           <tbody id="pendBody">
@@ -412,18 +412,19 @@
       return;
     }
     els.pendBody.innerHTML = pending.map(function (u) {
-      // 기본 수강일 = 개인 수강일 or 신청일. 그 날짜의 기수를 자동 매칭
-      var d = u.enroll_date || ymd(u.created_at);
-      var matched = cohortByDate[d] || u.cohort || defaultCohort;
+      // 기수 기준: 승인 기수는 기존 값/날짜매칭/기본값, 수강일은 그 기수에 등록된 수강일을 자동 표시
+      var d0 = u.enroll_date || ymd(u.created_at);
+      var matched = u.cohort || cohortByDate[d0] || defaultCohort;
+      var d = cohortDateOf(matched) || d0;
       return '<tr data-id="' + u.id + '">' +
         '<td><input type="checkbox" class="pend-check" data-id="' + u.id + '"></td>' +
         '<td><b>' + esc(u.name) + '</b></td>' +
         '<td>' + esc(u.phone) + '</td>' +
         '<td>' + esc(u.email) + '</td>' +
         '<td>' + fmtDate(u.created_at) + '</td>' +
-        '<td><input type="date" class="pend-date" value="' + esc(d) + '" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;"></td>' +
         '<td><select class="pend-cohort" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;">' +
           cohortOptions(matched) + '</select></td>' +
+        '<td><input type="date" class="pend-date" value="' + esc(d) + '" readonly title="선택한 기수의 수강일이 자동 적용됩니다" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:0.82rem;background:#f3f4f6;color:var(--muted);"></td>' +
         '<td>' +
           '<button class="btn-sm is-primary" data-approve="' + u.id + '">승인</button> ' +
           '<button class="btn-sm" data-reject="' + u.id + '" style="color:var(--danger);">거절</button>' +
@@ -463,9 +464,8 @@
       var cid = cohortByDate[e.target.value];
       if (cid) tr.querySelector('.pend-cohort').value = String(cid);
     } else if (e.target.classList.contains('pend-cohort')) {
-      // 기수를 바꾸면 그 기수의 수강일로 날짜를 맞춤
-      var d = cohortDateOf(parseInt(e.target.value, 10));
-      if (d) tr.querySelector('.pend-date').value = d;
+      // 기수를 바꾸면 그 기수에 등록된 수강일로 자동 반영 (수강일 없는 기수면 비움)
+      tr.querySelector('.pend-date').value = cohortDateOf(parseInt(e.target.value, 10));
     }
   });
 
