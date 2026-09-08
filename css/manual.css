@@ -236,6 +236,11 @@ body.manual-page { margin:0; background:#fff; }
 .manual-doc .callout.note .callout-label{color:var(--accent-d)}
 .manual-doc .callout.quiz{background:var(--amber-soft);border:1px solid #f0dfbf;border-left-color:var(--amber)}
 .manual-doc .callout.quiz .callout-label{color:var(--amber)}
+/* 위험 경고 (크게, 빨강) */
+.manual-doc .callout.danger{background:#fff2f2;border:1.5px solid #f3b6b6;border-left-width:6px;border-left-color:#e03131;padding:20px 22px}
+.manual-doc .callout.danger .callout-label{color:#c92a2a;font-size:17px}
+.manual-doc .callout.danger p{font-size:15px;line-height:1.7}
+.manual-doc .callout.danger b{color:#c92a2a}
 .manual-doc .quiz-list{margin:6px 0 0;padding-left:20px}
 .manual-doc .quiz-list li{margin:7px 0}
 

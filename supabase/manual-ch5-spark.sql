@@ -1,9 +1,12 @@
 -- ============================================================
 -- 챕터 5 (slug=spark) 제목 '스파크 기본 설정' + 본문 교체
+--  · 상단 비용 경고(따라 하면 앱 비용 청구 가능 → 정독만 해도 됨)
 --  · 소메뉴 2개: 설치 방법 / 기본 설정 (data-subnav)
 --  Supabase SQL Editor 에서 실행. (이미지: manual/images/spark-install-*, spark-basic-*)
 -- ============================================================
-update public.manual_chapters set title = '스파크 기본 설정', body = $body$<h3 class="subhead">스파크 기본 설정</h3>
+update public.manual_chapters set title = '스파크 기본 설정', body = $body$<div class="callout danger"><div class="callout-label">🚨 꼭 읽어주세요 — 비용 안내</div><p><b>이 단원(스파크 기본 설정)을 실제로 따라 진행하시면 일부 앱·서비스 이용에 비용이 청구될 수 있습니다.</b></p><p>지금 바로 설치·연동하지 않아도 됩니다. <b>매뉴얼은 정독(눈으로 익히기)만 하셔도 충분</b>하며, 실제 진행은 준비가 되었을 때 하셔도 됩니다.</p></div>
+
+<h3 class="subhead">스파크 기본 설정</h3>
 <div class="callout overview"><div class="callout-label">이 챕터 개요</div><p><b>스파크</b>는 상품을 대량으로 수집(소싱)해 Shopify 스토어로 업로드해 주는 프로그램입니다. 이 챕터에서는 <b>설치 방법</b>과 Shopify와 연결하는 <b>기본 설정</b>을 순서대로 진행합니다.</p></div>
 
 <h3 class="subsection" id="spark-install" data-subnav="설치 방법">설치 · 회원가입 방법</h3>
