@@ -411,6 +411,8 @@ tr.row-dirty > td { background: #fff7e0; }
 }
 .sidebar__footer .who { font-weight: 700; color: var(--text); }
 .sidebar__footer a { color: var(--primary); }
+.sidebar__footer .sb-actions { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; padding-bottom: 14px; }
+.sidebar__footer .sb-actions a { display: block; }
 
 /* 어드민 뱃지 */
 .badge-admin {

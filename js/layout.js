@@ -45,7 +45,11 @@
         ],
       },
     ],
-    footer: '<div class="who"><span id="sbName">수강생</span> <span class="badge-admin">수강생</span></div><a href="#">로그아웃</a>',
+    footer: '<div class="who"><span id="sbName">수강생</span> <span class="badge-admin" id="sbBadge">수강생</span></div>' +
+      '<div class="sb-actions">' +
+        '<a href="admin/index.html" id="sbAdminLink" hidden>🛠 어드민 화면 보기</a>' +
+        '<a href="#">로그아웃</a>' +
+      '</div>',
   };
 
   // ---------- 어드민 메뉴 정의 ----------
@@ -65,7 +69,11 @@
       { key: 'review',      section: '발주 &amp; 광고 관리', ico: '📝', label: '자료 검수',   href: 'review.html' },
       { key: 'results',     section: '발주 &amp; 광고 관리', ico: '📊', label: '결과 관리',   href: 'results.html' },
     ],
-    footer: '<div class="who">GSK Admin <span class="badge-admin">관리자</span></div><a href="../index.html">사용자 화면으로</a>',
+    footer: '<div class="who">GSK Admin <span class="badge-admin">관리자</span></div>' +
+      '<div class="sb-actions">' +
+        '<a href="../index.html">👨‍🎓 수강생 화면 보기</a>' +
+        '<a href="#">로그아웃</a>' +
+      '</div>',
   };
 
   const area = document.body.dataset.area || 'user';
@@ -171,7 +179,12 @@
           if (nameEl) nameEl.textContent = p.name || '테스트 계정';
           return;
         }
-        if (p.role === 'admin' || (p.level || 0) >= 1) return;   // 어드민·전체열람은 잠금 없음
+        if (p.role === 'admin') {   // 어드민이 수강생 화면을 볼 때: 어드민 복귀 버튼 노출
+          var adminLink = document.getElementById('sbAdminLink'); if (adminLink) adminLink.hidden = false;
+          var badgeEl = document.getElementById('sbBadge'); if (badgeEl) badgeEl.textContent = '관리자';
+          return;
+        }
+        if ((p.level || 0) >= 1) return;   // 전체열람은 잠금 없음
         var access = Array.isArray(p.access) ? p.access : [];
         document.querySelectorAll('.nav a.is-lockable').forEach(function (a) {
           if (access.indexOf(a.getAttribute('data-area')) !== -1) return;   // 이 영역은 열람 허용
