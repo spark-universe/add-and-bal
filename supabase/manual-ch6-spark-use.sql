@@ -39,8 +39,6 @@ update public.manual_chapters set title = '스파크 사용법', body = $body$<h
 
 <h3 class="subhead">5. 모니터링 &amp; 로그</h3>
 <p>소싱이 <b>실시간으로 어떻게 진행되는지</b> 확인하는 기능입니다. 링크를 넣고 <b>작업 시작</b>을 누르면 로그와 모니터링에 진행 상황이 표시됩니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/spark-func-13.png" alt=""></figure>
-<figure class="shot"><img loading="lazy" src="manual/images/spark-func-14.png" alt=""></figure>
 <figure class="shot"><img loading="lazy" src="manual/images/spark-func-15.png" alt=""></figure>
 <ul class="bullets"><li><b>로그</b> — 작업 시작 · 페이지 소싱 · 상품 수집 완료[상품코드] · 수집 실패(약물성·재고없음 등) 를 실시간 표시</li><li><b>모니터링</b> — 수집 <b>완료된 상품</b>만 모아서 표시</li></ul>
 <figure class="shot"><img loading="lazy" src="manual/images/spark-func-16.png" alt=""></figure>
