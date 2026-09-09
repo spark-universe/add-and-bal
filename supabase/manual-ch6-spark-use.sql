@@ -39,18 +39,14 @@ update public.manual_chapters set title = '스파크 사용법', body = $body$<h
 
 <h3 class="subhead">5. 모니터링 &amp; 로그</h3>
 <p>소싱이 <b>실시간으로 어떻게 진행되는지</b> 확인하는 기능입니다. 링크를 넣고 <b>작업 시작</b>을 누르면 로그와 모니터링에 진행 상황이 표시됩니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/spark-func-13.png" alt=""></figure>
-<figure class="shot"><img loading="lazy" src="manual/images/spark-func-14.png" alt=""></figure>
 <figure class="shot"><img loading="lazy" src="manual/images/spark-func-15.png" alt=""></figure>
 <ul class="bullets"><li><b>로그</b> — 작업 시작 · 페이지 소싱 · 상품 수집 완료[상품코드] · 수집 실패(약물성·재고없음 등) 를 실시간 표시</li><li><b>모니터링</b> — 수집 <b>완료된 상품</b>만 모아서 표시</li></ul>
 <figure class="shot"><img loading="lazy" src="manual/images/spark-func-16.png" alt=""></figure>
 <figure class="shot"><img loading="lazy" src="manual/images/spark-func-17.png" alt=""></figure>
 
 <h3 class="subhead">6. 데이터 관리 — 최근 작업 데이터 불러오기</h3>
-<p>가장 최근에 완료된 소싱 데이터를 바로 불러오는 기능입니다. <b>최근 작업 데이터 불러오기</b>를 누르면 최근 소싱 내용이 로그·모니터링에 표시됩니다.</p>
+<p>가장 최근에 완료된 소싱 데이터를 바로 불러오는 기능입니다. <b>최근 작업 데이터 불러오기</b>를 누르면 최근 소싱한 상품들이 데이터 관리 목록으로 불러와집니다.</p>
 <figure class="shot"><img loading="lazy" src="manual/images/spark-func-18.png" alt=""></figure>
-<figure class="shot"><img loading="lazy" src="manual/images/spark-func-19.png" alt=""></figure>
-<figure class="shot"><img loading="lazy" src="manual/images/spark-func-20.png" alt=""></figure>
 
 <h3 class="subhead">7. 데이터 관리 — 데이터 불러오기</h3>
 <p>지금까지 소싱한 파일 중 <b>원하는 파일을 골라</b> 불러옵니다. <b>데이터 불러오기</b> → 파일 선택 → <b>폴더 선택</b> → 정상 로드 확인 순서입니다.</p>
