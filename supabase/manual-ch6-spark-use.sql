@@ -51,7 +51,6 @@ update public.manual_chapters set title = '스파크 사용법', body = $body$<h
 
 <h3 class="subhead">7. 데이터 관리 — 데이터 불러오기</h3>
 <p>지금까지 소싱한 파일 중 <b>원하는 파일을 골라</b> 불러옵니다. <b>데이터 불러오기</b> → 파일 선택 → <b>폴더 선택</b> → 정상 로드 확인 순서입니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/spark-func-21.png" alt=""></figure>
 <figure class="shot"><img loading="lazy" src="manual/images/spark-func-22.png" alt=""></figure>
 <figure class="shot"><img loading="lazy" src="manual/images/spark-func-23.png" alt=""></figure>
 <div class="callout note"><div class="callout-label">💡 파일명 규칙</div><p>파일명은 <b>MMDD_HHMMSS(월일_시분초)</b> — 소싱을 시작한 시간으로 자동 지정됩니다. (예: 3/25 19:35:52 시작 → <code>0325_193552</code>) 필요하면 파일명을 바꿔도 됩니다.</p></div>
