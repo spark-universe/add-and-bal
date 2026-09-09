@@ -49,22 +49,13 @@ update public.manual_chapters set title = '스파크 사용법', body = $body$<h
 <figure class="shot"><img loading="lazy" src="manual/images/spark-func-18.png" alt=""></figure>
 <figure class="shot"><img loading="lazy" src="manual/images/spark-func-25.png" alt=""></figure>
 
-<h3 class="subhead">7. 데이터 관리 — 데이터 불러오기</h3>
-<p>지금까지 소싱한 파일 중 <b>원하는 파일을 골라</b> 불러옵니다. <b>데이터 불러오기</b> → 파일 선택 → <b>폴더 선택</b> → 정상 로드 확인 순서입니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/spark-func-21.png" alt=""></figure>
-<figure class="shot"><img loading="lazy" src="manual/images/spark-func-22.png" alt=""></figure>
-<figure class="shot"><img loading="lazy" src="manual/images/spark-func-23.png" alt=""></figure>
-<div class="callout note"><div class="callout-label">💡 파일명 규칙</div><p>파일명은 <b>MMDD_HHMMSS(월일_시분초)</b> — 소싱을 시작한 시간으로 자동 지정됩니다. (예: 3/25 19:35:52 시작 → <code>0325_193552</code>) 필요하면 파일명을 바꿔도 됩니다.</p></div>
-<figure class="shot"><img loading="lazy" src="manual/images/spark-func-24.png" alt=""></figure>
-<figure class="shot"><img loading="lazy" src="manual/images/spark-func-25.png" alt=""></figure>
-
-<h3 class="subhead">8. 데이터 관리 — 위치</h3>
+<h3 class="subhead">7. 데이터 관리 — 위치</h3>
 <p>수집한 상품을 스토어에 올릴 때 <b>업로드 위치</b>를 지정하는 기능입니다. 데이터 불러오기에서 <b>위치: @@@</b> 부분을 눌러 위치를 선택합니다.</p>
 <figure class="shot"><img loading="lazy" src="manual/images/spark-func-26.png" alt=""></figure>
 <figure class="shot"><img loading="lazy" src="manual/images/spark-func-27.png" alt=""></figure>
 <div class="callout note"><div class="callout-label">⚠ 주의</div><p>업로드는 <b>미국 주소지</b>로 된 위치에서 진행해 주세요. (쇼피파이 → 설정 → 위치에서 확인)</p></div>
 
-<h3 class="subhead">9. 데이터 관리 — 업로드</h3>
+<h3 class="subhead">8. 데이터 관리 — 업로드</h3>
 <p>수집이 끝난 상품을 스토어로 올리는 기능입니다. 데이터를 불러온 뒤 <b>업로드</b> → <b>확인</b>을 누르면 업로드가 시작됩니다.</p>
 <figure class="shot"><img loading="lazy" src="manual/images/spark-func-28.png" alt=""></figure>
 <figure class="shot"><img loading="lazy" src="manual/images/spark-func-29.png" alt=""></figure>
@@ -74,7 +65,7 @@ update public.manual_chapters set title = '스파크 사용법', body = $body$<h
 <figure class="shot"><img loading="lazy" src="manual/images/spark-func-32.png" alt=""></figure>
 <figure class="shot"><img loading="lazy" src="manual/images/spark-func-33.png" alt=""></figure>
 
-<h3 class="subhead">10. 설정 메뉴</h3>
+<h3 class="subhead">9. 설정 메뉴</h3>
 <p>스파크와 Shopify를 연결하는 설정 화면입니다.</p>
 <ul class="bullets"><li><b>스토어 이름</b> — 스토어 URL(끝의 <code>.myshopify.com</code>은 빼고 입력, 자동으로 붙음)</li><li><b>스토어 AccessToken</b> — 쇼피파이와 스파크를 잇는 값 (발행은 <b>스파크 기본 설정</b> 참고)</li><li><b>상품 마진</b> — % 단위로 마진율 설정</li></ul>
 <figure class="shot"><img loading="lazy" src="manual/images/spark-func-34.png" alt=""></figure>
