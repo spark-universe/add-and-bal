@@ -76,16 +76,22 @@
 
 <!-- 기수별 수강생 목록 -->
 <div class="modal-overlay" id="stuModal">
-  <div class="modal-card" style="max-width:520px;">
+  <div class="modal-card" style="max-width:560px;">
     <div class="modal-card__head">
       <h3 id="stuTitle">수강생</h3>
       <button type="button" class="modal-close" id="stuClose">&times;</button>
     </div>
-    <div class="modal-card__body" style="max-height:62vh;overflow:auto;padding:0;">
+    <div class="modal-card__body" style="max-height:54vh;overflow:auto;padding:0;">
       <table style="width:100%;">
-        <thead><tr><th style="text-align:left;">성명</th><th style="text-align:left;">이메일</th><th style="width:80px;text-align:center;">상태</th></tr></thead>
+        <thead><tr><th style="width:34px;text-align:center;"><input type="checkbox" id="stuAll" title="전체 선택"></th><th style="text-align:left;">성명</th><th style="text-align:left;">이메일</th><th style="width:64px;text-align:center;">상태</th></tr></thead>
         <tbody id="stuBody"></tbody>
       </table>
+    </div>
+    <div class="modal-card__foot" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <span style="font-size:0.84rem;color:var(--muted);" id="stuSelCount">선택 0명</span>
+      <span style="flex:1;min-width:8px;"></span>
+      <select id="stuMoveTarget" style="padding:7px 9px;border:1px solid var(--border);border-radius:7px;font-size:0.84rem;"></select>
+      <button class="btn-sm is-primary" id="stuMoveBtn">선택 인원 이동</button>
     </div>
   </div>
 </div>

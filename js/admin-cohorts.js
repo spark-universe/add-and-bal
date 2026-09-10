@@ -31,10 +31,10 @@
         '등록된 기수가 없습니다.</td></tr>';
       return;
     }
-    var rows = cohorts.map(function (c) {
+    var rows = cohorts.map(function (c, i) {
       var n = (studentsByCohort[c.id] || []).length;
       return '<tr' + (c.active ? '' : ' style="opacity:0.5;"') + '>' +
-        '<td>' + c.id + '</td>' +
+        '<td>' + (i + 1) + '</td>' +
         '<td><b style="font-size:0.95rem;">' + esc(c.label) + '</b></td>' +
         '<td>' +
           '<input type="date" class="co-enroll" data-id="' + c.id + '" value="' + esc(c.enroll_date || '') +
@@ -107,23 +107,65 @@
 
   /* ---------- 기수별 수강생 목록 ---------- */
   var stuModal = document.getElementById('stuModal');
+  var stuBody = document.getElementById('stuBody');
+  function stuSelCount() {
+    var n = stuBody.querySelectorAll('.stu-pick:checked').length;
+    document.getElementById('stuSelCount').textContent = '선택 ' + n + '명';
+  }
+  function fillMoveTargets(excludeId) {
+    var opts = cohorts.filter(function (c) { return c.id !== excludeId; }).map(function (c) {
+      return '<option value="' + c.id + '">' + esc(c.label) + (c.enroll_date ? ' · ' + esc(c.enroll_date) : '') + ' (으)로</option>';
+    }).join('');
+    if (excludeId !== 0) opts += '<option value="0">미분류 (으)로</option>';
+    document.getElementById('stuMoveTarget').innerHTML = opts || '<option value="">옮길 기수 없음</option>';
+  }
   function openStudents(id) {
     var list = (id === 0) ? unassigned : (studentsByCohort[id] || []);
     var name = (id === 0) ? '미분류' : ((cohorts.find(function (x) { return x.id === id; }) || {}).label || ('기수 ' + id));
     document.getElementById('stuTitle').textContent = name + ' 수강생 (' + list.length + '명)';
-    document.getElementById('stuBody').innerHTML = list.length
+    stuBody.innerHTML = list.length
       ? list.map(function (p) {
           var st = p.status === 'approved' ? '<span class="tag tag--ok">승인</span>'
             : (p.status === 'rejected' ? '<span class="tag tag--no">거절</span>' : '<span class="tag tag--wait">대기</span>');
-          return '<tr><td style="text-align:left;">' + esc(p.name || '-') + '</td>' +
+          return '<tr><td style="text-align:center;"><input type="checkbox" class="stu-pick" data-id="' + p.id + '"></td>' +
+            '<td style="text-align:left;">' + esc(p.name || '-') + '</td>' +
             '<td style="text-align:left;color:var(--muted);word-break:break-all;">' + esc(p.email || '-') + '</td>' +
             '<td style="text-align:center;">' + st + '</td></tr>';
         }).join('')
-      : '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px;">해당 수강생이 없습니다.</td></tr>';
+      : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px;">해당 수강생이 없습니다.</td></tr>';
+    fillMoveTargets(id);
+    var allc = document.getElementById('stuAll'); if (allc) allc.checked = false;
+    stuSelCount();
     stuModal.classList.add('is-open');
   }
   document.getElementById('stuClose').addEventListener('click', function () { stuModal.classList.remove('is-open'); });
   stuModal.addEventListener('click', function (e) { if (e.target === stuModal) stuModal.classList.remove('is-open'); });
+  document.getElementById('stuAll').addEventListener('change', function () {
+    var on = this.checked;
+    stuBody.querySelectorAll('.stu-pick').forEach(function (b) { b.checked = on; });
+    stuSelCount();
+  });
+  stuBody.addEventListener('change', function (e) { if (e.target.classList.contains('stu-pick')) stuSelCount(); });
+  document.getElementById('stuMoveBtn').addEventListener('click', async function () {
+    var ids = [];
+    stuBody.querySelectorAll('.stu-pick:checked').forEach(function (b) { ids.push(b.dataset.id); });
+    if (!ids.length) { alert('이동할 수강생을 선택하세요.'); return; }
+    var tv = document.getElementById('stuMoveTarget').value;
+    if (tv === '') { alert('옮길 기수가 없습니다.'); return; }
+    var target = Number(tv);
+    var tc = cohorts.find(function (x) { return x.id === target; });
+    var tName = target === 0 ? '미분류' : ((tc || {}).label || ('기수 ' + target));
+    if (!confirm('선택한 ' + ids.length + '명을 "' + tName + '"(으)로 이동할까요?')) return;
+    this.disabled = true;
+    var res = await sb.from('profiles')
+      .update({ cohort: target, enroll_date: (tc && tc.enroll_date) ? tc.enroll_date : null })
+      .in('id', ids).select('id');
+    this.disabled = false;
+    if (res.error) { alert('이동 실패: ' + res.error.message); return; }
+    stuModal.classList.remove('is-open');
+    await load();
+    alert((res.data || []).length + '명 이동 완료');
+  });
 
   /* ---------- 기수 삭제 ---------- */
   var delModal = document.getElementById('delModal');
@@ -239,6 +281,7 @@
     var pr = await sb.from('profiles').select('id,name,email,cohort,status').neq('role', 'admin').order('name');
     (pr.data || []).forEach(function (p) {
       // 승인 + 실제 기수(1 이상)만 해당 기수에 집계. 미승인·기수0/null 은 미분류로.
+      if (p.status === 'rejected') return;   // 거절자는 집계에서 제외 (미분류에도 안 뜸)
       if (p.status === 'approved' && p.cohort && p.cohort >= 1) {
         (studentsByCohort[p.cohort] = studentsByCohort[p.cohort] || []).push(p);
       } else {
