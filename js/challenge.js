@@ -733,8 +733,8 @@
             (canRework ? ' <span class="tag tag--no">재작업</span>' : (c.sub ? ' <span class="tag tag--wait">임시저장</span>' : '')) + '</div>' +
           draftNote +
           '<div class="field">' +
-            '<label>제출 내용 (메모 · 링크)</label>' +
-            '<textarea id="chContent" rows="3" placeholder="과제 결과 링크나 설명을 입력하세요."' +
+            '<label>제출 내용 (메모)</label>' +
+            '<textarea id="chContent" rows="3" placeholder="과제 관련 메모나 설명을 입력하세요."' +
               (overdue ? ' disabled' : '') + ' style="width:100%;padding:11px;border:1px solid var(--border);' +
               'border-radius:8px;font-family:inherit;font-size:0.88rem;resize:vertical;">' +
               esc(c.sub ? c.sub.content || '' : '') + '</textarea>' +
