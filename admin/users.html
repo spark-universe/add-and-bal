@@ -584,8 +584,8 @@
     els.userCount.textContent = approved.length;
     els.userBadge.textContent = approved.length;
 
-    // 대기(별도 탭)·삭제(soft)는 제외
-    var list = all.filter(function (u) { return u.status !== 'pending' && u.status !== 'deleted'; });
+    // 대기(별도 탭)·삭제(soft)·거절은 목록에서 제외
+    var list = all.filter(function (u) { return u.status !== 'pending' && u.status !== 'deleted' && u.status !== 'rejected'; });
     // 검색
     var q = userSearch.trim().toLowerCase();
     if (q) list = list.filter(function (u) {
