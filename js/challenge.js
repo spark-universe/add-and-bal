@@ -834,14 +834,20 @@
       // 파일 첨부: 경로 첫 폴더가 본인 uid 여야 스토리지 정책을 통과한다
       if (file) {
         var lbl = confBtn || saveBtn; if (lbl) lbl.textContent = '업로드 중...';
-        var path = user.id + '/challenge/' + c.id + '/' + Date.now() + '_' + file.name;
-        var up = await sb.storage.from('submissions').upload(path, file, { upsert: true });
+        // 스토리지 키는 ASCII 만 허용 → 한글·공백·특수문자 파일명이면 거부됨. 키는 정제하고 표시용 이름은 원본 유지.
+        var ext = (file.name.match(/\.[a-zA-Z0-9]+$/) || [''])[0].toLowerCase();
+        var base = file.name.slice(0, file.name.length - ext.length).replace(/[^\w.-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'file';
+        var path = user.id + '/challenge/' + c.id + '/' + Date.now() + '_' + base + ext;
+        var up = await sb.storage.from('submissions').upload(path, file, {
+          upsert: true,
+          contentType: file.type || 'application/octet-stream',
+        });
         if (up.error) {
           if (saveBtn) saveBtn.disabled = false; if (confBtn) { confBtn.disabled = false; confBtn.textContent = '제출 확정하기'; }
           errEl.textContent = '파일 업로드 실패: ' + up.error.message;
           return;
         }
-        row.file_path = path; row.file_name = file.name;
+        row.file_path = path; row.file_name = file.name;   // 원본 파일명(한글 포함)은 표시용으로 저장
       }
 
       var res = await sb.from('challenge_submissions')
