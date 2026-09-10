@@ -741,7 +741,10 @@
           '</div>' +
           '<div class="field">' +
             '<label>파일 첨부 (선택)</label>' +
-            '<input type="file" id="chFile"' + (overdue ? ' disabled' : '') + '>' +
+            '<input type="file" id="chFile" accept="image/*,.pdf,.zip"' + (overdue ? ' disabled' : '') + '>' +
+            '<div style="font-size:0.8rem;color:var(--muted);margin-top:6px;line-height:1.55;">' +
+              '📎 <b>이미지(JPG·PNG) · PDF · 압축파일(ZIP)</b>만 첨부할 수 있어요. 파일은 <b>1개</b>만 올라가니, ' +
+              '<b>이미지가 여러 장이면 하나의 ZIP으로 압축</b>해서 올려주세요.</div>' +
             already +
           '</div>' +
           (overdue ? '<div class="adv-warn danger">마감이 지나 제출할 수 없습니다.</div>'
