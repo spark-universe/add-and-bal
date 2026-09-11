@@ -80,7 +80,11 @@
     if (prev && prev.file_path) {
       await sb.storage.from(BUCKET).remove([prev.file_path]);
     }
-    var path = user.id + '/' + key + '/' + Date.now() + '_' + file.name;
+    // 스토리지 키는 ASCII 만 허용 → 한글 파일명이면 InvalidKey 로 거부된다.
+    // 키는 정제하고, 화면에 보여줄 원본 이름은 아래 file_name 에 그대로 남긴다.
+    var ext = (file.name.match(/\.[a-zA-Z0-9]+$/) || [''])[0].toLowerCase();
+    var base = file.name.slice(0, file.name.length - ext.length).replace(/[^\w.-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'file';
+    var path = user.id + '/' + key + '/' + Date.now() + '_' + base + ext;
     var up = await sb.storage.from(BUCKET).upload(path, file, { upsert: true });
     if (up.error) { alert('업로드 실패: ' + up.error.message); return; }
 
