@@ -124,6 +124,41 @@
     setTimeout(function () { els.saved.hidden = true; }, 2000);
   }
 
+  /* ----- 예약 공개일 스마트 기본값 -----
+     · 기준: 바로 위(먼저 공개되는) 챕터의 공개일 → 다음 평일(주말 제외) 오전 10시
+     · 항상 '이전 챕터'를 기준으로 하므로, 공휴일 등으로 위 챕터 날짜를 조정하면 아래도 따라옵니다. */
+  function localInput(d) {
+    var off = d.getTimezoneOffset() * 60000;
+    return new Date(d - off).toISOString().slice(0, 16);
+  }
+  function nextWeekdayAt10(base) {
+    var d = new Date(base);
+    d.setDate(d.getDate() + 1);
+    while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1); // 토(6)·일(0) 건너뜀
+    d.setHours(10, 0, 0, 0);
+    return d;
+  }
+  function todayAt10() {
+    var t = new Date();
+    while (t.getDay() === 0 || t.getDay() === 6) t.setDate(t.getDate() + 1);
+    t.setHours(10, 0, 0, 0);
+    return t;
+  }
+  // 이 행보다 위에 있는 행 중, 일시가 지정된 가장 가까운 행의 값(편집 중인 미저장 값 포함)
+  function prevWhenValue(tr) {
+    var p = tr.previousElementSibling;
+    while (p) {
+      var w = p.querySelector('.mc-when');
+      if (w && w.value) return w.value;
+      p = p.previousElementSibling;
+    }
+    return null;
+  }
+  function suggestWhen(tr) {
+    var base = prevWhenValue(tr);
+    return localInput(base ? nextWeekdayAt10(new Date(base)) : todayAt10());
+  }
+
   function currentBadge(c) {
     if (c.status === 'hidden') return '<span class="tag tag--no">숨김</span>';
     if (c.status === 'scheduled') {
@@ -197,6 +232,8 @@
       var showAlready = st === 'public';
       if (already) already.style.display = showAlready ? '' : 'none';
       when.style.display = showAlready ? 'none' : '';
+      // 예약으로 바꿨는데 일시가 비어 있으면 '이전 챕터 + 다음 평일 오전 10시'로 자동 채움
+      if (st === 'scheduled' && !when.value) when.value = suggestWhen(tr);
     }
     refreshDirty();
   });

@@ -440,6 +440,99 @@
     });
   }
 
+  /* ===== 숙제 불러오기 (다른 기수의 숙제 형식을 현재 기수로 복사) =====
+     · 제목·설명·연결 매뉴얼·자료만 복사, 시작/마감 일시는 복사하지 않음(직접 설정)
+     · '숨김' 상태(active=false)로 새 행 생성 → 제출물과 무관하여 안전 */
+  var impSrc = [];       // 가져올 기수의 숙제 목록
+  var impSel = {};       // 선택된 source challenge id
+  var impEls = {
+    modal: document.getElementById('impModal'),
+    close: document.getElementById('impClose'),
+    from: document.getElementById('impFrom'),
+    all: document.getElementById('impAll'),
+    none: document.getElementById('impNone'),
+    count: document.getElementById('impCount'),
+    list: document.getElementById('impList'),
+    apply: document.getElementById('impApply'),
+    dest: document.getElementById('impDest'),
+    open: document.getElementById('importHw'),
+  };
+  function manualTitle(slug) {
+    if (!slug) return '단원 미지정';
+    var m = manualChapters.find(function (x) { return x.slug === slug; });
+    return m ? m.title : slug;
+  }
+  function renderImpList() {
+    impEls.list.innerHTML = impSrc.length ? impSrc.map(function (c) {
+      var dup = challenges.some(function (x) { return (x.title || '') === (c.title || ''); });
+      return '<label style="display:flex;align-items:center;gap:9px;padding:9px 12px;border-bottom:1px solid #f0f2f6;cursor:pointer;font-size:0.9rem;">' +
+        '<input type="checkbox" class="imp-cb" value="' + c.id + '"' + (impSel[c.id] ? ' checked' : '') + '>' +
+        '<span style="flex:1;"><b>' + esc(c.title || '(제목 없음)') + '</b>' +
+          '<span style="color:var(--muted);font-weight:400;"> · ' + esc(manualTitle(c.manual_slug)) + '</span>' +
+          ((c.material_path || c.material_url) ? ' <span title="관련 자료 있음">📎</span>' : '') +
+        '</span>' +
+        (dup ? '<span class="tag tag--wait" style="flex:0 0 auto;">현재 기수에 있음</span>' : '') +
+      '</label>';
+    }).join('') : '<div style="padding:24px;text-align:center;color:var(--muted);font-size:0.85rem;">이 기수에는 숙제가 없습니다.</div>';
+    impEls.count.textContent = '선택 ' + Object.keys(impSel).length + '개';
+  }
+  async function loadImpSrc() {
+    var from = Number(impEls.from.value);
+    impEls.list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);font-size:0.85rem;">불러오는 중...</div>';
+    var res = await sb.from('challenges').select('*').eq('cohort', from).order('created_at', { ascending: true });
+    if (res.error) { impEls.list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--danger);">불러오기 실패: ' + esc(res.error.message) + '</div>'; return; }
+    impSrc = res.data || [];
+    impSel = {};
+    renderImpList();
+  }
+  if (impEls.open) impEls.open.addEventListener('click', function () {
+    var others = cohortList.filter(function (c) { return c.id !== cohort; });
+    if (!others.length) { alert('불러올 다른 기수가 없습니다.'); return; }
+    impEls.from.innerHTML = others.map(function (c) {
+      return '<option value="' + c.id + '">' + esc(c.label) + (c.enroll_date ? ' · ' + esc(c.enroll_date) : '') + '</option>';
+    }).join('');
+    impEls.dest.textContent = cohortLabel(cohort);
+    impEls.modal.classList.add('is-open');
+    loadImpSrc();
+  });
+  function closeImp() { impEls.modal.classList.remove('is-open'); }
+  impEls.close.addEventListener('click', closeImp);
+  impEls.modal.addEventListener('click', function (e) { if (e.target === impEls.modal) closeImp(); });
+  impEls.from.addEventListener('change', loadImpSrc);
+  impEls.list.addEventListener('change', function (e) {
+    var cb = e.target.closest('.imp-cb'); if (!cb) return;
+    var id = Number(cb.value);
+    if (cb.checked) impSel[id] = true; else delete impSel[id];
+    impEls.count.textContent = '선택 ' + Object.keys(impSel).length + '개';
+  });
+  impEls.all.addEventListener('click', function () {
+    impSrc.forEach(function (c) { impSel[c.id] = true; });
+    renderImpList();
+  });
+  impEls.none.addEventListener('click', function () { impSel = {}; renderImpList(); });
+  impEls.apply.addEventListener('click', async function () {
+    var ids = Object.keys(impSel).map(Number);
+    if (!ids.length) { alert('불러올 숙제를 하나 이상 선택하세요.'); return; }
+    var rows = impSrc.filter(function (c) { return impSel[c.id]; }).map(function (c) {
+      return {
+        cohort: cohort, active: false,
+        title: c.title, description: c.description,
+        manual_slug: c.manual_slug,
+        material_url: c.material_url, material_path: c.material_path, material_name: c.material_name,
+        open_at: null, due_at: null,
+      };
+    });
+    impEls.apply.disabled = true;
+    impEls.apply.textContent = '불러오는 중...';
+    var res = await sb.from('challenges').insert(rows);
+    impEls.apply.disabled = false;
+    impEls.apply.textContent = '현재 기수로 불러오기';
+    if (res.error) { alert('불러오기 실패: ' + res.error.message); return; }
+    closeImp();
+    await load();
+    alert(rows.length + '개 숙제를 현재 기수로 불러왔습니다.\n각 숙제의 시작·마감 일시를 설정한 뒤 표시로 전환하세요. (지금은 숨김 상태)');
+  });
+
   (async function init() {
     var admin = await Auth.requireAdmin();
     if (!admin) return;
