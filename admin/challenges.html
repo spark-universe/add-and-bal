@@ -20,6 +20,7 @@
         <select id="cohortSel" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;font-weight:700;">
           <option value="1">1기생</option>
         </select>
+        <button class="btn-sm" id="importHw">⬇ 다른 기수에서 불러오기</button>
         <button class="btn-sm" id="addCohort">＋ 기수 추가</button>
       </div>
     </div>
@@ -156,6 +157,37 @@
     </div>
     <div style="padding:14px 20px;border-top:1px solid var(--border);text-align:right;">
       <button class="btn-primary" id="regCoApply">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 숙제 불러오기 팝업 -->
+<div class="modal-overlay" id="impModal">
+  <div class="modal-card" style="max-width:540px;">
+    <div class="modal-card__head">
+      <h3>숙제 불러오기</h3>
+      <button type="button" class="modal-close" id="impClose">&times;</button>
+    </div>
+    <div class="modal-card__body">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+        <span style="font-size:0.85rem;font-weight:700;">가져올 기수</span>
+        <select id="impFrom" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;font-weight:700;"></select>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <button class="btn-sm" id="impAll" type="button">전체 선택</button>
+        <button class="btn-sm" id="impNone" type="button">전체 해제</button>
+        <span id="impCount" style="margin-left:auto;font-size:0.82rem;color:var(--muted);font-weight:700;">선택 0개</span>
+      </div>
+      <div id="impList" style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
+        <div style="padding:24px;text-align:center;color:var(--muted);font-size:0.85rem;">불러오는 중...</div>
+      </div>
+      <div class="field-hint" style="margin-top:10px;line-height:1.6;">
+        제목·설명·연결 매뉴얼·자료를 <b>현재 기수(<span id="impDest"></span>)</b>로 복사합니다.
+        <b>시작·마감 일시는 복사하지 않으니</b> 불러온 뒤 직접 설정하세요. 불러온 숙제는 '숨김' 상태로 등록됩니다.
+      </div>
+    </div>
+    <div style="padding:14px 20px;border-top:1px solid var(--border);text-align:right;">
+      <button class="btn-primary" id="impApply">현재 기수로 불러오기</button>
     </div>
   </div>
 </div>
