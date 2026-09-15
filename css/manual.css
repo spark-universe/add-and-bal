@@ -250,6 +250,13 @@ body.manual-page { margin:0; background:#fff; }
 .manual-doc ul.bullets li::before{content:"";position:absolute;left:4px;top:11px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
 .manual-doc ol.ordered{margin:12px 0;padding-left:22px}
 .manual-doc ol.ordered li{margin:7px 0}
+/* 본문 표 — 사이트 공통 규칙(중앙 정렬 + 구분선). 첫 열은 항목명이라 굵게 */
+.manual-doc table.mn-table{width:100%;border-collapse:collapse;margin:12px 0 16px;font-size:14px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.manual-doc table.mn-table th,.manual-doc table.mn-table td{padding:10px 12px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);text-align:center;vertical-align:middle;word-break:keep-all}
+.manual-doc table.mn-table th:last-child,.manual-doc table.mn-table td:last-child{border-right:0}
+.manual-doc table.mn-table tbody tr:last-child td{border-bottom:0}
+.manual-doc table.mn-table thead th{background:var(--panel);font-weight:800;color:var(--ink)}
+.manual-doc table.mn-table tbody td:first-child{font-weight:700;white-space:nowrap}
 
 /* soon */
 .manual-doc .soon-box{background:var(--panel);border:1.5px dashed #d3d8de;border-radius:var(--radius);
