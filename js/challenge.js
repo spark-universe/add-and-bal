@@ -40,7 +40,15 @@
   async function loadServerNow() {
     try { var r = await sb.rpc('server_now'); if (r && r.data) { var t = Date.parse(r.data); if (!isNaN(t)) serverNow = t; } } catch (e) {}
   }
-  var REWORK_MS = 3 * 86400000;   // 반려일로부터 3일
+  // 미통과 재제출 기한: 반려일로부터 3일 뒤, 그 날 '오후 11:59'까지
+  // 예) 9/15 오후 2시 반려 → 9/18 오후 11:59까지
+  function reworkDeadline(reviewedAt) {
+    if (!reviewedAt) return null;
+    var d = new Date(reviewedAt);
+    d.setDate(d.getDate() + 3);
+    d.setHours(23, 59, 0, 0);
+    return d.getTime();
+  }
   function fmtDeadline(t) {
     try { return new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(t)); }
     catch (e) { return new Date(t).toLocaleString('ko-KR'); }
@@ -119,14 +127,21 @@
       var d = daysLeft(c.due_at);
       return !confirmed(c) && d != null && d >= 0 && d <= 3;
     });
+    // 미제출 = 마감이 지났는데 아직 제출 확정 안 한 것 (초안·미제출 포함)
+    var miss = list.filter(function (c) { return !confirmed(c) && isOver(c.due_at); });
+    // 미통과 = 제출 확정 후 반려된 것
+    var fail = list.filter(function (c) { return confirmed(c) && c.sub.review_status === 'fail'; });
     var score = done.reduce(function (a, c) { return a + (c.sub.score || 0); }, 0);
 
     setText('cTotal', list.length);
     setText('cDone', done.length);
+    setText('cMiss', miss.length);
+    setText('cFail', fail.length);
     setText('cSoon', soon.length);
     setText('cScore', score);
 
     await renderPromo(list);
+    renderActionNoti(miss.length, fail.length);
     renderReviewNoti(list);
 
     var upcoming = list.filter(function (c) { return !confirmed(c) && c.due_at; }).slice(0, 6);
@@ -149,6 +164,23 @@
         location.href = 'challenge-mine.html?open=' + this.dataset.id;
       });
     });
+  }
+
+  // 미제출·미통과 조치 안내 배너 (빠른 조치 유도)
+  function renderActionNoti(miss, fail) {
+    var box = document.getElementById('actionNoti');
+    if (!box) return;
+    if (!miss && !fail) { box.innerHTML = ''; return; }
+    var parts = [];
+    if (miss) parts.push('<b>미제출 ' + miss + '건</b>(마감 지남)');
+    if (fail) parts.push('<b>미통과 ' + fail + '건</b>');
+    box.innerHTML =
+      '<a class="rev-noti rev-noti--warn" href="challenge-mine.html">' +
+        '<span class="rev-noti__ico">⚠️</span>' +
+        '<span class="rev-noti__txt">' + parts.join(' · ') + ' — 빠르게 확인하고 조치해 주세요.' +
+          ' 미통과는 <b>반려일로부터 3일</b> 이내에 다시 제출할 수 있어요.' +
+          '<span class="rev-noti__go">확인하기 →</span></span>' +
+      '</a>';
   }
 
   // 새로 검수된(안 본) 결과 알림 배너
@@ -591,6 +623,15 @@
         renderMine();
       });
     });
+    // 메인 통계에서 넘어온 필터 (?filter=miss|fail). miss 는 '미제출' 탭으로 매핑
+    var qf = new URLSearchParams(location.search).get('filter');
+    if (qf === 'miss') qf = 'todo';
+    if (qf && ['todo', 'done', 'pass', 'fail'].indexOf(qf) !== -1) {
+      mineFilter = qf;
+      document.querySelectorAll('.adv-tab').forEach(function (x) {
+        x.classList.toggle('is-on', x.dataset.filter === qf);
+      });
+    }
     renderMine();
 
     // 메인에서 넘어온 경우: ?open=<id> 과제 상세를 바로 연다
@@ -606,6 +647,7 @@
       if (mineFilter === 'todo') return !confirmed(c);
       if (mineFilter === 'done') return confirmed(c);
       if (mineFilter === 'pass') return confirmed(c) && c.sub.review_status === 'pass';
+      if (mineFilter === 'fail') return confirmed(c) && c.sub.review_status === 'fail';
       return true;
     });
     document.getElementById('mineCount').textContent =
@@ -696,7 +738,7 @@
 
     var isConf = confirmed(c);                       // 제출 확정 여부
     var rejected = isConf && c.sub.review_status === 'fail';          // 반려(미통과)
-    var reworkUntil = (rejected && c.sub.reviewed_at) ? Date.parse(c.sub.reviewed_at) + REWORK_MS : null;
+    var reworkUntil = rejected ? reworkDeadline(c.sub.reviewed_at) : null;
     var canRework = !!reworkUntil && serverNow <= reworkUntil;        // 반려일로부터 3일 이내면 재작업 가능
     var locked = isConf && !canRework;               // 확정 & (통과/대기/반려3일경과) → 잠금
     var overdue = isOver(c.due_at) && !isConf;       // 신규/초안 + 마감 지남 → 제출 불가
