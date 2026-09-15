@@ -32,9 +32,10 @@
     render();
   }
 
+  function isPastDue(c) { return c.due_at && Date.parse(c.due_at) < Date.now(); }
   function cellInfo(u, c) {
     var s = (subs[u.id] || {})[c.id];
-    if (!s) return { cls: 'bd-none', txt: '–' };
+    if (!s) return isPastDue(c) ? { cls: 'bd-miss', txt: '미제출' } : { cls: 'bd-none', txt: '–' };
     if (s.status === 'draft') return { cls: 'bd-draft', txt: '초안', s: s };  // 제출만·미확정 = 채점 불가
     if (s.review_status === 'pass') return { cls: 'bd-pass', txt: (s.score != null ? String(s.score) : '통과'), s: s, grade: true };
     if (s.review_status === 'fail') return { cls: 'bd-fail', txt: '미통과', s: s, grade: true };
@@ -58,7 +59,8 @@
     }).join('');
     wrap.innerHTML = '<div class="bd-legend">' +
       '<span class="bd-lg bd-pass">통과·점수</span><span class="bd-lg bd-wait">검수 대기</span>' +
-      '<span class="bd-lg bd-fail">미통과</span><span class="bd-lg bd-draft">초안(미확정)</span><span class="bd-lg bd-noneleg">미제출</span>' +
+      '<span class="bd-lg bd-fail">미통과</span><span class="bd-lg bd-draft">초안(미확정)</span>' +
+      '<span class="bd-lg bd-miss">미제출(마감 지남)</span><span class="bd-lg bd-noneleg">– 아직 마감 전</span>' +
       '<span style="color:var(--muted);">· 셀을 클릭하면 채점할 수 있어요</span></div>' +
       '<div class="bd-scroll"><table class="bd-table"><thead><tr>' + head + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
   }
@@ -152,7 +154,7 @@
       var pass = 0, fail = 0, wait = 0, none = 0;
       var cells = challenges.map(function (c) {
         var s = (subs[u.id] || {})[c.id];
-        if (!s) { none++; return '미제출'; }
+        if (!s) { if (isPastDue(c)) { none++; return '미제출'; } return '–'; }
         if (s.status === 'draft') { none++; return '초안'; }
         if (s.review_status === 'pass') { pass++; return (s.score != null ? s.score : '통과'); }
         if (s.review_status === 'fail') { fail++; return '미통과'; }

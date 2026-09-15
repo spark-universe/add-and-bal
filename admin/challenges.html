@@ -78,10 +78,12 @@
           <div class="field">
             <label>시작일시</label>
             <input type="datetime-local" id="fOpen">
+            <div class="field-hint">관련 매뉴얼을 고르면 그 <b>매뉴얼 공개일과 동일하게</b> 자동 설정됩니다. (필요하면 직접 수정 가능)</div>
           </div>
           <div class="field">
             <label>마감일시</label>
             <input type="datetime-local" id="fDue">
+            <div class="field-hint">마감은 직접 지정하세요.</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
@@ -183,7 +185,7 @@
       </div>
       <div class="field-hint" style="margin-top:10px;line-height:1.6;">
         제목·설명·연결 매뉴얼·자료를 <b>현재 기수(<span id="impDest"></span>)</b>로 복사합니다.
-        <b>시작·마감 일시는 복사하지 않으니</b> 불러온 뒤 직접 설정하세요. 불러온 숙제는 '숨김' 상태로 등록됩니다.
+        <b>시작일시는 현재 기수의 매뉴얼 공개일과 동일하게</b> 설정되고, <b>마감일시만</b> 직접 지정하시면 됩니다. 불러온 숙제는 '숨김' 상태로 등록됩니다.
       </div>
     </div>
     <div style="padding:14px 20px;border-top:1px solid var(--border);text-align:right;">

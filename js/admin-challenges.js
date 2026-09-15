@@ -11,6 +11,7 @@
   var cohort = 1;           // 지금 관리 중인 기수
   var maxCohort = 1;        // 존재하는 최대 기수
   var manualChapters = [];  // 매뉴얼 챕터 목록 (연결용)
+  var manualPublish = {};   // 현재 기수의 매뉴얼 공개일 (slug → publish_at ISO), status='scheduled'만
 
   var els = {
     title: document.getElementById('fTitle'),
@@ -231,7 +232,22 @@
     els.groups.innerHTML = html;
   }
 
+  // 현재 기수의 매뉴얼 공개일을 읽어둔다 (숙제 시작일시를 매뉴얼 공개일과 맞추기 위함)
+  async function loadManualPublish() {
+    manualPublish = {};
+    var res = await sb.from('cohort_manual').select('slug, status, publish_at').eq('cohort', cohort);
+    (res.data || []).forEach(function (r) {
+      if (r.status === 'scheduled' && r.publish_at) manualPublish[r.slug] = r.publish_at;
+    });
+  }
+  // 관련 매뉴얼 선택에 맞춰 시작일시 자동 설정 (공개 예약이 있으면 그 일시, 없으면 즉시=비움)
+  function syncOpenToManual() {
+    var slug = els.manual.value;
+    els.open.value = (slug && manualPublish[slug]) ? isoToLocal(manualPublish[slug]) : '';
+  }
+
   async function load() {
+    await loadManualPublish();
     var res = await sb.from('challenges').select('*')
       .eq('cohort', cohort).order('created_at', { ascending: false });
     if (res.error) { alert('숙제를 불러오지 못했습니다: ' + res.error.message); return; }
@@ -343,12 +359,16 @@
 
   els.cancelEdit.addEventListener('click', clearForm);
 
+  // 관련 매뉴얼을 고르면 시작일시를 그 매뉴얼 공개일과 동일하게 자동 설정
+  els.manual.addEventListener('change', syncOpenToManual);
+
   els.groups.addEventListener('click', async function (e) {
     // "이 단원에 숙제 추가" → 폼에 그 단원을 미리 선택하고 위로
     var addBtn = e.target.closest('button[data-add]');
     if (addBtn) {
       clearForm();
       els.manual.value = addBtn.dataset.add;
+      syncOpenToManual();     // 시작일시를 그 단원 공개일과 동일하게
       window.scrollTo({ top: 0, behavior: 'smooth' });
       els.title.focus();
       return;
@@ -519,7 +539,8 @@
         title: c.title, description: c.description,
         manual_slug: c.manual_slug,
         material_url: c.material_url, material_path: c.material_path, material_name: c.material_name,
-        open_at: null, due_at: null,
+        open_at: (c.manual_slug && manualPublish[c.manual_slug]) || null,   // 시작일시 = 현재 기수 매뉴얼 공개일
+        due_at: null,                                                       // 마감은 직접 설정
       };
     });
     impEls.apply.disabled = true;

@@ -17,6 +17,7 @@
     </div>
 
     <div id="promoBox"></div>
+    <div id="actionNoti"></div>
     <div id="reviewNoti"></div>
 
     <div class="stat-row">
@@ -27,6 +28,14 @@
       <a class="stat" href="challenge-mine.html" style="text-decoration:none;color:inherit;">
         <div class="label">제출 완료</div>
         <div class="value"><span id="cDone">-</span> <span style="font-size:0.9rem;font-weight:600;">개</span></div>
+      </a>
+      <a class="stat" href="challenge-mine.html?filter=miss" style="text-decoration:none;color:inherit;">
+        <div class="label">미제출 <span style="font-size:0.72rem;color:var(--muted);font-weight:600;">(마감 지남)</span></div>
+        <div class="value"><span id="cMiss">-</span> <span style="font-size:0.9rem;font-weight:600;">건</span></div>
+      </a>
+      <a class="stat" href="challenge-mine.html?filter=fail" style="text-decoration:none;color:inherit;">
+        <div class="label">미통과</div>
+        <div class="value"><span id="cFail">-</span> <span style="font-size:0.9rem;font-weight:600;">건</span></div>
       </a>
       <div class="stat is-highlight">
         <div class="label">마감 임박</div>
