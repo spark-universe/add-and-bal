@@ -89,7 +89,9 @@
       </div>
       <div class="field">
         <label for="url">스토어 URL</label>
-        <input id="url" type="url" placeholder="https://mystore.myshopify.com">
+        <!-- type="url" 은 https:// 없이 입력하면 브라우저가 제출을 막아서 text 로 두고 저장 시 보정 -->
+        <input id="url" type="text" inputmode="url" autocomplete="url" spellcheck="false" placeholder="예: abcde-12.myshopify.com">
+        <div class="field-hint">https:// 는 안 붙여도 됩니다. 저장할 때 자동으로 붙습니다.</div>
       </div>
       <div class="field">
         <label for="partnerCode">협력자 코드 (숫자 4자리)</label>
@@ -250,6 +252,18 @@
     // 폼 입력 → DB 컬럼으로 변환
     var data = {};
     FIELDS.forEach(function (f) { data[COL[f]] = document.getElementById(f).value.trim(); });
+
+    // 스토어 URL 보정: 스킴 없으면 https:// 붙이고, 끝 슬래시 제거. 형식만 느슨하게 확인 (자체 도메인도 허용)
+    if (data.url) {
+      var u = data.url.replace(/\s+/g, '');
+      if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+      u = u.replace(/\/+$/, '');
+      if (!/^https?:\/\/[^\s\/]+\.[^\s\/]+/i.test(u)) {
+        alert('스토어 URL 형식을 확인하세요.\n예: abcde-12.myshopify.com');
+        return;
+      }
+      data.url = u;
+    }
 
     var id = document.getElementById('storeId').value;
     var res;
