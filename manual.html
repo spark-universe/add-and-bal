@@ -87,6 +87,22 @@ function initLightbox() {
     document.addEventListener('keydown', onKey);
   }
   document.getElementById('manualBody').addEventListener('click', function (e) {
+    // 프롬프트 블록 [복사] — .mn-prompt 안의 <pre> 텍스트를 클립보드로
+    var cp = e.target.closest('.mn-copy');
+    if (cp) {
+      var box = cp.closest('.mn-prompt');
+      var pre = box && box.querySelector('pre');
+      if (!pre) return;
+      var done = function () { cp.textContent = '복사됨 ✓'; setTimeout(function () { cp.textContent = '복사'; }, 1500); };
+      var fallback = function () {   // 클립보드 API 불가 시 텍스트 선택만
+        var r = document.createRange(); r.selectNodeContents(pre);
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        cp.textContent = '선택됨 — Ctrl+C'; setTimeout(function () { cp.textContent = '복사'; }, 2000);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(pre.textContent).then(done, fallback);
+      else fallback();
+      return;
+    }
     var img = e.target.closest('figure.shot img');
     if (img) open(img.getAttribute('src'));
   });
