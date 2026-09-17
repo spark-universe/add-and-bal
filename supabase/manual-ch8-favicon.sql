@@ -14,7 +14,7 @@ update public.manual_chapters set body = $body$<h3 class="subhead">로고 &amp; 
 
 <div class="step"><span class="step-badge">STEP 1</span><span class="step-title">생성형 AI 접속</span></div>
 <p>사용할 생성형 AI에 접속합니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-make-01.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-make-01.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 2</span><span class="step-title">(선택) 스토어 이름 정하기</span></div>
 <p>아직 스토어 이름을 정하지 않았다면 아래 프롬프트로 먼저 정합니다. <b>노란색 부분</b>을 내 정보로 바꿔 주세요.</p>
@@ -50,7 +50,7 @@ update public.manual_chapters set body = $body$<h3 class="subhead">로고 &amp; 
 
 ※ 실제 사용 가능 여부는 확정하지 말고, 최종 선정 전 도메인 및 상표 등록 여부를 별도로 확인해야 한다고 안내해줘.</pre></div>
 <p>(참고) 아래는 참고용 화면입니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-make-02.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-make-02.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 3</span><span class="step-title">브랜드명 확보</span></div>
 <p>AI의 답변을 바탕으로 원하는 브랜드명을 고릅니다. 마음에 드는 게 없다면 추가로 요청해서 다시 받으세요.</p>
@@ -78,27 +78,27 @@ update public.manual_chapters set body = $body$<h3 class="subhead">로고 &amp; 
 6. 브랜드의 판매 카테고리를 너무 직접적으로 표현하기보다는 실제 브랜드처럼 세련되게 표현해줘.
 7. 로고 주변에는 충분한 여백을 확보해줘.
 8. 웹사이트에 바로 사용할 수 있는 완성된 브랜드 로고 형태로 제작해줘.</pre></div>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-make-04.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-make-04.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 5</span><span class="step-title">로고 완성</span></div>
 <p>로고가 나오면 완성입니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-make-05.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-make-05.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 6</span><span class="step-title">이미지 선택</span></div>
 <p>이미지 <b>우측 하단 동그란 표시</b>를 클릭한 뒤 <b>"이 이미지"</b>를 클릭합니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-make-06.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-make-06.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 7</span><span class="step-title">다운로드</span></div>
 <p><b>다운로드</b>를 클릭해 로고 파일을 저장합니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-make-07.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-make-07.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 8</span><span class="step-title">(선택) 마음에 들지 않으면 다시 생성</span></div>
 <p>나온 로고가 마음에 들지 않으면 새로 생성합니다. 이때 <b>어떤 느낌을 원하는지 구체적으로</b> 전달하는 것이 중요합니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-make-08.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-make-08.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 9</span><span class="step-title">마음에 드는 로고 저장</span></div>
 <p>마음에 드는 로고가 나왔다면 STEP 6·7과 같은 방법으로 이미지를 저장합니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-make-09.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-make-09.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 10</span><span class="step-title">파비콘 제작 프롬프트 입력</span></div>
 <p>같은 대화에서 이어서 아래 프롬프트로 파비콘을 만듭니다. 파비콘은 <b>프롬프트를 수정하지 않고 그대로</b> 입력해도 됩니다.</p>
@@ -115,11 +115,11 @@ update public.manual_chapters set body = $body$<h3 class="subhead">로고 &amp; 
 8. 새로운 로고를 만들지 말고, 반드시 앞서 제작한 로고의 브랜드 아이덴티티를 유지해줘.
 
 최종 결과물은 32×32px 파비콘으로 사용할 수 있도록 정사각형 형태로 제작해줘.</pre></div>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-make-10.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-make-10.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 11</span><span class="step-title">파비콘 완성</span></div>
 <p>원하는 파비콘이 나오면 끝입니다. 수정을 원하면 추가로 요청해서 고치고, STEP 6·7과 같은 방법으로 저장하세요.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-make-11.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-make-11.webp" alt=""></figure>
 <div class="callout overview"><div class="callout-label">✅ 여기까지</div><p>이제 <b>로고 파일</b>과 <b>파비콘 파일</b> 두 개가 준비됐습니다. 아래 <b>설정하기</b>에서 Shopify 테마에 넣습니다.</p></div>
 
 
@@ -128,63 +128,63 @@ update public.manual_chapters set body = $body$<h3 class="subhead">로고 &amp; 
 
 <div class="step"><span class="step-badge">STEP 1</span><span class="step-title">온라인 스토어 클릭</span></div>
 <p>Shopify에 접속한 뒤 왼쪽 메뉴의 <b>온라인 스토어</b>를 클릭합니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-01.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-01.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 2</span><span class="step-title">테마 편집하기 클릭</span></div>
 <p><b>테마 편집하기</b>를 클릭합니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-02.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-02.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 3</span><span class="step-title">좌측 상단 톱니바퀴 클릭</span></div>
 <p>편집 화면 <b>좌측 상단의 톱니바퀴</b>(테마 설정)를 클릭합니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-03.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-03.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 4</span><span class="step-title">로고 클릭</span></div>
 <p>설정 목록에서 <b>로고</b>를 클릭합니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-04.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-04.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 5</span><span class="step-title">로고 → 선택 클릭</span></div>
 <p><b>로고</b> 항목의 <b>선택</b>을 클릭합니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-05.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-05.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 6</span><span class="step-title">파일 추가 클릭</span></div>
 <p><b>파일 추가</b>를 클릭합니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-06.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-06.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 7</span><span class="step-title">로고 파일 불러오기</span></div>
 <p>앞에서 만든 <b>로고 파일</b>을 불러옵니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-07.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-07.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 8</span><span class="step-title">파일 선택 → 완료</span></div>
 <p>업로드가 끝나면 해당 파일을 선택한 뒤 <b>완료</b>를 클릭합니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-08.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-08.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 9</span><span class="step-title">로고 확인 → 파비콘 선택</span></div>
 <p>로고 부분에 파일이 잘 올라갔는지 확인합니다. 잘 올라갔다면 <b>붉은색 체크 표시</b> 자리에 로고가 보입니다. 이어서 <b>파비콘</b> 항목의 <b>선택</b>을 클릭합니다.</p>
 <div class="callout note"><div class="callout-label">※ 참고</div><p>로고가 보이는 <b>위치</b>는 사용자가 설정한 값에 따라 다를 수 있습니다.</p></div>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-09.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-09.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 10</span><span class="step-title">파비콘 파일 추가 → 완료</span></div>
 <p>로고와 같은 방법으로 <b>파비콘 파일</b>도 추가한 뒤 <b>완료</b>를 클릭합니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-10.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-10.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 11</span><span class="step-title">파비콘 확인</span></div>
 <p>파비콘도 잘 올라갔다면 설정이 된 것입니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-11.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-11.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 12</span><span class="step-title">저장</span></div>
 <p>모두 끝났다면 <b>우측 상단 저장</b> 버튼을 눌러 저장합니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-12.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-12.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 13</span><span class="step-title">"…" 클릭</span></div>
 <p>저장이 완료되면 상단의 <b>"…"</b> 부분을 클릭합니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-13.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-13.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 14</span><span class="step-title">보기 클릭</span></div>
 <p><b>보기</b>를 클릭해 스토어를 엽니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-14.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-14.webp" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 15</span><span class="step-title">브라우저 탭에서 파비콘 확인</span></div>
 <p>주소창 위 <b>브라우저 탭</b>에 파비콘이 잘 적용됐는지 확인하면 끝입니다.</p>
-<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-15.png" alt=""></figure>
+<figure class="shot"><img loading="lazy" src="manual/images/favicon-apply-15.webp" alt=""></figure>
 <div class="callout overview"><div class="callout-label">✅ 마무리</div><p>로고는 스토어 헤더에, 파비콘은 브라우저 탭에 보이면 완료입니다. 나중에 바꾸고 싶으면 같은 경로(테마 편집하기 → 톱니바퀴 → 로고/파비콘)에서 파일만 교체하면 됩니다.</p></div>
 $body$ where slug = 'favicon';
