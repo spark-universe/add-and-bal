@@ -13,6 +13,18 @@
         { "key": "Strict-Transport-Security", "value": "max-age=15552000; includeSubDomains" },
         { "key": "Permissions-Policy", "value": "geolocation=(), microphone=(), camera=()" }
       ]
+    },
+    {
+      "source": "/manual/(images|videos|files)/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=2592000" }
+      ]
+    },
+    {
+      "source": "/cbguide/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=2592000" }
+      ]
     }
   ]
 }
