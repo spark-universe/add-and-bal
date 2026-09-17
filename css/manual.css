@@ -293,3 +293,9 @@ body.manual-page { margin:0; background:#fff; }
   .manual-doc .backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:35}
   body.nav-open .manual-doc .backdrop{display:block}
 }
+/* 프롬프트 블록 — 그대로 복사해 쓰는 긴 텍스트 (복사 버튼은 manual.html 본문 클릭 핸들러가 처리) */
+.manual-doc .mn-prompt{margin:12px 0 16px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+.manual-doc .mn-prompt__head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:12.5px;font-weight:700;color:var(--muted)}
+.manual-doc .mn-copy{flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:7px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--accent-d)}
+.manual-doc .mn-copy:hover{background:var(--blue-soft)}
+.manual-doc .mn-prompt pre{margin:0;padding:14px 16px;font-size:13.5px;line-height:1.65;white-space:pre-wrap;word-break:keep-all;font-family:inherit;color:var(--ink);max-height:440px;overflow:auto}
