@@ -416,63 +416,36 @@
   function renderCal() {
     document.getElementById('calLabel').textContent = calYear + '년 ' + MON[calMonth];
 
-    // 과제: 공개일(🏁)과 마감일(🚩)을 각각 그 날짜에 표시 (띠 대신 두 마커 — 끊겨 보이지 않게)
-    function inMonth(d) { return d.getFullYear() === calYear && d.getMonth() === calMonth; }
-    var openDay = {};   // day -> [c]  공개/시작일
-    var dueDay = {};    // day -> [c]  마감일
-    scheduleList.forEach(function (c) {
-      if (c.due_at) {
-        var due = new Date(c.due_at);
-        if (!isNaN(due.getTime()) && inMonth(due)) (dueDay[due.getDate()] = dueDay[due.getDate()] || []).push(c);
-      }
-      if (c.open_at) {
-        var op = new Date(c.open_at);
-        // 공개일==마감일(같은 날)이면 마감 마커만 표시(중복 방지)
-        var sameDay = c.due_at && new Date(c.due_at).toDateString() === op.toDateString();
-        if (!isNaN(op.getTime()) && inMonth(op) && !sameDay) (openDay[op.getDate()] = openDay[op.getDate()] || []).push(c);
-      }
-    });
-    var evDay = {};   // 일정
-    monthEvents.forEach(function (e) {
-      var d = new Date(e.start_at);
-      (evDay[d.getDate()] = evDay[d.getDate()] || []).push(e);
-    });
-    var mDay = {};    // 매뉴얼 예약 공개 (내 기수)
+    // 숙제: 공개(시작)일 ~ 마감일을 하나의 막대로 (공용 렌더러 js/calendar.js 가 주 단위로 이어 그림)
+    //   공개일이 없으면(즉시) 마감일 하루짜리. 색은 hwCls: todo/soon/done/over
+    var spans = scheduleList.map(function (c) {
+      if (!c.due_at) return null;
+      var due = new Date(c.due_at);
+      if (isNaN(due.getTime())) return null;
+      var op = c.open_at ? new Date(c.open_at) : due;
+      if (isNaN(op.getTime()) || op > due) op = due;
+      var tip = (c.open_at ? '공개 ' + fmtDate(c.open_at) + ' → ' : '') + '마감 ' + fmtDate(c.due_at);
+      return { start: op, end: due, cls: hwCls(c), label: '🚩 ' + esc(c.title),
+        attrs: 'data-id="' + c.id + '" title="' + esc(tip) + '"' };
+    }).filter(Boolean);
+
+    // 날짜 칸 안 칩: 매뉴얼 예약 공개(내 기수) + 일정
+    var items = {};
+    function add(day, html) { (items[day] = items[day] || []).push(html); }
     monthManual.forEach(function (r) {
       var d = new Date(r.publish_at);
       if (d.getFullYear() === calYear && d.getMonth() === calMonth)
-        (mDay[d.getDate()] = mDay[d.getDate()] || []).push(r);
+        add(d.getDate(), '<span class="cal__ev manual" data-mslug="' + esc(r.slug) + '" title="매뉴얼 예약 공개">📘 ' +
+          esc(manualTitles[r.slug] || r.slug) + ' 공개</span>');
+    });
+    monthEvents.forEach(function (e) {
+      var d = new Date(e.start_at);
+      var mine = e.scope === 'personal' && e.owner_id === user.id;
+      add(d.getDate(), '<span class="cal__ev ' + (mine ? 'mine' : 'adm') + '" data-ev="' + e.id + '">' +
+        esc(fmtTime(e.start_at)) + ' ' + esc(e.title) + '</span>');
     });
 
-    var first = new Date(calYear, calMonth, 1).getDay();
-    var days = new Date(calYear, calMonth + 1, 0).getDate();
-    var cells = ['일','월','화','수','목','금','토']
-      .map(function (w) { return '<div class="cal__wd">' + w + '</div>'; });
-
-    for (var i = 0; i < first; i++) cells.push('<div class="cal__cell is-empty"></div>');
-    for (var day = 1; day <= days; day++) {
-      var isToday = (todayISO() === iso(calYear, calMonth, day));
-      // 과제 공개일(🏁) — 아직 공개 전이면 파란색(soon)
-      var openHtml = (openDay[day] || []).map(function (c) {
-        var future = c.open_at && new Date(c.open_at).getTime() > serverNow;
-        return '<span class="cal__ev ' + (future ? 'soon' : 'todo') + '" data-id="' + c.id + '" title="과제 공개(시작)">🏁 ' + esc(c.title) + '</span>';
-      }).join('');
-      // 과제 마감일(🚩)
-      var hw = (dueDay[day] || []).map(function (c) {
-        return '<span class="cal__ev ' + hwCls(c) + '" data-id="' + c.id + '" title="과제 마감">🚩 ' + esc(c.title) + '</span>';
-      }).join('');
-      var evs = (evDay[day] || []).map(function (e) {
-        var mine = e.scope === 'personal' && e.owner_id === user.id;
-        return '<span class="cal__ev ' + (mine ? 'mine' : 'adm') + '" data-ev="' + e.id + '">' +
-          esc(fmtTime(e.start_at)) + ' ' + esc(e.title) + '</span>';
-      }).join('');
-      var mans = (mDay[day] || []).map(function (r) {
-        return '<span class="cal__ev manual" data-mslug="' + esc(r.slug) + '" title="매뉴얼 예약 공개">📘 ' + esc(manualTitles[r.slug] || r.slug) + ' 공개</span>';
-      }).join('');
-      cells.push('<div class="cal__cell' + (isToday ? ' is-today' : '') + '" data-day="' + day + '">' +
-        '<span class="cal__num">' + day + '</span>' + openHtml + hw + mans + evs + '</div>');
-    }
-    document.getElementById('cal').innerHTML = cells.join('');
+    Cal.render(document.getElementById('cal'), { year: calYear, month: calMonth, todayISO: todayISO(), spans: spans, items: items });
   }
   function iso(y, m, d) {
     return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');

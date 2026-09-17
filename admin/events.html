@@ -63,11 +63,12 @@
       </table>
     </div>
 
-    <!-- 학생 캘린더 보기 -->
+    <!-- 캘린더 보기: 기수별(그 기수 일정·숙제 전체·매뉴얼 공개) / 학생별(그 학생에게 보이는 그대로) -->
     <div class="panel">
       <div class="panel__head" style="flex-wrap:wrap;gap:10px;">
-        <span>학생 캘린더 보기</span>
+        <span>캘린더 보기 <span style="color:var(--muted);font-weight:600;font-size:0.82rem;">기수별 · 학생별</span></span>
         <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <select id="coSel" style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;min-width:150px;font-weight:700;"></select>
           <select id="stuSel" style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;min-width:200px;"></select>
           <button class="btn-sm" id="vPrev">←</button>
           <span id="vLabel" style="font-weight:800;min-width:110px;text-align:center;"></span>
@@ -75,11 +76,19 @@
         </span>
       </div>
       <div style="padding:14px 18px;">
+        <div id="vHint" style="font-size:0.84rem;color:var(--muted);margin-bottom:10px;">위에서 <b>기수</b> 또는 <b>학생</b>을 선택하세요. 기수를 고르면 그 기수의 숙제(숨김 포함)·매뉴얼 공개·배포 일정이, 학생을 고르면 그 학생에게 보이는 화면 그대로가 표시됩니다.</div>
         <div class="cal" id="vCal"></div>
-        <div style="margin-top:10px;font-size:0.8rem;color:var(--muted);">
-          <span class="cal__ev mine" style="display:inline-block;">개인 일정</span>
-          <span class="cal__ev adm" style="display:inline-block;margin-left:6px;">어드민 배포</span>
-          <span class="cal__ev todo" style="display:inline-block;margin-left:6px;">과제 마감</span>
+        <div class="cal-legend">
+          <span class="cal-legend__k">숙제</span>
+          <span class="cal__bar todo">🚩 진행 중</span>
+          <span class="cal__bar soon">🚩 공개 예정</span>
+          <span class="cal__bar over">🚩 마감 지남</span>
+          <span class="cal__bar done">🚩 제출함 (학생별)</span>
+          <span class="cal__bar hidden">🚩 숨김 (기수별)</span>
+          <span class="cal-legend__k cal-legend__sep">일정</span>
+          <span class="cal__ev manual">📘 매뉴얼 공개일</span>
+          <span class="cal__ev adm">어드민 배포</span>
+          <span class="cal__ev mine">개인 일정 (학생별)</span>
         </div>
       </div>
     </div>
@@ -107,6 +116,7 @@
 <script src="../js/supabase.js"></script>
 <script src="../js/util.js"></script><script src="../js/layout.js"></script>
 <script src="../js/auth.js"></script>
+<script src="../js/calendar.js"></script>
 <script src="../js/admin-events.js"></script>
 </body>
 </html>

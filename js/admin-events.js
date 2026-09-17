@@ -2,7 +2,9 @@
    어드민 · 일정 관리
    - 일정 배포: 전체 / 특정 기수 / 특정 인원(event_users)
    - 배포한 일정 목록 (삭제)
-   - 학생 캘린더 보기: 학생 선택 → 그 학생의 개인+어드민 일정 + 과제 마감
+   - 캘린더 보기: 기수 선택 → 그 기수 숙제(숨김 포함)·매뉴얼 공개·배포 일정
+                  학생 선택 → 그 학생에게 보이는 그대로(개인 일정 + 제출 여부 색)
+     (달력 그리기는 공용 js/calendar.js — 숙제는 시작~마감 막대)
    ========================================================= */
 (function () {
   var MON = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
@@ -58,7 +60,7 @@
     selectedUsers = {}; updateUsersSummary();
     el('saved').hidden = false; setTimeout(function () { el('saved').hidden = true; }, 2000);
     await loadEvents();
-    renderVCal();
+    loadVMonth();
   });
 
   /* ---------- 특정 인원 선택 모달 ---------- */
@@ -127,42 +129,58 @@
     if (!confirm('이 일정을 삭제할까요? 학생 캘린더에서도 사라집니다.')) return;
     var res = await sb.from('events').delete().eq('id', Number(btn.dataset.del));
     if (res.error) { alert('삭제 실패: ' + res.error.message); return; }
-    await loadEvents(); renderVCal();
+    await loadEvents(); loadVMonth();
   });
 
-  /* ---------- 학생 캘린더 보기 ---------- */
-  var vYear, vMonth, vStudent = null, vEvents = [], vChallenges = [], vManual = [], manualTitles = {};
-  el('stuSel').addEventListener('change', function () { vStudent = this.value; loadStudentMonth(); });
+  /* ---------- 캘린더 보기 (기수별 / 학생별) ---------- */
+  var vYear, vMonth, vCohort = null, vStudent = null;
+  var vEvents = [], vChallenges = [], vManual = [], vSubs = {}, manualTitles = {};
+  // 기수와 학생은 둘 중 하나만 — 하나를 고르면 다른 쪽은 해제
+  el('coSel').addEventListener('change', function () {
+    vCohort = this.value === '' ? null : Number(this.value);
+    vStudent = null; el('stuSel').value = '';
+    loadVMonth();
+  });
+  el('stuSel').addEventListener('change', function () {
+    vStudent = this.value || null;
+    vCohort = null; el('coSel').value = '';
+    loadVMonth();
+  });
   el('vPrev').addEventListener('click', function () { vShift(-1); });
   el('vNext').addEventListener('click', function () { vShift(1); });
-  function vShift(d) { vMonth += d; if (vMonth < 0){ vMonth=11; vYear--; } if (vMonth > 11){ vMonth=0; vYear++; } loadStudentMonth(); }
+  function vShift(d) { vMonth += d; if (vMonth < 0){ vMonth=11; vYear--; } if (vMonth > 11){ vMonth=0; vYear++; } loadVMonth(); }
 
-  async function loadStudentMonth() {
-    if (!vStudent) { renderVCal(); return; }
-    var stu = students.find(function (s) { return s.id === vStudent; });
+  async function loadVMonth() {
+    vEvents = []; vChallenges = []; vManual = []; vSubs = {};
+    var stu = vStudent ? students.find(function (s) { return s.id === vStudent; }) : null;
+    var cohort = vCohort != null ? vCohort : (stu ? stu.cohort : null);
+    if (cohort == null) { renderVCal(); return; }
     var start = new Date(vYear, vMonth, 1).toISOString();
     var end = new Date(vYear, vMonth + 1, 1).toISOString();
-    // 어드민은 전체 이벤트 조회 → 이 학생 대상만 필터
+
+    // 일정: 기수 모드 = 전체 + 이 기수 대상 / 학생 모드 = 그 학생에게 보이는 것 전부
     var ev = await sb.from('events').select('*, event_users(user_id)').gte('start_at', start).lt('start_at', end);
-    var all = ev.data || [];
-    vEvents = all.filter(function (e) {
-      if (e.scope === 'personal') return e.owner_id === vStudent;
+    vEvents = (ev.data || []).filter(function (e) {
       if (e.scope === 'all') return true;
-      if (e.scope === 'cohort') return e.cohort === (stu ? stu.cohort : -1);
+      if (e.scope === 'cohort') return e.cohort === cohort;
+      if (!vStudent) return false;   // 기수 모드: 개인·특정 인원 일정은 제외
+      if (e.scope === 'personal') return e.owner_id === vStudent;
       if (e.scope === 'users') return (e.event_users || []).some(function (u) { return u.user_id === vStudent; });
       return false;
     });
-    // 그 학생 기수의 공개 과제 마감
-    var ch = await sb.from('challenges').select('id,title,due_at,active')
-      .eq('cohort', stu ? stu.cohort : -1).eq('active', true);
-    vChallenges = (ch.data || []).filter(function (c) {
-      if (!c.due_at) return false;
-      var d = new Date(c.due_at);
-      return d.getFullYear() === vYear && d.getMonth() === vMonth;
-    });
-    // 그 학생 기수의 매뉴얼 예약 공개 (이번 달)
+    // 숙제: 기수 모드 = 숨김 포함 전부 / 학생 모드 = 표시 중인 것만 (+ 그 학생 제출 여부로 색)
+    //   막대가 달을 넘어 이어질 수 있어 달 필터는 렌더러에 맡긴다
+    var chq = sb.from('challenges').select('id,title,open_at,due_at,active').eq('cohort', cohort);
+    if (vStudent) chq = chq.eq('active', true);
+    var ch = await chq;
+    vChallenges = (ch.data || []).filter(function (c) { return c.due_at; });
+    if (vStudent && vChallenges.length) {
+      var su = await sb.from('challenge_submissions').select('challenge_id').eq('user_id', vStudent);
+      (su.data || []).forEach(function (s) { vSubs[s.challenge_id] = true; });
+    }
+    // 매뉴얼 예약 공개 (이번 달)
     var mm = await sb.from('cohort_manual').select('slug, publish_at, status')
-      .eq('cohort', stu ? stu.cohort : -1).eq('status', 'scheduled')
+      .eq('cohort', cohort).eq('status', 'scheduled')
       .gte('publish_at', start).lt('publish_at', end);
     vManual = (mm.data || []).filter(function (r) { return r.publish_at; });
     if (!Object.keys(manualTitles).length) {
@@ -172,30 +190,44 @@
     renderVCal();
   }
 
+  // 숙제 막대 색: 숨김 / 제출함(학생별) / 공개 전 / 마감 지남 / 진행 중
+  function hwCls(c) {
+    if (!c.active) return 'hidden';
+    if (vStudent && vSubs[c.id]) return 'done';
+    var now = Date.now();
+    if (c.open_at && new Date(c.open_at).getTime() > now) return 'soon';
+    return new Date(c.due_at).getTime() < now ? 'over' : 'todo';
+  }
+
   function renderVCal() {
     el('vLabel').textContent = vYear + '년 ' + MON[vMonth];
-    var evDay = {}, hwDay = {}, mDay = {};
-    vEvents.forEach(function (e) { var d = new Date(e.start_at); (evDay[d.getDate()] = evDay[d.getDate()] || []).push(e); });
-    vChallenges.forEach(function (c) { var d = new Date(c.due_at); (hwDay[d.getDate()] = hwDay[d.getDate()] || []).push(c); });
+    var hint = el('vHint');
+    if (hint) hint.hidden = vCohort != null || !!vStudent;
+
+    var spans = vChallenges.map(function (c) {
+      var due = new Date(c.due_at);
+      if (isNaN(due.getTime())) return null;
+      var op = c.open_at ? new Date(c.open_at) : due;
+      if (isNaN(op.getTime()) || op > due) op = due;
+      var tip = (c.open_at ? '공개 ' + fmtDT(c.open_at) + ' → ' : '') + '마감 ' + fmtDT(c.due_at) + (c.active ? '' : ' (숨김)');
+      return { start: op, end: due, cls: hwCls(c),
+        label: '🚩 ' + esc(c.title) + (c.active ? '' : ' (숨김)'), attrs: 'title="' + esc(tip) + '"' };
+    }).filter(Boolean);
+
+    var items = {};
+    function add(day, html) { (items[day] = items[day] || []).push(html); }
     vManual.forEach(function (r) {
       var d = new Date(r.publish_at);
-      if (d.getFullYear() === vYear && d.getMonth() === vMonth) (mDay[d.getDate()] = mDay[d.getDate()] || []).push(r);
+      if (d.getFullYear() === vYear && d.getMonth() === vMonth)
+        add(d.getDate(), '<span class="cal__ev manual">📘 ' + esc(manualTitles[r.slug] || r.slug) + ' 공개</span>');
+    });
+    vEvents.forEach(function (e) {
+      var d = new Date(e.start_at);
+      add(d.getDate(), '<span class="cal__ev ' + (e.scope === 'personal' ? 'mine' : 'adm') + '">' + esc(fmtTime(e.start_at)) + ' ' + esc(e.title) + '</span>');
     });
 
-    var first = new Date(vYear, vMonth, 1).getDay();
-    var days = new Date(vYear, vMonth + 1, 0).getDate();
-    var cells = ['일','월','화','수','목','금','토'].map(function (w) { return '<div class="cal__wd">' + w + '</div>'; });
-    for (var i = 0; i < first; i++) cells.push('<div class="cal__cell is-empty"></div>');
-    for (var day = 1; day <= days; day++) {
-      var hw = (hwDay[day] || []).map(function (c) { return '<span class="cal__ev todo">' + esc(c.title) + '</span>'; }).join('');
-      var mans = (mDay[day] || []).map(function (r) { return '<span class="cal__ev manual">📘 ' + esc(manualTitles[r.slug] || r.slug) + ' 공개</span>'; }).join('');
-      var evs = (evDay[day] || []).map(function (e) {
-        var mine = e.scope === 'personal';
-        return '<span class="cal__ev ' + (mine ? 'mine' : 'adm') + '">' + esc(fmtTime(e.start_at)) + ' ' + esc(e.title) + '</span>';
-      }).join('');
-      cells.push('<div class="cal__cell"><span class="cal__num">' + day + '</span>' + hw + mans + evs + '</div>');
-    }
-    el('vCal').innerHTML = cells.join('');
+    var t = new Date();
+    Cal.render(el('vCal'), { year: vYear, month: vMonth, todayISO: iso(t.getFullYear(), t.getMonth(), t.getDate()), spans: spans, items: items });
   }
 
   /* ---------- 초기화 ---------- */
@@ -210,6 +242,9 @@
 
     var pr = await sb.from('profiles').select('id,name,email,cohort').neq('role', 'admin').order('name');
     students = pr.data || [];
+    el('coSel').innerHTML = '<option value="">기수 선택…</option>' + cohorts.map(function (c) {
+      return '<option value="' + c.id + '">' + esc(coLabel[c.id]) + '</option>';
+    }).join('');
     el('stuSel').innerHTML = '<option value="">학생 선택…</option>' + students.map(function (s) {
       return '<option value="' + s.id + '">' + esc(s.name || s.email) + ' · ' + esc(coLabel[s.cohort] || '') + '</option>';
     }).join('');
@@ -217,6 +252,6 @@
     var now = new Date(); vYear = now.getFullYear(); vMonth = now.getMonth();
     updateUsersSummary();
     await loadEvents();
-    renderVCal();
+    loadVMonth();
   })();
 })();

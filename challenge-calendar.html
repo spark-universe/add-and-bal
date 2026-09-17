@@ -13,7 +13,7 @@
     <div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
       <div>
         <h2>일정 보기</h2>
-        <p>과제 마감일과 내 일정을 달력으로 봅니다. <b>빈 날짜를 클릭</b>하면 일정을 추가할 수 있어요.</p>
+        <p>숙제는 <b>공개일부터 마감일까지 막대</b>로 이어져 보이고, 📘는 매뉴얼 공개일입니다. <b>빈 날짜를 클릭</b>하면 내 일정을 추가할 수 있어요.</p>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
         <button class="btn-sm" id="calPrev">←</button>
@@ -23,6 +23,18 @@
     </div>
 
     <div class="cal" id="cal"></div>
+    <!-- 색상 범례: 막대(숙제) / 칩(매뉴얼·일정) 모양을 그대로 보여 준다 -->
+    <div class="cal-legend">
+      <span class="cal-legend__k">숙제</span>
+      <span class="cal__bar todo">🚩 진행 중 (마감 전)</span>
+      <span class="cal__bar soon">🚩 공개 예정</span>
+      <span class="cal__bar done">🚩 제출함</span>
+      <span class="cal__bar over">🚩 마감 지남 · 미제출</span>
+      <span class="cal-legend__k cal-legend__sep">일정</span>
+      <span class="cal__ev manual">📘 매뉴얼 공개일</span>
+      <span class="cal__ev mine">내 일정</span>
+      <span class="cal__ev adm">어드민 일정</span>
+    </div>
   </main>
 </div>
 
@@ -56,6 +68,7 @@
 <script src="js/supabase.js"></script>
 <script src="js/util.js"></script><script src="js/layout.js"></script>
 <script src="js/auth.js"></script>
+<script src="js/calendar.js"></script>
 <script src="js/challenge.js"></script>
 <script>Challenge.calendar();</script>
 </body>
