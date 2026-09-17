@@ -299,3 +299,4 @@ body.manual-page { margin:0; background:#fff; }
 .manual-doc .mn-copy{flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:7px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--accent-d)}
 .manual-doc .mn-copy:hover{background:var(--blue-soft)}
 .manual-doc .mn-prompt pre{margin:0;padding:14px 16px;font-size:13.5px;line-height:1.65;white-space:pre-wrap;word-break:keep-all;font-family:inherit;color:var(--ink);max-height:440px;overflow:auto}
+.manual-doc .mn-prompt mark.fill{background:#fff1a8;color:inherit;padding:0 4px;border-radius:3px;font-weight:600}

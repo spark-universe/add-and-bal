@@ -10,22 +10,22 @@ update public.manual_chapters set body = $body$<h3 class="subhead">로고 &amp; 
 
 
 <h3 class="subsection" id="favicon-make" data-subnav="만들기">로고 &amp; 파비콘 만들기</h3>
-<div class="callout note"><div class="callout-label">💡 시작 전에</div><p>생성형 AI는 <b>자유롭게</b> 쓰셔도 됩니다 (ChatGPT · Gemini · Claude 등). 본 매뉴얼은 <b>ChatGPT</b>를 기준으로 진행했습니다. 아래 프롬프트는 <b>[복사]</b> 버튼으로 그대로 복사한 뒤 <b>[ ] 부분만</b> 내 스토어 정보로 바꿔 쓰면 됩니다.</p></div>
+<div class="callout note"><div class="callout-label">💡 시작 전에</div><p>생성형 AI는 <b>자유롭게</b> 쓰셔도 됩니다 (ChatGPT · Gemini · Claude 등). 본 매뉴얼은 <b>ChatGPT</b>를 기준으로 진행했습니다. 아래 프롬프트는 <b>[복사]</b> 버튼으로 그대로 복사한 뒤 <b>노란색으로 칠해진 부분만</b> 내 스토어 정보로 바꿔 쓰면 됩니다. <b>[스토어 정보]</b>·<b>[제작 기준]</b> 같은 제목 줄은 그대로 두세요.</p></div>
 
 <div class="step"><span class="step-badge">STEP 1</span><span class="step-title">생성형 AI 접속</span></div>
 <p>사용할 생성형 AI에 접속합니다.</p>
 <figure class="shot"><img loading="lazy" src="manual/images/favicon-make-01.png" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 2</span><span class="step-title">(선택) 스토어 이름 정하기</span></div>
-<p>아직 스토어 이름을 정하지 않았다면 아래 프롬프트로 먼저 정합니다. <b>[스토어 정보]</b> 부분은 직접 채워 주세요.</p>
-<div class="mn-prompt"><div class="mn-prompt__head"><span>📋 프롬프트 ① 브랜드 이름 추천 — [ ] 부분만 바꿔서 사용</span><button type="button" class="mn-copy">복사</button></div><pre>내 Shopify 스토어에서 사용할 브랜드 이름을 추천해줘.
+<p>아직 스토어 이름을 정하지 않았다면 아래 프롬프트로 먼저 정합니다. <b>노란색 부분</b>을 내 정보로 바꿔 주세요.</p>
+<div class="mn-prompt"><div class="mn-prompt__head"><span>📋 프롬프트 ① 브랜드 이름 추천 — 노란색 부분만 바꿔서 사용</span><button type="button" class="mn-copy">복사</button></div><pre>내 Shopify 스토어에서 사용할 브랜드 이름을 추천해줘.
 
 [스토어 정보]
-- 주요 판매 카테고리: [예: 반려동물 용품 / 캠핑용품 / 건강기능식품]
-- 주요 고객층: [예: 미국의 30~50대 여성]
-- 판매 국가: [예: 미국]
-- 원하는 브랜드 이미지: [예: 신뢰감 있고 세련된 프리미엄 브랜드]
-- 원하는 느낌 또는 키워드: [예: 자연, 건강, 활력 / 없으면 생략]
+- 주요 판매 카테고리: <mark class="fill">[예: 반려동물 용품 / 캠핑용품 / 건강기능식품]</mark>
+- 주요 고객층: <mark class="fill">[예: 미국의 30~50대 여성]</mark>
+- 판매 국가: <mark class="fill">[예: 미국]</mark>
+- 원하는 브랜드 이미지: <mark class="fill">[예: 신뢰감 있고 세련된 프리미엄 브랜드]</mark>
+- 원하는 느낌 또는 키워드: <mark class="fill">[예: 자연, 건강, 활력 / 없으면 생략]</mark>
 
 [브랜드 이름 제작 기준]
 1. 실제 온라인 쇼핑몰 브랜드로 사용하기 좋은 이름을 추천해줘.
@@ -58,16 +58,16 @@ update public.manual_chapters set body = $body$<h3 class="subhead">로고 &amp; 
 <figure class="shot"><img loading="lazy" src="manual/images/favicon-make-03.png" alt=""></figure>
 
 <div class="step"><span class="step-badge">STEP 4</span><span class="step-title">로고 제작 프롬프트 입력</span></div>
-<p>브랜드명을 정했다면 아래 프롬프트로 로고를 만듭니다. <b>[브랜드 정보]</b> 부분은 직접 채워 주세요.</p>
-<div class="mn-prompt"><div class="mn-prompt__head"><span>📋 프롬프트 ② 로고 제작 — [ ] 부분만 바꿔서 사용</span><button type="button" class="mn-copy">복사</button></div><pre>내 Shopify 스토어에서 사용할 전문적인 브랜드 로고를 제작해줘.
+<p>브랜드명을 정했다면 아래 프롬프트로 로고를 만듭니다. <b>노란색 부분</b>을 내 정보로 바꿔 주세요.</p>
+<div class="mn-prompt"><div class="mn-prompt__head"><span>📋 프롬프트 ② 로고 제작 — 노란색 부분만 바꿔서 사용</span><button type="button" class="mn-copy">복사</button></div><pre>내 Shopify 스토어에서 사용할 전문적인 브랜드 로고를 제작해줘.
 
 [브랜드 정보]
-- 스토어명: [스토어 이름]
-- 주요 판매 카테고리: [예: 반려동물 용품 / 캠핑용품 / 건강기능식품]
-- 주요 고객층: [예: 미국의 30~50대 여성]
-- 원하는 브랜드 이미지: [예: 신뢰감 있고 세련된 프리미엄 브랜드]
-- 선호 색상: [예: 네이비, 화이트]
-- 피하고 싶은 색상 또는 스타일: [없으면 생략]
+- 스토어명: <mark class="fill">[스토어 이름]</mark>
+- 주요 판매 카테고리: <mark class="fill">[예: 반려동물 용품 / 캠핑용품 / 건강기능식품]</mark>
+- 주요 고객층: <mark class="fill">[예: 미국의 30~50대 여성]</mark>
+- 원하는 브랜드 이미지: <mark class="fill">[예: 신뢰감 있고 세련된 프리미엄 브랜드]</mark>
+- 선호 색상: <mark class="fill">[예: 네이비, 화이트]</mark>
+- 피하고 싶은 색상 또는 스타일: <mark class="fill">[없으면 생략]</mark>
 
 [로고 제작 기준]
 1. Shopify 온라인 스토어의 헤더에 사용하기 적합한 가로형 로고로 제작해줘.

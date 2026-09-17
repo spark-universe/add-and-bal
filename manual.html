@@ -119,9 +119,11 @@ async function renderManual() {
     var nav = '', body = '', lastPart = null, tmp = document.createElement('div');
     chapters.forEach(function (c) {
       if (c.part && c.part !== lastPart) { nav += '<div class="nav-part">' + mesc(c.part) + '</div>'; lastPart = c.part; }
-      nav += '<a class="nav-item' + (c.soon ? ' soon' : '') + '" href="#' + mesc(c.slug) + '">' +
+      // '준비중'은 soon 플래그가 켜져 있고 본문이 비어 있을 때만. 본문(SQL)을 올리면 자동으로 사라진다
+      var isSoon = !!c.soon && !(c.body && String(c.body).trim());
+      nav += '<a class="nav-item' + (isSoon ? ' soon' : '') + '" href="#' + mesc(c.slug) + '">' +
         '<span class="nav-num">' + mesc(c.num || '') + '</span><span class="nav-txt">' + mesc(c.title || '') + '</span>' +
-        (c.soon ? '<span class="nav-badge">준비중</span>' : '') + '</a>';
+        (isSoon ? '<span class="nav-badge">준비중</span>' : '') + '</a>';
       tmp.innerHTML = c.body || '';
       // 본문에 data-subnav 로 표시된 소절이 있으면 목차에 소메뉴(앵커) 추가
       var subEls = tmp.querySelectorAll('[data-subnav]');
