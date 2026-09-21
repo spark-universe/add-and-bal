@@ -15,7 +15,7 @@
   async function load() {
     wrap.innerHTML = '<div class="bd-empty">불러오는 중...</div>';
     var co = cohort();
-    var pr = await sb.from('profiles').select('id,name').eq('status', 'approved').eq('cohort', co).order('name');
+    var pr = await sb.from('profiles').select('id,name,late_ok').eq('status', 'approved').eq('cohort', co).order('name');
     students = pr.data || [];
     var ch = await sb.from('challenges').select('*').eq('cohort', co);
     challenges = (ch.data || []).sort(function (a, b) {
@@ -52,8 +52,12 @@
     var rows = students.map(function (u) {
       var tds = challenges.map(function (c) {
         var ci = cellInfo(u, c);
+        // 지각 제출: 확정된 제출이 마감 뒤라면 ⏰ 표시 + 툴팁 (지각 허용 수강생은 표시 안 함)
+        var lm = (ci.s && ci.s.status !== 'draft' && !u.late_ok) ? lateMs(ci.s.submitted_at, c.due_at) : 0;
+        var tip = lm ? ' title="지각 ' + esc(fmtLate(lm)) + '"' : '';
+        if (lm) ci.txt = '⏰' + ci.txt;
         var at = ci.grade ? (' data-cell="' + u.id + '|' + c.id + '" role="button" tabindex="0"') : '';
-        return '<td class="bd-cell ' + ci.cls + '"' + at + '>' + ci.txt + '</td>';
+        return '<td class="bd-cell ' + ci.cls + '"' + at + tip + '>' + ci.txt + '</td>';
       }).join('');
       return '<tr><td class="bd-stick bd-name" title="' + esc(u.name || '') + '">' + esc(u.name || '-') + '</td>' + tds + '</tr>';
     }).join('');
@@ -61,6 +65,7 @@
       '<span class="bd-lg bd-pass">통과·점수</span><span class="bd-lg bd-wait">검수 대기</span>' +
       '<span class="bd-lg bd-fail">미통과</span><span class="bd-lg bd-draft">초안(미확정)</span>' +
       '<span class="bd-lg bd-miss">미제출(마감 지남)</span><span class="bd-lg bd-noneleg">– 아직 마감 전</span>' +
+      '<span class="bd-lg bd-noneleg" title="마감 뒤에 확정한 제출. 지각 허용 수강생은 표시되지 않음">⏰ 지각 제출</span>' +
       '<span style="color:var(--muted);">· 셀을 클릭하면 채점할 수 있어요</span></div>' +
       '<div class="bd-scroll"><table class="bd-table"><thead><tr>' + head + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
   }
@@ -156,9 +161,10 @@
         var s = (subs[u.id] || {})[c.id];
         if (!s) { if (isPastDue(c)) { none++; return '미제출'; } return '–'; }
         if (s.status === 'draft') { none++; return '초안'; }
-        if (s.review_status === 'pass') { pass++; return (s.score != null ? s.score : '통과'); }
-        if (s.review_status === 'fail') { fail++; return '미통과'; }
-        wait++; return '검수대기';
+        var late = (!u.late_ok && lateMs(s.submitted_at, c.due_at)) ? ' (지각)' : '';
+        if (s.review_status === 'pass') { pass++; return (s.score != null ? s.score : '통과') + late; }
+        if (s.review_status === 'fail') { fail++; return '미통과' + late; }
+        wait++; return '검수대기' + late;
       });
       var row = [u.name || ''].concat(cells).concat([pass, fail, wait, none]);
       lines.push(row.map(csvCell).join(','));

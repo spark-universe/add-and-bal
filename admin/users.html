@@ -68,7 +68,7 @@
             <tr>
               <th data-sort="name">성명</th><th data-sort="email">이메일</th><th>전화번호</th>
               <th data-sort="cohort">기수</th><th data-sort="enroll_date">수강일</th><th data-sort="status">상태</th>
-              <th data-sort="stores">스토어</th><th data-sort="subs">제출(확정)</th><th data-sort="level">발주&amp;광고</th><th>관리</th>
+              <th data-sort="stores">스토어</th><th data-sort="subs">제출(확정)</th><th data-sort="level">발주&amp;광고</th><th style="width:70px;" title="체크하면 이 수강생의 지각 제출을 정상으로 처리합니다 (지각 표시 안 함)">지각 허용</th><th>관리</th>
             </tr>
           </thead>
           <tbody id="userBody">
@@ -596,7 +596,7 @@
         || (u.phone || '').toLowerCase().indexOf(q) !== -1;
     });
     if (!list.length) {
-      els.userBody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:40px;">' +
+      els.userBody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:40px;">' +
         (q ? '검색 결과가 없습니다.' : '승인된 수강생이 없습니다.') + '</td></tr>';
       return;
     }
@@ -615,6 +615,8 @@
         '<td>' + storeN + '개</td>' +
         '<td>' + confirmed + ' / 4</td>' +
         '<td>' + levelBadge(u) + '</td>' +
+        '<td><input type="checkbox" class="late-ok" data-id="' + u.id + '"' + (u.late_ok ? ' checked' : '') +
+          ' title="체크: 이 수강생의 지각 제출을 정상으로 처리 (지각 표시 안 함)"></td>' +
         '<td style="white-space:nowrap;">' +
           '<button class="btn-sm" data-detail="' + u.id + '">상세</button> ' +
           '<button class="btn-sm" data-rename="' + u.id + '">이름 변경</button> ' +
@@ -685,6 +687,20 @@
       }
       var u = all.filter(function (x) { return x.id === id; })[0];
       if (u) u.cohort = val;
+      return;
+    }
+    // 지각 허용(면제) — 체크 즉시 저장. 이 컬럼은 protect_profile_fields 가 보호해 수강생 본인은 못 바꾼다
+    var lo = e.target.closest('.late-ok');
+    if (lo) {
+      var idL = lo.dataset.id, val = lo.checked;
+      var rl = await sb.from('profiles').update({ late_ok: val }).eq('id', idL).select();
+      if (rl.error || !rl.data || !rl.data.length) {
+        lo.checked = !val;   // 실패하면 되돌림
+        alert('지각 허용 변경 실패' + (rl.error ? ': ' + rl.error.message : ' (권한/정책 확인 — late-submissions.sql 실행 여부)'));
+        return;
+      }
+      var uL = all.filter(function (x) { return x.id === idL; })[0];
+      if (uL) uL.late_ok = val;
       return;
     }
     var dinp = e.target.closest('.user-date');

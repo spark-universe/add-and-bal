@@ -50,6 +50,7 @@ begin
     new.enroll_date := old.enroll_date;
     new.is_demo     := old.is_demo;
     new.access      := old.access;   -- 영역별 열람 권한도 어드민만
+    new.late_ok     := old.late_ok;  -- 지각 면제도 어드민만 (late-submissions.sql 과 동일하게 유지할 것)
   end if;
   return new;
 end;

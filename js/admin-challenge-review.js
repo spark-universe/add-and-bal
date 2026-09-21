@@ -8,6 +8,20 @@
   var subs = [];         // 제출 목록 (조인 대신 별도 조회 후 합침)
   var challenges = {};    // id → challenge
   var names = {};         // user_id → 이름
+  var lateOk = {};        // user_id → 지각 허용(면제) 여부
+
+  // 지각 표시: 마감 뒤에 확정했으면. 면제 수강생은 '정상처리'로 표기
+  function lateHtml(s, block) {
+    var c = challenges[s.challenge_id];
+    var ms = lateMs(s.submitted_at, c && c.due_at);
+    if (!ms) return '';
+    if (lateOk[s.user_id]) return block
+      ? '<div style="font-size:0.74rem;color:var(--muted);margin-top:3px;">지각 · 정상처리(면제)</div>'
+      : '<span class="ord-chip">지각 · 정상처리(면제)</span>';
+    var t = '⏰ 지각 ' + esc(fmtLate(ms));
+    return block ? '<div style="margin-top:3px;"><span class="tag tag--no">' + t + '</span></div>'
+                 : '<span class="ord-chip" style="color:var(--danger);">' + t + '</span>';
+  }
   var qs = new URLSearchParams(location.search);
   var filterId = qs.get('review') || qs.get('id') || '';   // ?review= (숙제 관리 "N건" 링크) 또는 옛 ?id=
   var statusFilter = 'pending';   // 기본 = 미검수만 (통과/미통과는 탭으로)
@@ -63,7 +77,7 @@
       return '<tr>' +
         '<td>' + esc(names[s.user_id] || '-') + '</td>' +
         '<td style="text-align:left;">' + esc(c.title || '(삭제된 과제)') + '</td>' +
-        '<td>' + fmtDate(s.created_at) + '</td>' +
+        '<td>' + fmtDate(s.submitted_at || s.created_at) + lateHtml(s, true) + '</td>' +
         '<td>' + reviewTag(s) + remainHtml(s) + '</td>' +
         '<td>' + (s.score != null ? s.score + '점' : '-') + '</td>' +
         '<td><button class="btn-sm is-primary" data-open="' + s.id + '">검수</button></td>' +
@@ -85,6 +99,7 @@
           '<div class="ch-meta">' +
             '<span class="ord-chip">' + esc(names[s.user_id] || '-') + '</span>' +
             '<span class="ord-chip">' + esc(c.title || '-') + '</span>' +
+            lateHtml(s, false) +
           '</div>' +
           '<div class="od-card__sub">제출 내용</div>' +
           '<div style="background:#f6f7f9;border-radius:8px;padding:12px 14px;white-space:pre-wrap;' +
@@ -203,9 +218,9 @@
     filterEl.value = filterId;
 
     // 수강생 이름
-    var pr = await sb.from('profiles').select('id, name');
-    names = {};
-    (pr.data || []).forEach(function (p) { names[p.id] = p.name; });
+    var pr = await sb.from('profiles').select('id, name, late_ok');
+    names = {}; lateOk = {};
+    (pr.data || []).forEach(function (p) { names[p.id] = p.name; lateOk[p.id] = !!p.late_ok; });
 
     // 제출 (대기 먼저, 최신순)
     // 제출은 기수 컬럼이 없으므로 위 숙제 id 로 한정 (숙제가 없으면 조회 생략)

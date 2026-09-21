@@ -61,12 +61,14 @@
   var monthManual = [];             // 이번 달 매뉴얼 예약 공개 (내 기수)
   var scheduleList = [];            // 내 기수 숙제 일정(공개 전 포함, 제목·일정만)
   var subById = {};                 // challenge_id → 내 제출(색상용)
+  var myLateOk = false;             // 어드민이 '지각 허용'한 수강생이면 true → 지각 표시 대신 정상 처리 안내
   async function fetchData() {
     await loadServerNow();
     var prof = { data: await window.myProfile() };   // 공용 1회 조회 (사이드바·가드와 같은 요청)
     // 0 = 미분류(그대로 0으로 조회), null 이면 기본 1
     var cohort = (prof.data && prof.data.cohort != null) ? prof.data.cohort : 1;
     myCohort = cohort;
+    myLateOk = !!(prof.data && prof.data.late_ok);
 
     // 내 수강일: 개인 수강일 우선, 없으면 기수 수강일 (수강생은 기수 대신 날짜만 봄)
     myCohortLabel = (prof.data && prof.data.enroll_date) || '';
@@ -638,6 +640,11 @@
           : c.sub.review_status === 'fail' ? '<span class="tag tag--no">미통과</span>'
           : '<span class="tag tag--wait">검수 대기</span>';
         if (isNew(c)) review += ' <span class="ch-new">NEW</span>';
+        // 지각 제출 표시 (면제 수강생은 정상 처리로 안내)
+        var lm = lateMs(c.sub.submitted_at, c.due_at);
+        if (lm) review += myLateOk
+          ? '<div style="font-size:0.72rem;color:var(--muted);margin-top:3px;">지각 · 정상 처리</div>'
+          : '<div style="font-size:0.72rem;color:var(--danger);margin-top:3px;">⏰ 지각 ' + esc(fmtLate(lm)) + '</div>';
         if (reviewed(c) && c.sub.reviewed_at) {
           review += '<div style="font-size:0.72rem;color:var(--muted);margin-top:3px;">' +
             fmtDeadline(c.sub.reviewed_at) + ' ' + (c.sub.review_status === 'pass' ? '통과' : '미통과') + '</div>';
@@ -714,7 +721,7 @@
     var reworkUntil = rejected ? reworkDeadline(c.sub.reviewed_at) : null;
     var canRework = !!reworkUntil && serverNow <= reworkUntil;        // 반려일로부터 3일 이내면 재작업 가능
     var locked = isConf && !canRework;               // 확정 & (통과/대기/반려3일경과) → 잠금
-    var overdue = isOver(c.due_at) && !isConf;       // 신규/초안 + 마감 지남 → 제출 불가
+    var overdue = isOver(c.due_at) && !isConf;       // 신규/초안 + 마감 지남 → 제출은 되지만 '지각'으로 표시 (막지 않음)
     var already = c.sub && c.sub.file_name
       ? '<div class="ch-file">📎 첨부: ' + esc(c.sub.file_name) + '</div>' : '';
 
@@ -750,26 +757,30 @@
           '<div class="field">' +
             '<label>제출 내용 (메모)</label>' +
             '<textarea id="chContent" rows="3" placeholder="과제 관련 메모나 설명을 입력하세요."' +
-              (overdue ? ' disabled' : '') + ' style="width:100%;padding:11px;border:1px solid var(--border);' +
+              ' style="width:100%;padding:11px;border:1px solid var(--border);' +
               'border-radius:8px;font-family:inherit;font-size:0.88rem;resize:vertical;">' +
               esc(c.sub ? c.sub.content || '' : '') + '</textarea>' +
           '</div>' +
           '<div class="field">' +
             '<label>파일 첨부 (선택)</label>' +
-            '<input type="file" id="chFile" accept="image/*,.pdf,.zip"' + (overdue ? ' disabled' : '') + '>' +
+            '<input type="file" id="chFile" accept="image/*,.pdf,.zip">' +
             '<div style="font-size:0.8rem;color:var(--muted);margin-top:6px;line-height:1.55;">' +
               '📎 <b>이미지(JPG·PNG) · PDF · 압축파일(ZIP)</b>만 첨부할 수 있어요. 파일은 <b>1개</b>만 올라가니, ' +
               '<b>이미지가 여러 장이면 하나의 ZIP으로 압축</b>해서 올려주세요.</div>' +
             already +
           '</div>' +
-          (overdue ? '<div class="adv-warn danger">마감이 지나 제출할 수 없습니다.</div>'
-            : '<div class="ch-confirm-warn">📌 제출 후 반드시 <b>제출 확정하기</b>를 눌러야 채점됩니다. 확정하지 않으면 관리자가 채점할 수 없어 <b>미제출</b>로 분류돼요.</div>') +
+          // 마감 후: 막지는 않되 얼마나 지났는지와 '인정은 담당자 판단'임을 분명히. 면제 수강생은 완곡하게.
+          (overdue
+            ? (myLateOk
+                ? '<div class="ch-confirm-warn">⏰ 마감이 <b>' + esc(fmtLate(serverNow - new Date(c.due_at))) + '</b> 지났습니다. 담당자가 지각 제출을 정상으로 처리하도록 해 두었으니 그대로 제출하면 됩니다.</div>'
+                : '<div class="adv-warn danger">⏰ 마감이 <b>' + esc(fmtLate(serverNow - new Date(c.due_at))) + '</b> 지났습니다. 지금 제출하면 <b>지각 제출</b>로 표시되며, 인정 여부는 담당자 판단에 따릅니다. 그래도 제출은 할 수 있습니다.</div>')
+            : '') +
+          '<div class="ch-confirm-warn">📌 제출 후 반드시 <b>제출 확정하기</b>를 눌러야 채점됩니다. 확정하지 않으면 관리자가 채점할 수 없어 <b>미제출</b>로 분류돼요.</div>' +
           '<div id="chErr" style="color:var(--danger);font-size:0.82rem;"></div>' +
         '</div>';
       footBtns = '<button class="btn-sm" data-close>닫기</button>' +
-        (overdue ? '' :
-          '<button class="btn-sm" id="chSave">임시 저장</button>' +
-          '<button class="btn-sm is-primary" id="chConfirm">제출 확정하기</button>');
+        '<button class="btn-sm" id="chSave">임시 저장</button>' +
+        '<button class="btn-sm is-primary" id="chConfirm">' + (overdue ? '지각 제출 확정하기' : '제출 확정하기') + '</button>';
     }
 
     var box = document.createElement('div');
@@ -784,6 +795,10 @@
           '<div class="ch-meta">' +
             (c.due_at ? '<span class="ord-chip">마감 ' + fmtDate(c.due_at) +
               (d != null && d >= 0 ? ' (D-' + d + ')' : '') + '</span>' : '') +
+            (isConf && lateMs(c.sub.submitted_at, c.due_at)
+              ? (myLateOk ? '<span class="ord-chip">지각 · 정상 처리</span>'
+                          : '<span class="ord-chip" style="color:var(--danger);">⏰ 지각 제출 ' + esc(fmtLate(lateMs(c.sub.submitted_at, c.due_at))) + '</span>')
+              : '') +
           '</div>' +
           (c.description
             ? '<p style="white-space:pre-wrap;line-height:1.7;font-size:0.9rem;margin:14px 0;">' +
