@@ -218,6 +218,41 @@
       '</div></div>';
   }
 
+  // 정산 결과를 DB(practice_results)에 남긴다 — 코치가 어드민 '결과 관리'에서 본다.
+  //  · 같은 시나리오(plan_sig)는 갱신, 새 세팅으로 다시 돌리면 새 행(새 시도)
+  //  · 데모(공용) 계정은 저장하지 않음 · 실패해도 정산 화면은 그대로 (작은 안내만)
+  async function saveResult(user, root, r, info) {
+    function mark(text, ok) {
+      var p = document.createElement('p');
+      p.style.cssText = 'margin:14px 0 0;font-size:0.8rem;color:' + (ok ? 'var(--muted)' : 'var(--danger)') + ';';
+      p.textContent = text;
+      root.appendChild(p);
+    }
+    try {
+      var me = await window.myProfile();
+      if (!me || me.is_demo) return;
+      var g = grade(r.achieve, r.cbFired);
+      var row = {
+        user_id: user.id,
+        plan_sig: info.planSig || 'none',
+        topic: info.setting ? (info.setting.topic || null) : null,
+        level: info.setting ? (info.setting.level || null) : null,
+        margin: (info.setting && info.setting.margin != null) ? info.setting.margin : null,
+        total: info.total, processed: info.processed,
+        grade: g.g, achieve: r.achieve,
+        net: r.net, ad_spend: r.adSpend, final_net: r.finalNet,
+        cb_count: r.cbCount, ad_count: r.adCount,
+        detail: r,
+        updated_at: new Date().toISOString()
+      };
+      var res = await sb.from('practice_results').upsert(row, { onConflict: 'user_id,plan_sig' });
+      if (res.error) mark('결과 저장 실패 — 화면의 정산은 정상입니다. (' + res.error.message + ')', false);
+      else mark('이 정산 결과는 저장되어 코치가 확인할 수 있습니다 ✓', true);
+    } catch (e) {
+      mark('결과 저장 실패 — 화면의 정산은 정상입니다.', false);
+    }
+  }
+
   (async function init() {
     var user = await Auth.require();
     if (!user) return;
@@ -239,10 +274,10 @@
     }
 
     // 세팅 정보(주제·난이도·마진) — 표시용
-    var meta = '', topic = '';
+    var meta = '', topic = '', setting = null;   // setting: 결과 저장 시 스냅샷용
     try {
       var s = await sb.from('practice_settings').select('topic, level, margin').eq('user_id', user.id).maybeSingle();
-      if (s.data) { topic = s.data.topic || ''; meta = [topic, '난이도 ' + (s.data.level || '-'), '마진 ' + s.data.margin + '%'].join(' · '); }
+      if (s.data) { setting = s.data; topic = s.data.topic || ''; meta = [topic, '난이도 ' + (s.data.level || '-'), '마진 ' + s.data.margin + '%'].join(' · '); }
     } catch (e) {}
 
     var r = settle(orders);
@@ -257,5 +292,6 @@
     r.roas = r.adSpend > 0 ? (r.sales / r.adSpend) : 0;
 
     render(root, r, meta);
+    saveResult(user, root, r, { planSig: planSig, setting: setting, total: total, processed: processed });   // 비차단
   })();
 })();

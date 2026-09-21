@@ -10,44 +10,211 @@
 <div class="layout">
   <div id="sidebar"></div>
   <main class="content">
-    <div class="page-head">
-      <h2>결과 관리</h2>
-      <p>수강생별 발주 연습 결과와 성적을 확인합니다. (Google Classroom 성적 현황 참조)</p>
+    <div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+      <div>
+        <h2>결과 관리</h2>
+        <p>수강생이 <b>발주 연습을 정산</b>하면 결과(등급·손익)가 여기에 쌓입니다. 같은 연습을 다시 열면 갱신되고,
+          새 세팅으로 다시 돌리면 새 시도로 기록됩니다. 표는 <b>수강생별 최신 시도</b>이며 시도 횟수를 함께 보여줍니다.</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;">
+        <select id="coSel" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;font-weight:700;">
+          <option value="all">전체 기수</option>
+        </select>
+        <select id="viewSel" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;">
+          <option value="all">전체 수강생</option>
+          <option value="done">정산한 수강생만</option>
+          <option value="none">미정산 수강생만</option>
+        </select>
+        <input type="search" id="q" placeholder="🔍 이름 · 이메일 · 주제"
+          style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;min-width:200px;">
+        <button class="btn-sm is-primary" id="exportBtn">⬇ 엑셀로 내보내기</button>
+      </div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat"><div class="label">수강생</div><div class="value"><span id="stStudents">0</span> <span style="font-size:0.9rem;font-weight:600;">명</span></div></div>
+      <div class="stat"><div class="label">정산 완료</div><div class="value"><span id="stDone">0</span> <span style="font-size:0.9rem;font-weight:600;">명</span></div></div>
+      <div class="stat is-highlight"><div class="label">미정산</div><div class="value"><span id="stNone">0</span> <span style="font-size:0.9rem;font-weight:600;">명</span></div></div>
+      <div class="stat"><div class="label">평균 달성률</div><div class="value"><span id="stAvg">-</span> <span style="font-size:0.9rem;font-weight:600;">%</span></div></div>
     </div>
 
     <div class="panel">
       <div class="panel__head">
-        <span>결과 리스트</span>
-        <a href="#" style="font-size:0.85rem;color:var(--primary);">CSV 내보내기</a>
+        <span>결과 <span id="rowCount" style="color:var(--muted);font-weight:600;"></span></span>
+        <span id="gradeDist" style="font-size:0.8rem;color:var(--muted);"></span>
       </div>
       <table>
         <thead>
           <tr>
-            <th>수강생</th><th>주제</th><th>난이도</th>
-            <th>처리 주문</th><th>총 수익</th><th>결과</th>
+            <th style="text-align:left;">수강생</th>
+            <th>기수</th>
+            <th>주제</th>
+            <th style="width:60px;">난이도</th>
+            <th style="width:90px;">처리 주문</th>
+            <th style="width:64px;">등급</th>
+            <th style="width:80px;">달성률</th>
+            <th style="width:100px;">영업 손익</th>
+            <th style="width:90px;">광고비</th>
+            <th style="width:100px;">최종 손익</th>
+            <th style="width:60px;">시도</th>
+            <th style="width:100px;">정산일</th>
           </tr>
         </thead>
-        <tbody>
-          <tr>
-            <td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">
-              집계된 결과가 없습니다.
-            </td>
-          </tr>
-          <!-- 예시 행
-          <tr>
-            <td>홍길동</td>
-            <td>주방용품</td>
-            <td>중</td>
-            <td>28 / 30</td>
-            <td>$1,240.50</td>
-            <td><span class="tag tag--ok">통과</span></td>
-          </tr>
-          -->
+        <tbody id="body">
+          <tr><td colspan="12" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
         </tbody>
       </table>
     </div>
   </main>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
 <script src="../js/util.js"></script><script src="../js/layout.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+(function () {
+  // esc / money 는 js/util.js 공용. 표 정렬은 util.js 가 어드민 페이지의 모든 표에 자동으로 붙임.
+  var els = {
+    co: document.getElementById('coSel'), view: document.getElementById('viewSel'), q: document.getElementById('q'),
+    body: document.getElementById('body'), count: document.getElementById('rowCount'), dist: document.getElementById('gradeDist'),
+    exportBtn: document.getElementById('exportBtn'),
+  };
+  var cohorts = [], students = [], results = [];
+  var latest = {}, attempts = {};   // user_id → 최신 결과 / 시도 횟수
+
+  function cohortLabel(id) {
+    if (id == null || id === 0) return '미분류';
+    var c = cohorts.find(function (x) { return x.id === id; });
+    return c ? (c.label + (c.enroll_date ? ' · ' + c.enroll_date : '')) : (id + '기');
+  }
+  function ymd(iso) { return iso ? iso.slice(0, 10) : '-'; }
+  function gradeTag(g) {
+    if (!g) return '-';
+    var cls = (g === 'S' || g === 'A') ? 'tag--ok' : (g === 'B' ? 'tag--wait' : 'tag--no');
+    return '<span class="tag ' + cls + '" style="font-weight:800;">' + esc(g) + '</span>';
+  }
+  function moneyCell(v) {
+    if (v == null) return '<span style="color:var(--muted);">-</span>';
+    var n = Number(v);
+    return '<span style="color:' + (n < 0 ? 'var(--danger)' : 'inherit') + ';">' + money(n) + '</span>';
+  }
+
+  async function load() {
+    var co = await sb.from('cohorts').select('id,label,enroll_date').order('id');
+    cohorts = co.data || [];
+    els.co.innerHTML = '<option value="all">전체 기수</option>' +
+      cohorts.map(function (c) { return '<option value="' + c.id + '">' + esc(cohortLabel(c.id)) + '</option>'; }).join('') +
+      '<option value="0">미분류</option>';
+
+    var pr = await sb.from('profiles').select('id,name,email,cohort').eq('status', 'approved').neq('role', 'admin').order('name');
+    if (pr.error) { els.body.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--danger);padding:40px;">조회 실패: ' + esc(pr.error.message) + '</td></tr>'; return; }
+    students = pr.data || [];
+
+    // detail(jsonb) 은 크므로 목록에선 받지 않는다
+    var rs = await sb.from('practice_results')
+      .select('id,user_id,plan_sig,topic,level,total,processed,grade,achieve,net,ad_spend,final_net,cb_count,ad_count,updated_at')
+      .order('updated_at', { ascending: false });
+    if (rs.error) {
+      els.body.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--danger);padding:40px;">결과 조회 실패: ' + esc(rs.error.message) +
+        '<br><span style="font-size:0.82rem;">supabase/practice-results.sql 을 실행했는지 확인하세요.</span></td></tr>';
+      return;
+    }
+    results = rs.data || [];
+    latest = {}; attempts = {};
+    results.forEach(function (r) {           // updated_at 내림차순이라 처음 만나는 것이 최신
+      attempts[r.user_id] = (attempts[r.user_id] || 0) + 1;
+      if (!latest[r.user_id]) latest[r.user_id] = r;
+    });
+    render();
+  }
+
+  function filteredStudents() {
+    var co = els.co.value, view = els.view.value, q = (els.q.value || '').trim().toLowerCase();
+    return students.filter(function (u) {
+      var cid = u.cohort == null ? 0 : u.cohort;
+      if (co !== 'all' && cid !== Number(co)) return false;
+      var r = latest[u.id];
+      if (view === 'done' && !r) return false;
+      if (view === 'none' && r) return false;
+      if (q) {
+        var hay = [u.name, u.email, r ? r.topic : ''].join(' ').toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+  }
+
+  function render() {
+    var list = filteredStudents();
+    var done = list.filter(function (u) { return latest[u.id]; });
+    var avg = done.length ? Math.round(done.reduce(function (a, u) { return a + (latest[u.id].achieve || 0); }, 0) / done.length) : null;
+    document.getElementById('stStudents').textContent = list.length;
+    document.getElementById('stDone').textContent = done.length;
+    document.getElementById('stNone').textContent = list.length - done.length;
+    document.getElementById('stAvg').textContent = avg == null ? '-' : avg;
+    var dist = { S: 0, A: 0, B: 0, C: 0, D: 0 };
+    done.forEach(function (u) { var g = latest[u.id].grade; if (dist[g] != null) dist[g]++; });
+    els.dist.textContent = done.length ? ('등급 분포 — S ' + dist.S + ' · A ' + dist.A + ' · B ' + dist.B + ' · C ' + dist.C + ' · D ' + dist.D) : '';
+
+    var rows = list.map(function (u) {
+      var cid = u.cohort == null ? 0 : u.cohort;
+      var who = '<td style="text-align:left;"><b>' + esc(u.name || '(이름 없음)') + '</b><div style="font-size:0.76rem;color:var(--muted);">' + esc(u.email || '') + '</div></td>' +
+                '<td data-sortval="' + cid + '">' + esc(cohortLabel(cid)) + '</td>';
+      var r = latest[u.id];
+      if (!r) {
+        return '<tr style="background:#fffaf3;">' + who +
+          '<td colspan="9" style="text-align:left;"><span class="tag tag--wait">미정산</span> <span style="font-size:0.8rem;color:var(--muted);">아직 발주 연습을 정산하지 않음</span></td>' +
+          '<td data-sortval="">-</td></tr>';
+      }
+      var proc = (r.processed != null && r.total != null) ? (r.processed + ' / ' + r.total) : '-';
+      return '<tr>' + who +
+        '<td>' + (esc(r.topic) || '<span style="color:var(--muted);">-</span>') + '</td>' +
+        '<td>' + (esc(r.level) || '-') + '</td>' +
+        '<td data-sortval="' + (r.processed || 0) + '">' + proc + '</td>' +
+        '<td data-sortval="' + ({ S: 5, A: 4, B: 3, C: 2, D: 1 }[r.grade] || 0) + '">' + gradeTag(r.grade) + '</td>' +
+        '<td data-sortval="' + (r.achieve || 0) + '">' + (r.achieve == null ? '-' : r.achieve + '%') + '</td>' +
+        '<td data-sortval="' + (r.net || 0) + '">' + moneyCell(r.net) + '</td>' +
+        '<td data-sortval="' + (r.ad_spend || 0) + '">' + moneyCell(r.ad_spend) + '</td>' +
+        '<td data-sortval="' + (r.final_net || 0) + '"><b>' + moneyCell(r.final_net) + '</b></td>' +
+        '<td data-sortval="' + (attempts[u.id] || 0) + '">' + (attempts[u.id] || 0) + '회</td>' +
+        '<td data-sortval="' + esc(ymd(r.updated_at)) + '">' + esc(ymd(r.updated_at)) + '</td></tr>';
+    });
+    els.count.textContent = rows.length ? '(' + rows.length + '명)' : '';
+    els.body.innerHTML = rows.length ? rows.join('') :
+      '<tr><td colspan="12" style="text-align:center;color:var(--muted);padding:40px;">조건에 맞는 수강생이 없습니다.</td></tr>';
+  }
+
+  els.co.addEventListener('change', render);
+  els.view.addEventListener('change', render);
+  els.q.addEventListener('input', render);
+
+  // 엑셀(CSV) — 현재 필터 기준, 최신 시도. UTF-8 BOM
+  function csvCell(v) { v = String(v == null ? '' : v); return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+  els.exportBtn.addEventListener('click', function () {
+    var list = filteredStudents();
+    if (!list.length) { alert('내보낼 수강생이 없습니다.'); return; }
+    var lines = [['기수', '수강생', '이메일', '주제', '난이도', '처리', '예정', '등급', '달성률(%)', '영업손익', '광고비', '최종손익', '차지백', '캠페인', '시도', '정산일'].map(csvCell).join(',')];
+    list.forEach(function (u) {
+      var cid = u.cohort == null ? 0 : u.cohort, r = latest[u.id];
+      if (!r) { lines.push([cohortLabel(cid), u.name, u.email, '(미정산)', '', '', '', '', '', '', '', '', '', '', 0, ''].map(csvCell).join(',')); return; }
+      lines.push([cohortLabel(cid), u.name, u.email, r.topic, r.level, r.processed, r.total, r.grade, r.achieve, r.net, r.ad_spend, r.final_net, r.cb_count, r.ad_count, attempts[u.id] || 0, ymd(r.updated_at)].map(csvCell).join(','));
+    });
+    var coTxt = els.co.value === 'all' ? '전체' : cohortLabel(Number(els.co.value)).split(' · ')[0];
+    var d = new Date(), stamp = d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2);
+    var blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = '정산결과_' + coTxt.replace(/[^\w가-힣]+/g, '_') + '_' + stamp + '.csv';
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+  });
+
+  (async function init() {
+    var admin = await Auth.requireAdmin();
+    if (!admin) return;
+    await load();
+  })();
+})();
+</script>
 </body>
 </html>
