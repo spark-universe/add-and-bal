@@ -2,7 +2,7 @@
    어드민 · 숙제 관리
    - challenges 테이블 CRUD (등록 / 수정 / 표시토글 / 삭제)
    - 각 숙제의 제출 건수, 연결된 매뉴얼 챕터 표시
-   - 검수는 별도 화면(challenge-review.html)
+   - 검수는 이 화면의 "숙제 검수" 탭 (challenges.html?review=<id> 로 바로 열림)
    ========================================================= */
 (function () {
   var editingId = null;
@@ -180,7 +180,7 @@
         ((c.material_path || c.material_url) ? ' <span title="관련 자료 있음" style="font-weight:400;">📎</span>' : '') + '</td>' +
       '<td>' + (c.open_at ? fmtDate(c.open_at) : '<span style="color:var(--muted);">즉시</span>') + '</td>' +
       '<td>' + fmtDate(c.due_at) + '</td>' +
-      '<td>' + (n ? '<a href="challenge-review.html?id=' + c.id + '" style="color:var(--primary);">' + n + '건</a>' : '0건') + '</td>' +
+      '<td>' + (n ? '<a href="challenges.html?review=' + c.id + '" style="color:var(--primary);">' + n + '건</a>' : '0건') + '</td>' +
       '<td><button class="btn-sm" data-act="toggle" data-id="' + c.id + '">' +
         (c.active ? '표시중' : '숨김') + '</button></td>' +
       '<td>' +

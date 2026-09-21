@@ -5,3 +5,6 @@ supabase/
 .claude/
 README.md
 notion/
+# 옛 정적 매뉴얼과 그 시드 — DB(manual_chapters)로 대체됨. 인증 없이 열리므로 배포에서 제외
+manual/index.html
+js/manual-content.js

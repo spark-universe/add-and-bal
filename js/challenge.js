@@ -596,10 +596,9 @@
         renderMine();
       });
     });
-    // 메인 통계에서 넘어온 필터 (?filter=miss|fail). miss 는 '미제출' 탭으로 매핑
+    // 메인 통계에서 넘어온 필터 (?filter=miss|fail). miss 는 '마감 지남' 탭 — 메인의 미제출 숫자와 같은 기준
     var qf = new URLSearchParams(location.search).get('filter');
-    if (qf === 'miss') qf = 'todo';
-    if (qf && ['todo', 'done', 'pass', 'fail'].indexOf(qf) !== -1) {
+    if (qf && ['todo', 'miss', 'done', 'pass', 'fail'].indexOf(qf) !== -1) {
       mineFilter = qf;
       document.querySelectorAll('.adv-tab').forEach(function (x) {
         x.classList.toggle('is-on', x.dataset.filter === qf);
@@ -621,6 +620,7 @@
       if (mineFilter === 'done') return confirmed(c);
       if (mineFilter === 'pass') return confirmed(c) && c.sub.review_status === 'pass';
       if (mineFilter === 'fail') return confirmed(c) && c.sub.review_status === 'fail';
+      if (mineFilter === 'miss') return !confirmed(c) && isOver(c.due_at);   // 마감 지남 + 미확정 (메인 '미제출' 집계와 동일)
       return true;
     });
     document.getElementById('mineCount').textContent =

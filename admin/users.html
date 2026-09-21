@@ -507,7 +507,9 @@
   // 승인: 기수 + 수강일 저장
   async function approveOne(id, cohortVal, dateVal) {
     var res = await sb.from('profiles')
-      .update({ status: 'approved', cohort: cohortVal, enroll_date: dateVal || null, access: ['challenge'] })
+      // level 도 함께 0 으로 — level>=1 은 access 를 무시하고 전 영역을 열기 때문에(layout.js/auth.js),
+      // 숙련자를 승인 취소 → 재승인하면 화면엔 챌린지만 체크돼 보이는데 실제론 다 열려 있던 문제 방지
+      .update({ status: 'approved', cohort: cohortVal, enroll_date: dateVal || null, access: ['challenge'], level: 0 })
       .eq('id', id).select();
     if (res.error) { alert('승인 실패: ' + res.error.message); return false; }
     if (!res.data || !res.data.length) { alert('승인 권한이 없어 반영되지 않았습니다. (어드민 정책 SQL 확인)'); return false; }
