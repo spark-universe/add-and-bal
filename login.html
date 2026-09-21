@@ -29,7 +29,8 @@
     <button class="auth-btn" type="submit" id="submitBtn">로그인</button>
 
     <div class="auth-alt">
-      아직 회원이 아니신가요? <a href="signup.html">회원가입</a>
+      아직 회원이 아니신가요? <a href="signup.html">회원가입</a><br>
+      <a href="#reset" id="forgotLink">비밀번호를 잊으셨나요?</a>
     </div>
   </form>
 </div>
@@ -81,6 +82,32 @@
       show('아직 관리자 승인 대기 중입니다. 승인 후 이용할 수 있습니다.');
     }
   });
+
+  // ----- 비밀번호 재설정 메일 요청 -----
+  // 이메일 칸에 적힌 주소로 재설정 메일을 보낸다. 링크를 누르면 reset-password.html 로 돌아와 새 비밀번호를 정한다.
+  // (그 주소는 Supabase → Authentication → URL Configuration → Redirect URLs 에 등록돼 있어야 한다)
+  var forgot = document.getElementById('forgotLink');
+  var emailEl = document.getElementById('email');
+  var sending = false;
+  forgot.addEventListener('click', async function (e) {
+    e.preventDefault();
+    if (sending) return;
+    var email = emailEl.value.trim();
+    if (!email) { emailEl.focus(); return show('가입한 이메일을 먼저 입력한 뒤 다시 눌러주세요.'); }
+    sending = true;
+    show('재설정 메일을 보내는 중...');
+    var res = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/reset-password.html' });
+    sending = false;
+    if (res.error) {
+      var m = res.error.message || '';
+      if (/rate limit|too many/i.test(m)) return show('요청이 너무 잦습니다. 잠시 후 다시 시도하세요.');
+      return show('메일 발송 실패: ' + m);
+    }
+    // 존재하지 않는 이메일이어도 같은 문구 (계정 존재 여부를 노출하지 않음)
+    show('재설정 메일을 보냈습니다. 메일의 링크를 열어 새 비밀번호를 설정하세요. (스팸함도 확인)');
+  });
+  // reset-password.html 의 '다시 받기' 로 돌아온 경우: 안내만 띄우고 이메일 칸에 포커스
+  if (location.hash === '#reset') { emailEl.focus(); show('가입한 이메일을 입력한 뒤 아래 "비밀번호를 잊으셨나요?"를 누르세요.'); }
 })();
 </script>
 </body>
