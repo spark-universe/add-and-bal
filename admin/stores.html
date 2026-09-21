@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>어드민 · 스토어 목록</title>
+<link rel="stylesheet" href="../styles.css"><link rel="stylesheet" href="../css/style.css">
+</head>
+<body data-area="admin" data-active="stores">
+<div class="layout">
+  <div id="sidebar"></div>
+  <main class="content">
+    <div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+      <div>
+        <h2>스토어 목록</h2>
+        <p>수강생이 <b>내 스토어 정보</b>에 등록한 스토어를 기수별로 모아 봅니다.
+          <b>협력자 코드</b>는 그 수강생의 Shopify 스토어에 협력자 접근을 요청할 때 넣는 4자리 숫자입니다 — 클릭하면 복사됩니다.</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;">
+        <select id="coSel" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.9rem;font-weight:700;">
+          <option value="all">전체 기수</option>
+        </select>
+        <select id="viewSel" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;">
+          <option value="all">전체 수강생</option>
+          <option value="has">스토어 등록한 수강생만</option>
+          <option value="none">스토어 미등록 수강생만</option>
+        </select>
+        <input type="search" id="q" placeholder="🔍 이름 · 이메일 · 스토어명 · URL"
+          style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;min-width:220px;">
+        <button class="btn-sm is-primary" id="exportBtn">⬇ 엑셀로 내보내기</button>
+      </div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat"><div class="label">수강생</div><div class="value"><span id="stStudents">0</span> <span style="font-size:0.9rem;font-weight:600;">명</span></div></div>
+      <div class="stat"><div class="label">스토어 등록</div><div class="value"><span id="stHas">0</span> <span style="font-size:0.9rem;font-weight:600;">명</span></div></div>
+      <div class="stat is-highlight"><div class="label">스토어 미등록</div><div class="value"><span id="stNone">0</span> <span style="font-size:0.9rem;font-weight:600;">명</span></div></div>
+      <div class="stat"><div class="label">스토어 총</div><div class="value"><span id="stStores">0</span> <span style="font-size:0.9rem;font-weight:600;">개</span></div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head">
+        <span>스토어 <span id="rowCount" style="color:var(--muted);font-weight:600;"></span></span>
+        <span style="font-size:0.8rem;color:var(--muted);">열 제목을 누르면 정렬됩니다 · 코드를 누르면 복사됩니다</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left;">수강생</th>
+            <th>기수</th>
+            <th style="text-align:left;">스토어명</th>
+            <th>주제</th>
+            <th style="text-align:left;">URL</th>
+            <th style="width:120px;">협력자 코드</th>
+            <th style="width:64px;" data-nosort>메모</th>
+            <th style="width:110px;">등록일</th>
+          </tr>
+        </thead>
+        <tbody id="body">
+          <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/util.js"></script><script src="../js/layout.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+(function () {
+  // esc / safeUrl 은 js/util.js 공용. 표 정렬은 util.js 가 어드민 페이지의 모든 표에 자동으로 붙임.
+  var els = {
+    co: document.getElementById('coSel'), view: document.getElementById('viewSel'), q: document.getElementById('q'),
+    body: document.getElementById('body'), count: document.getElementById('rowCount'), exportBtn: document.getElementById('exportBtn'),
+  };
+  var cohorts = [], students = [], stores = [];   // 원본
+  var byUser = {};                                 // user_id → [store]
+
+  function cohortLabel(id) {
+    if (id == null || id === 0) return '미분류';
+    var c = cohorts.find(function (x) { return x.id === id; });
+    return c ? (c.label + (c.enroll_date ? ' · ' + c.enroll_date : '')) : (id + '기');
+  }
+  function ymd(iso) { return iso ? iso.slice(0, 10) : '-'; }
+  function host(url) { try { return new URL(safeUrl(url)).host; } catch (e) { return url; } }
+
+  async function load() {
+    var co = await sb.from('cohorts').select('id,label,enroll_date').order('id');
+    cohorts = co.data || [];
+    els.co.innerHTML = '<option value="all">전체 기수</option>' +
+      cohorts.map(function (c) { return '<option value="' + c.id + '">' + esc(cohortLabel(c.id)) + '</option>'; }).join('') +
+      '<option value="0">미분류</option>';
+
+    // 승인된 수강생만 (어드민·대기·거절·삭제 제외). 필요한 컬럼만.
+    var pr = await sb.from('profiles').select('id,name,email,phone,cohort').eq('status', 'approved').neq('role', 'admin').order('name');
+    if (pr.error) { els.body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--danger);padding:40px;">조회 실패: ' + esc(pr.error.message) + '</td></tr>'; return; }
+    students = pr.data || [];
+
+    var st = await sb.from('stores').select('*').order('created_at');   // RLS: 어드민은 전체 조회 가능
+    if (st.error) { els.body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--danger);padding:40px;">스토어 조회 실패: ' + esc(st.error.message) + '</td></tr>'; return; }
+    stores = st.data || [];
+    byUser = {};
+    stores.forEach(function (s) { (byUser[s.user_id] = byUser[s.user_id] || []).push(s); });
+    render();
+  }
+
+  // 현재 필터에 맞는 수강생 목록
+  function filteredStudents() {
+    var co = els.co.value, view = els.view.value, q = (els.q.value || '').trim().toLowerCase();
+    return students.filter(function (u) {
+      var cid = u.cohort == null ? 0 : u.cohort;
+      if (co !== 'all' && cid !== Number(co)) return false;
+      var list = byUser[u.id] || [];
+      if (view === 'has' && !list.length) return false;
+      if (view === 'none' && list.length) return false;
+      if (q) {
+        var hay = [u.name, u.email, u.phone].concat(list.map(function (s) { return [s.name, s.topic, s.url, s.partner_code].join(' '); })).join(' ').toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+  }
+
+  function render() {
+    var list = filteredStudents();
+    var has = list.filter(function (u) { return (byUser[u.id] || []).length; }).length;
+    var storeN = list.reduce(function (a, u) { return a + (byUser[u.id] || []).length; }, 0);
+    document.getElementById('stStudents').textContent = list.length;
+    document.getElementById('stHas').textContent = has;
+    document.getElementById('stNone').textContent = list.length - has;
+    document.getElementById('stStores').textContent = storeN;
+
+    var rows = [];
+    list.forEach(function (u) {
+      var cid = u.cohort == null ? 0 : u.cohort;
+      var who = '<td style="text-align:left;"><b>' + esc(u.name || '(이름 없음)') + '</b><div style="font-size:0.76rem;color:var(--muted);">' + esc(u.email || '') + '</div></td>' +
+                '<td data-sortval="' + cid + '">' + esc(cohortLabel(cid)) + '</td>';
+      var mine = byUser[u.id] || [];
+      if (!mine.length) {
+        rows.push('<tr style="background:#fffaf3;">' + who +
+          '<td colspan="5" style="text-align:left;"><span class="tag tag--wait">스토어 미등록</span> <span style="font-size:0.8rem;color:var(--muted);">수강생이 내 스토어 정보에서 아직 추가하지 않음</span></td>' +
+          '<td data-sortval="0">-</td></tr>');
+        return;
+      }
+      mine.forEach(function (s) {
+        var url = s.url ? '<a href="' + esc(safeUrl(s.url)) + '" target="_blank" rel="noopener" title="' + esc(s.url) + '">' + esc(host(s.url)) + ' ↗</a>' : '<span style="color:var(--muted);">-</span>';
+        var code = s.partner_code
+          ? '<button class="btn-sm code-copy" data-code="' + esc(s.partner_code) + '" title="클릭하면 복사" style="font-family:ui-monospace,monospace;font-weight:700;letter-spacing:.08em;">' + esc(s.partner_code) + '</button>'
+          : '<span style="color:var(--muted);">-</span>';
+        var memo = (s.memo && s.memo.trim()) ? '<span title="' + esc(s.memo) + '" style="cursor:help;">📝</span>' : '<span style="color:#c2c8d0;">-</span>';
+        rows.push('<tr>' + who +
+          '<td style="text-align:left;font-weight:600;">' + esc(s.name || '(이름 없음)') + '</td>' +
+          '<td>' + (esc(s.topic) || '<span style="color:var(--muted);">-</span>') + '</td>' +
+          '<td style="text-align:left;">' + url + '</td>' +
+          '<td>' + code + '</td>' +
+          '<td>' + memo + '</td>' +
+          '<td data-sortval="' + esc(ymd(s.created_at)) + '">' + esc(ymd(s.created_at)) + '</td></tr>');
+      });
+    });
+    els.count.textContent = rows.length ? '(' + rows.length + '행)' : '';
+    els.body.innerHTML = rows.length ? rows.join('') :
+      '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:40px;">조건에 맞는 수강생이 없습니다.</td></tr>';
+  }
+
+  // 협력자 코드 복사 (클립보드 불가 환경이면 코드 선택으로 대체)
+  els.body.addEventListener('click', function (e) {
+    var b = e.target.closest('.code-copy'); if (!b) return;
+    var code = b.getAttribute('data-code'), orig = b.textContent;
+    var done = function () { b.textContent = '복사됨 ✓'; setTimeout(function () { b.textContent = orig; }, 1200); };
+    var fallback = function () { var r = document.createRange(); r.selectNodeContents(b); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(done, fallback); else fallback();
+  });
+
+  els.co.addEventListener('change', render);
+  els.view.addEventListener('change', render);
+  els.q.addEventListener('input', render);
+
+  // 엑셀(CSV) 내보내기 — 현재 필터 기준, UTF-8 BOM 으로 한글 안 깨지게
+  function csvCell(v) { v = String(v == null ? '' : v); return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+  els.exportBtn.addEventListener('click', function () {
+    var list = filteredStudents();
+    if (!list.length) { alert('내보낼 수강생이 없습니다.'); return; }
+    var lines = [['기수', '수강생', '이메일', '전화', '스토어명', '주제', 'URL', '협력자 코드', '메모', '등록일'].map(csvCell).join(',')];
+    list.forEach(function (u) {
+      var cid = u.cohort == null ? 0 : u.cohort, mine = byUser[u.id] || [];
+      if (!mine.length) { lines.push([cohortLabel(cid), u.name, u.email, u.phone, '(미등록)', '', '', '', '', ''].map(csvCell).join(',')); return; }
+      mine.forEach(function (s) {
+        lines.push([cohortLabel(cid), u.name, u.email, u.phone, s.name, s.topic, s.url ? safeUrl(s.url) : '', s.partner_code, s.memo, ymd(s.created_at)].map(csvCell).join(','));
+      });
+    });
+    var coTxt = els.co.value === 'all' ? '전체' : cohortLabel(Number(els.co.value)).split(' · ')[0];
+    var d = new Date(), stamp = d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2);
+    var blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = '스토어목록_' + coTxt.replace(/[^\w가-힣]+/g, '_') + '_' + stamp + '.csv';
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+  });
+
+  (async function init() {
+    var admin = await Auth.requireAdmin();
+    if (!admin) return;
+    await load();
+  })();
+})();
+</script>
+</body>
+</html>
