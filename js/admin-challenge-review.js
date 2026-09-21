@@ -186,7 +186,12 @@
   async function load() {
     try { var r = await sb.rpc('server_now'); if (r && r.data) { var t = Date.parse(r.data); if (!isNaN(t)) serverNow = t; } } catch (e) {}
     // 과제
-    var ch = await sb.from('challenges').select('*').order('created_at', { ascending: false });
+    // 선택한 기수의 숙제만 (challenges.html 의 기수 선택기). 전 기수를 한 목록에 섞지 않도록.
+    var coEl = document.getElementById('cohortSel');
+    var cohort = coEl ? parseInt(coEl.value, 10) : NaN;
+    var chq = sb.from('challenges').select('*').order('created_at', { ascending: false });
+    if (!isNaN(cohort)) chq = chq.eq('cohort', cohort);
+    var ch = await chq;
     challenges = {};
     var opts = '<option value="">전체 과제</option>';
     (ch.data || []).forEach(function (c) {
@@ -203,7 +208,11 @@
     (pr.data || []).forEach(function (p) { names[p.id] = p.name; });
 
     // 제출 (대기 먼저, 최신순)
-    var su = await sb.from('challenge_submissions').select('*').order('created_at', { ascending: false });
+    // 제출은 기수 컬럼이 없으므로 위 숙제 id 로 한정 (숙제가 없으면 조회 생략)
+    var chIds = Object.keys(challenges);
+    var su = chIds.length
+      ? await sb.from('challenge_submissions').select('*').in('challenge_id', chIds).order('created_at', { ascending: false })
+      : { data: [] };
     // 제출 확정된 것만 검수 대상 (초안 draft 는 제외). 구버전(status 없음/submitted)은 포함.
     subs = (su.data || []).filter(function (s) { return s.status !== 'draft'; }).sort(function (a, b) {
       var order = { pending: 0, fail: 1, pass: 2 };
@@ -212,6 +221,14 @@
 
     render();
   }
+
+  // 기수를 바꾸면 검수 탭이 보이는 동안만 다시 로드 (등록·현황판은 각자 처리)
+  var coSelEl = document.getElementById('cohortSel');
+  if (coSelEl) coSelEl.addEventListener('change', function () {
+    var t = document.getElementById('tab-review');
+    if (t && !t.hidden) load();
+  });
+  window.ChallengeReview = { load: load };   // 탭 전환 시 challenges.html 이 호출
 
   (async function init() {
     var admin = await Auth.requireAdmin();

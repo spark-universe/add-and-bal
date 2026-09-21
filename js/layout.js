@@ -165,10 +165,8 @@
   if (area !== 'admin' && typeof sb !== 'undefined') {
     (async function () {
       try {
-        var s = await sb.auth.getSession();
-        if (!s.data.session) return;
-        var prof = await sb.from('profiles').select('*').eq('id', s.data.session.user.id).single();
-        var p = (prof && prof.data) || {};
+        var p = await window.myProfile();   // 공용 1회 조회 (auth.js 가드·페이지 스크립트와 요청 공유)
+        if (!p) return;
         var nameEl = document.getElementById('sbName');
         if (nameEl && p.name) nameEl.textContent = p.name;
         // 공용 데모 계정: 사이드바를 '광고 설정' 하나로 축소

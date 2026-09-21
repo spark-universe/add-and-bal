@@ -19,17 +19,9 @@ window.Auth = {
     return res.data.session.user;
   },
 
-  // 현재 로그인 사용자의 프로필(role/level/name/is_demo) — 페이지당 1회만 조회하고 캐시
-  _me: undefined,
-  me: async function () {
-    if (this._me !== undefined) return this._me;
-    var res = await sb.auth.getSession();
-    if (!res.data.session) { this._me = null; return null; }
-    var prof = await sb.from('profiles').select('*').eq('id', res.data.session.user.id).single();
-    this._me = (prof && prof.data) || {};
-    this._me.id = res.data.session.user.id;
-    return this._me;
-  },
+  // 현재 로그인 사용자의 프로필(role/level/name/is_demo) — js/supabase.js 의 공용 프로미스(window.myProfile)를 그대로 사용.
+  // 사이드바·페이지 스크립트와 같은 한 번의 조회를 공유한다. 세션 없으면 null.
+  me: function () { return window.myProfile(); },
 
   // 어드민 전용 페이지 가드. 로그인 + role=admin 이어야 통과
   requireAdmin: async function () {

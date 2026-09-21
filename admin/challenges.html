@@ -211,9 +211,10 @@
       document.getElementById('tab-register').hidden = t !== 'register';
       document.getElementById('tab-review').hidden = t !== 'review';
       document.getElementById('tab-board').hidden = t !== 'board';
-      // 기수 선택기는 등록·현황판에서 사용
-      var cc = document.getElementById('regCohortCtrl'); if (cc) cc.hidden = (t !== 'register' && t !== 'board');
+      // 기수 선택기는 세 탭 모두에서 사용 (검수도 선택한 기수의 숙제만 보여준다)
+      var cc = document.getElementById('regCohortCtrl'); if (cc) cc.hidden = false;
       if (t === 'board' && window.ChallengeBoard) window.ChallengeBoard.load();
+      if (t === 'review' && window.ChallengeReview) window.ChallengeReview.load();   // 다른 탭에서 기수를 바꿨을 수 있음
     });
   });
   // 숙제 관리의 "N건" 링크(?review=<숙제id>)로 들어오면 검수 탭을 바로 연다 (숙제 선택은 검수 스크립트가 처리)
