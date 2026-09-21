@@ -22,20 +22,20 @@ returns trigger
 language plpgsql
 security definer set search_path = public
 as $$
-declare adm boolean := public.is_admin();
 begin
+  -- '인증된 수강생(비어드민)'의 저장만 제출로 본다.
+  -- auth.uid() 가 없는 맥락(SQL 편집기·서비스 롤·마이그레이션)과 어드민은 문장이 준 값을 그대로 둔다.
+  -- ※ "어드민이 아니면 수강생"으로 잡으면 SQL 편집기의 일괄 UPDATE 가 전부 '재제출'로 찍히는 사고가 난다(2026-09-21 실제 발생).
+  if auth.uid() is null or public.is_admin() then
+    return new;
+  end if;
   if tg_op = 'INSERT' then
     new.submitted_at := case when new.status is distinct from 'draft' then now() else null end;
-    if not adm then new.late_waived := false; end if;
+    new.late_waived  := false;
   else
-    if adm then
-      new.submitted_at := old.submitted_at;
-    elsif new.status is distinct from 'draft' then
-      new.submitted_at := now();
-    else
-      new.submitted_at := old.submitted_at;
-    end if;
-    if not adm then new.late_waived := old.late_waived; end if;
+    if new.status is distinct from 'draft' then new.submitted_at := now();
+    else new.submitted_at := old.submitted_at; end if;
+    new.late_waived := old.late_waived;
   end if;
   return new;
 end $$;
@@ -44,10 +44,10 @@ create trigger trg_chsub_submitted_at
   before insert or update on public.challenge_submissions
   for each row execute function public.set_chsub_submitted_at();
 
--- 3) 기존 확정 행 백필 — created_at 으로 (정상 제출을 지각으로 잘못 표시하는 일은 없음. 앞으로의 제출은 정확)
-update public.challenge_submissions
-set submitted_at = created_at
-where submitted_at is null and status is distinct from 'draft';
+-- 3) (백필 없음) 기능 도입 전 제출은 submitted_at 을 비워 둔다 → 지각으로 표시되지 않음.
+--    이전 버전은 created_at 으로 채웠는데, '제출 당시 마감이 없었거나 마감일이 나중에 설정된' 숙제에서
+--    정상 제출이 지각으로 잘못 잡혔다. 기능 도입 전 제출은 옛 규칙상 지각일 수 없으므로 비워 두는 게 맞다.
+--    (잘못 채워진 값의 정리는 late-submissions-fix.sql 참고)
 
 -- 4) 프로필 보호 트리거 최종본 + late_ok (security-hardening.sql 의 정의와 동일하게 유지할 것)
 create or replace function public.protect_profile_fields()
