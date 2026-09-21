@@ -15,7 +15,7 @@
     var c = challenges[s.challenge_id];
     var ms = lateMs(s.submitted_at, c && c.due_at);
     if (!ms) return '';
-    if (lateOk[s.user_id]) return block
+    if (lateOk[s.user_id] || s.late_waived) return block
       ? '<div style="font-size:0.74rem;color:var(--muted);margin-top:3px;">지각 · 정상처리(면제)</div>'
       : '<span class="ord-chip">지각 · 정상처리(면제)</span>';
     var t = '⏰ 지각 ' + esc(fmtLate(ms));
@@ -110,6 +110,15 @@
               esc(s.file_name) + '</a></div>'
             : '') +
 
+          // 지각 제출이면: 얼마나 늦었는지 + 면제 선택 (이 제출만 / 이 수강생은 앞으로도)
+          (lateMs(s.submitted_at, c.due_at)
+            ? '<div style="margin-top:14px;padding:10px 12px;background:#fff4e6;border:1px solid #ffd8a8;border-radius:8px;font-size:0.86rem;">' +
+                '<div style="font-weight:700;margin-bottom:6px;">⏰ 지각 제출 — 마감보다 <b>' + esc(fmtLate(lateMs(s.submitted_at, c.due_at))) + '</b> 늦음' +
+                  ((lateOk[s.user_id] || s.late_waived) ? ' <span class="tag tag--ok">정상 처리 중</span>' : '') + '</div>' +
+                '<label style="display:block;cursor:pointer;"><input type="checkbox" id="rvWaive"' + (s.late_waived ? ' checked' : '') + '> 이 제출은 정상 제출로 처리 (지각 표시 안 함)</label>' +
+                '<label style="display:block;cursor:pointer;margin-top:4px;"><input type="checkbox" id="rvLateOk"' + (lateOk[s.user_id] ? ' checked' : '') + '> 이 수강생의 지각은 앞으로도 정상 처리 (사용자 관리의 "지각 허용"과 같음)</label>' +
+              '</div>'
+            : '') +
           '<div class="prod-form" style="margin-top:16px;">' +
             '<div class="field">' +
               '<label>판정</label>' +
@@ -159,18 +168,32 @@
       var score = scoreVal === '' ? null : parseInt(scoreVal, 10);
       var reason = box.querySelector('#rvReason').value.trim() || null;
 
+      var waiveEl = box.querySelector('#rvWaive'), lateOkEl = box.querySelector('#rvLateOk');   // 지각 제출일 때만 존재
+
       this.disabled = true;
-      var res = await sb.from('challenge_submissions').update({
+      var payload = {
         review_status: status,
         score: score,
         review_reason: reason,
         reviewed_at: new Date().toISOString(),
-      }).eq('id', s.id);
+      };
+      if (waiveEl) payload.late_waived = waiveEl.checked;
+      var res = await sb.from('challenge_submissions').update(payload).eq('id', s.id);
 
       if (res.error) {
         this.disabled = false;
         box.querySelector('#rvErr').textContent = '저장 실패: ' + res.error.message;
         return;
+      }
+      // 수강생 단위 면제(late_ok)가 바뀌었으면 프로필에 저장 (protect_profile_fields: 어드민만 가능)
+      if (lateOkEl && lateOkEl.checked !== !!lateOk[s.user_id]) {
+        var rp = await sb.from('profiles').update({ late_ok: lateOkEl.checked }).eq('id', s.user_id).select();
+        if (rp.error || !rp.data || !rp.data.length) {
+          this.disabled = false;
+          box.querySelector('#rvErr').textContent = '검수는 저장됐지만 수강생 지각 허용 저장 실패' + (rp.error ? ': ' + rp.error.message : ' (late-submissions.sql 실행 여부 확인)');
+          return;
+        }
+        lateOk[s.user_id] = lateOkEl.checked;
       }
       box.remove();
       await load();
