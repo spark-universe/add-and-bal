@@ -259,3 +259,20 @@ if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initGlossaryTips);
   else initGlossaryTips();
 }
+
+/* ===== 지각 제출 =====
+   lateMs(submittedAt, dueAt): 마감 이후 확정했으면 지난 ms, 아니면 0 (둘 중 하나라도 없으면 0)
+   fmtLate(ms): 'N일 N시간' / 'N시간 N분' / 'N분'  — 학생 경고("마감이 N일 N시간 지났습니다")와 어드민 지각 표시가 함께 씀
+   면제(profiles.late_ok) 판단은 호출 쪽에서 한다. */
+function lateMs(submittedAt, dueAt) {
+  if (!submittedAt || !dueAt) return 0;
+  var d = new Date(submittedAt) - new Date(dueAt);
+  return d > 0 ? d : 0;
+}
+function fmtLate(ms) {
+  if (!(ms > 0)) return '';
+  var m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mm = m % 60;
+  if (d) return d + '일 ' + h + '시간';
+  if (h) return h + '시간 ' + mm + '분';
+  return mm + '분';
+}
