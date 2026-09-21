@@ -63,7 +63,7 @@
   var subById = {};                 // challenge_id → 내 제출(색상용)
   async function fetchData() {
     await loadServerNow();
-    var prof = await sb.from('profiles').select('cohort, enroll_date').eq('id', user.id).single();
+    var prof = { data: await window.myProfile() };   // 공용 1회 조회 (사이드바·가드와 같은 요청)
     // 0 = 미분류(그대로 0으로 조회), null 이면 기본 1
     var cohort = (prof.data && prof.data.cohort != null) ? prof.data.cohort : 1;
     myCohort = cohort;
@@ -207,7 +207,7 @@
     var box = document.getElementById('promoBox');
     if (!box) return;
 
-    var pr = await sb.from('profiles').select('level, role').eq('id', user.id).single();
+    var pr = { data: await window.myProfile() };   // 공용 1회 조회
     if (pr.data && pr.data.role === 'admin') { box.innerHTML = ''; return; }  // 어드민은 등급업 신청 대상 아님
     var level = (pr.data && pr.data.level) || 0;
 
@@ -885,7 +885,7 @@
     return await Auth.require();
   }
   async function setName(id) {
-    var prof = await sb.from('profiles').select('name').eq('id', user.id).single();
+    var prof = { data: await window.myProfile() };   // 공용 1회 조회
     if (prof.data && prof.data.name) setText(id, prof.data.name);
   }
   function setText(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; }

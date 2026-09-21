@@ -112,7 +112,8 @@
   }
   async function loadEvents() {
     var res = await sb.from('events').select('*, event_users(user_id)')
-      .neq('scope', 'personal').order('start_at', { ascending: false });
+      .neq('scope', 'personal').order('start_at', { ascending: false })
+      .limit(300);   // 배포 목록이 무한히 자라지 않게 최근 300건까지 (달력은 월 단위로 따로 조회)
     events = res.data || [];
     el('evCount').textContent = events.length ? '(' + events.length + '개)' : '';
     el('evBody').innerHTML = events.length ? events.map(function (e) {
