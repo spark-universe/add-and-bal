@@ -27,13 +27,13 @@
   function render() {
     els.count.textContent = cohorts.length ? '(' + cohorts.length + '개)' : '';
     if (!cohorts.length) {
-      els.body.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">' +
+      els.body.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:40px;">' +
         '등록된 기수가 없습니다.</td></tr>';
       return;
     }
     var rows = cohorts.map(function (c, i) {
       var n = (studentsByCohort[c.id] || []).length;
-      return '<tr' + (c.active ? '' : ' style="opacity:0.5;"') + '>' +
+      return '<tr>' +
         '<td>' + (i + 1) + '</td>' +
         '<td><b style="font-size:0.95rem;">' + esc(c.label) + '</b></td>' +
         '<td>' +
@@ -41,8 +41,6 @@
           '" style="padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.95rem;font-weight:600;' +
           'color:var(--text);font-family:inherit;"></td>' +
         '<td><button class="btn-link" data-act="students" data-id="' + c.id + '">' + n + '명</button></td>' +
-        '<td><button class="btn-sm" data-act="toggle" data-id="' + c.id + '">' +
-          (c.active ? '노출중' : '숨김') + '</button></td>' +
         '<td>' +
           '<a class="btn-link" href="manual-schedule.html?cohort=' + c.id + '">매뉴얼 공개</a> ' +
           '<button class="btn-link" data-act="rename" data-id="' + c.id + '">이름 변경</button> ' +
@@ -96,12 +94,7 @@
       await load();
       return;
     }
-    if (btn.dataset.act === 'toggle') {
-      var t = await sb.from('cohorts').update({ active: !c.active }).eq('id', id);
-      if (t.error) { alert('변경 실패: ' + t.error.message); return; }
-      await load();
-      return;
-    }
+    // (노출/숨김 토글은 제거 — cohorts.active 를 읽는 곳이 없어 아무 효과가 없었음. 컬럼은 DB 에 그대로 둠)
     if (btn.dataset.act === 'del') { openDelete(c); return; }
   });
 

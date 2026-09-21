@@ -83,7 +83,11 @@ document.addEventListener('click', function (e) {
     'challenge-mine.html': 'challenge', 'challenge-calendar.html': 'challenge', 'manual.html': 'challenge',
     'order-home.html': 'advanced', 'basic-settings.html': 'advanced',
     'ad-settings.html': 'ad', 'ad-campaign.html': 'ad',
-    'order-practice.html': 'practice', 'chargeback-manual.html': 'practice'
+    'order-practice.html': 'practice', 'chargeback-manual.html': 'practice',
+    // 발주 연습 안에서 이어지는 페이지들 — 빠져 있으면 주문을 클릭하는 순간 '권한 없음'으로 튕긴다
+    'order-setup.html': 'practice', 'order-detail.html': 'practice', 'order-edit.html': 'practice',
+    'order-label.html': 'practice', 'order-result.html': 'practice', 'order-chargeback.html': 'practice',
+    'amazon.html': 'practice'
   };
   var page = location.pathname.split('/').pop();
   var area = PAGE_AREA[page];

@@ -8,7 +8,8 @@
   var subs = [];         // 제출 목록 (조인 대신 별도 조회 후 합침)
   var challenges = {};    // id → challenge
   var names = {};         // user_id → 이름
-  var filterId = new URLSearchParams(location.search).get('id') || '';
+  var qs = new URLSearchParams(location.search);
+  var filterId = qs.get('review') || qs.get('id') || '';   // ?review= (숙제 관리 "N건" 링크) 또는 옛 ?id=
   var statusFilter = 'pending';   // 기본 = 미검수만 (통과/미통과는 탭으로)
   var serverNow = Date.now();
   var REWORK_MS = 3 * 86400000;
@@ -173,7 +174,8 @@
     render();
   });
 
-  document.getElementById('revSeg').addEventListener('click', function (e) {
+  var revSegEl = document.getElementById('revSeg');   // 없는 페이지에서 로드돼도 죽지 않게
+  if (revSegEl) revSegEl.addEventListener('click', function (e) {
     var b = e.target.closest('.seg__btn'); if (!b) return;
     this.querySelectorAll('.seg__btn').forEach(function (x) { x.classList.remove('is-on'); });
     b.classList.add('is-on');

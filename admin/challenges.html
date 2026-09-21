@@ -216,6 +216,9 @@
       if (t === 'board' && window.ChallengeBoard) window.ChallengeBoard.load();
     });
   });
+  // 숙제 관리의 "N건" 링크(?review=<숙제id>)로 들어오면 검수 탭을 바로 연다 (숙제 선택은 검수 스크립트가 처리)
+  var reviewParam = new URLSearchParams(location.search).get('review');
+  if (reviewParam) { var rb = document.querySelector('.seg__btn[data-htab="review"]'); if (rb) rb.click(); }
   // 검수 대기 건수를 탭 뱃지에 동기화
   var sw = document.getElementById('sWait'), rb = document.getElementById('revBadge');
   if (sw && rb) new MutationObserver(function () { rb.textContent = sw.textContent; })
