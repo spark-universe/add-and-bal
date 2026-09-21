@@ -42,7 +42,7 @@ language plpgsql
 security definer set search_path = public
 as $$
 begin
-  if not public.is_admin() then
+  if auth.uid() is not null and not public.is_admin() then   -- 로그인 없는 맥락(SQL 편집기·서비스 롤)은 신뢰: 통과
     new.level       := old.level;
     new.role        := old.role;
     new.status      := old.status;

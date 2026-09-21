@@ -9,7 +9,7 @@
 create or replace function public.protect_submission_review()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  if not public.is_admin()
+  if auth.uid() is not null and not public.is_admin()   -- 로그인 없는 맥락은 신뢰: 통과
      and new.review_status is distinct from old.review_status
      and new.review_status in ('pass','fail') then
     -- 학생이 자기 제출을 통과/미통과로 조작 → 검수 필드 원복
@@ -27,7 +27,7 @@ create trigger trg_protect_submission before update on public.submissions
 create or replace function public.protect_chsub_review()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  if not public.is_admin() then
+  if auth.uid() is not null and not public.is_admin() then   -- 로그인 없는 맥락(SQL 편집기·서비스 롤)은 신뢰: 통과
     if new.review_status is distinct from old.review_status
        and new.review_status in ('pass','fail') then
       new.review_status := old.review_status;

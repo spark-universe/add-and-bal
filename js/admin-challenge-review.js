@@ -67,14 +67,19 @@
     renderStats();
     var list = shown();
     var body = document.getElementById('revBody');
+    // 선택 상태는 지금 보이는 행만 유지 (필터를 바꾸면 안 보이는 선택은 버림)
+    var visible = {}; list.forEach(function (s) { visible[s.id] = true; });
+    Object.keys(selected).forEach(function (id) { if (!visible[id]) delete selected[id]; });
     if (!list.length) {
-      body.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">' +
+      body.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">' +
         (statusFilter === 'pending' ? '검수할 과제가 없습니다.' : '해당하는 제출이 없습니다.') + '</td></tr>';
+      syncSel();
       return;
     }
     body.innerHTML = list.map(function (s) {
       var c = challenges[s.challenge_id] || {};
       return '<tr>' +
+        '<td style="text-align:center;"><input type="checkbox" class="rv-pick" value="' + s.id + '"' + (selected[s.id] ? ' checked' : '') + '></td>' +
         '<td>' + esc(names[s.user_id] || '-') + '</td>' +
         '<td style="text-align:left;">' + esc(c.title || '(삭제된 과제)') + '</td>' +
         '<td>' + fmtDate(s.submitted_at || s.created_at) + lateHtml(s, true) + '</td>' +
@@ -83,7 +88,59 @@
         '<td><button class="btn-sm is-primary" data-open="' + s.id + '">검수</button></td>' +
       '</tr>';
     }).join('');
+    syncSel();
   }
+
+  /* ---------- 일괄 채점: 체크한 제출에 판정·점수·사유를 한 번에 ---------- */
+  var selected = {};   // submission id → true
+  function syncSel() {
+    var n = Object.keys(selected).length;
+    var cnt = document.getElementById('rvSelCount'), btn = document.getElementById('bkApply'), all = document.getElementById('rvAll');
+    if (cnt) cnt.textContent = '선택 ' + n + '건';
+    if (btn) btn.disabled = n === 0;
+    if (all) { var boxes = document.querySelectorAll('#revBody .rv-pick'); all.checked = boxes.length > 0 && n === boxes.length; }
+  }
+  document.getElementById('revBody').addEventListener('change', function (e) {
+    var cb = e.target.closest('.rv-pick'); if (!cb) return;
+    if (cb.checked) selected[cb.value] = true; else delete selected[cb.value];
+    syncSel();
+  });
+  var rvAllEl = document.getElementById('rvAll');
+  if (rvAllEl) rvAllEl.addEventListener('change', function () {
+    var on = this.checked;
+    document.querySelectorAll('#revBody .rv-pick').forEach(function (cb) { cb.checked = on; if (on) selected[cb.value] = true; else delete selected[cb.value]; });
+    syncSel();
+  });
+  var bkApplyEl = document.getElementById('bkApply');
+  if (bkApplyEl) bkApplyEl.addEventListener('click', async function () {
+    var ids = Object.keys(selected);
+    if (!ids.length) return;
+    var status = document.getElementById('bkStatus').value;
+    var scoreVal = document.getElementById('bkScore').value.trim();
+    var reason = document.getElementById('bkReason').value.trim();
+    var waive = document.getElementById('bkWaive').checked;
+    var label = { pass: '통과', fail: '미통과', pending: '대기로 되돌림' }[status];
+    var parts = [label];
+    if (scoreVal !== '') parts.push(scoreVal + '점');
+    if (reason) parts.push('사유 "' + reason + '"');
+    if (waive) parts.push('지각 정상 처리');
+    if (!confirm('선택한 ' + ids.length + '건을 [' + parts.join(' · ') + '] 으로 처리할까요?\n(비운 항목은 기존 값을 유지합니다)')) return;
+
+    // 비운 항목은 보내지 않아 기존 값 유지. 판정은 항상 적용.
+    var payload = { review_status: status, reviewed_at: new Date().toISOString() };
+    if (scoreVal !== '') payload.score = parseInt(scoreVal, 10);
+    if (reason) payload.review_reason = reason;
+    if (waive) payload.late_waived = true;
+
+    this.disabled = true; this.textContent = '적용 중...';
+    var res = await sb.from('challenge_submissions').update(payload).in('id', ids).select('id');
+    this.textContent = '선택 건에 적용';
+    if (res.error) { this.disabled = false; alert('일괄 채점 실패: ' + res.error.message); return; }
+    var done = (res.data || []).length;
+    selected = {};
+    await load();
+    alert(done + '건 처리 완료' + (done < ids.length ? ' (' + (ids.length - done) + '건은 권한/정책으로 반영 안 됨)' : ''));
+  });
 
   function openReview(s) {
     var c = challenges[s.challenge_id] || {};

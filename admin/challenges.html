@@ -120,11 +120,28 @@
         <div class="stat"><div class="label">통과</div><div class="value"><span id="sPass">0</span> <span style="font-size:0.9rem;font-weight:600;">건</span></div></div>
         <div class="stat"><div class="label">미통과</div><div class="value"><span id="sFail">0</span> <span style="font-size:0.9rem;font-weight:600;">건</span></div></div>
       </div>
+      <!-- 일괄 채점: 아래 목록에서 체크한 제출에 판정·점수·사유를 한 번에 적용 (필터로 좁힌 뒤 전체 선택하면 편함) -->
+      <div class="panel" style="margin-bottom:12px;">
+        <div style="padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span style="font-weight:800;">일괄 채점</span>
+          <span id="rvSelCount" style="font-size:0.84rem;color:var(--muted);min-width:70px;">선택 0건</span>
+          <select id="bkStatus" style="padding:7px 9px;border:1px solid var(--border);border-radius:7px;font-size:0.84rem;">
+            <option value="pass">통과</option>
+            <option value="fail">미통과</option>
+            <option value="pending">대기로 되돌림</option>
+          </select>
+          <input type="number" id="bkScore" min="0" max="100" placeholder="점수 (비우면 유지)" style="width:150px;padding:7px 9px;border:1px solid var(--border);border-radius:7px;font-size:0.84rem;">
+          <input type="text" id="bkReason" placeholder="사유 / 피드백 (비우면 유지)" style="flex:1;min-width:200px;padding:7px 9px;border:1px solid var(--border);border-radius:7px;font-size:0.84rem;">
+          <label style="font-size:0.84rem;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="bkWaive"> 지각 제출은 정상 처리</label>
+          <button class="btn-sm is-primary" id="bkApply" disabled>선택 건에 적용</button>
+        </div>
+      </div>
+
       <div class="panel">
         <div class="panel__head"><span>제출 목록</span></div>
         <table>
-          <thead><tr><th>수강생</th><th>숙제</th><th>제출일</th><th>결과</th><th>점수</th><th>검수</th></tr></thead>
-          <tbody id="revBody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr></tbody>
+          <thead><tr><th style="width:34px;text-align:center;"><input type="checkbox" id="rvAll" title="보이는 제출 전체 선택"></th><th>수강생</th><th>숙제</th><th>제출일</th><th>결과</th><th>점수</th><th>검수</th></tr></thead>
+          <tbody id="revBody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr></tbody>
         </table>
       </div>
     </section>
