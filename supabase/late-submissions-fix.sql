@@ -1,50 +1,61 @@
 -- ============================================================
--- 지각 표시 오탐 정리 — "배포 전 제출이 지각으로 보이는" 문제
---  원인: late-submissions.sql v1 이 기존 제출의 submitted_at 을 created_at 으로 백필했는데,
---        제출 당시 마감이 없었거나(불러온 숙제는 마감 없이 시작) 마감일이 나중에 설정된 숙제에서
---        그 값이 마감보다 뒤라 '지각'으로 잡혔다. 옛 규칙상 배포 전 제출은 지각일 수 없다.
---  기준: 지각 기능은 2026-09-21 16:58 (KST) 에 배포됐다. 그 이전 시각의 submitted_at 은 전부 백필값이고,
---        실제 서버 스탬프(수강생이 확정한 시각)는 그 이후에만 존재한다.
---  ① 을 먼저 단독 실행해 결과를 확인하고, ② 를 실행한다. ② 는 백필값만 비우므로 실제 지각(배포 후)은 그대로 남는다.
+-- 지각 표시 오탐 정리 (v2) — "102건이 한꺼번에 지각으로 보이는" 문제
+--  원인: 트리거가 '어드민이 아니면 수강생'으로 판단했는데, SQL 편집기에서는 로그인 사용자가 없어(auth.uid() = NULL)
+--        is_admin() 이 false → 백필 UPDATE 자체가 '수강생의 재제출'로 취급돼 모든 확정 행의 submitted_at 이
+--        그 SQL 을 실행한 시각(now())으로 한꺼번에 덮였다. 그래서 전부 "배포 후 지각"으로 분류됐다.
+--  이 파일 하나로 끝난다 (순서가 중요해서 한 파일에 담음):
+--   ① 트리거 교체 — 인증된 수강생일 때만 시각을 찍고, SQL 편집기·서비스 롤·어드민은 문장이 준 값을 그대로 둔다
+--   ② 진단 — 같은 시각을 여러 행이 공유하면 일괄 스탬프(사람은 같은 마이크로초에 제출할 수 없음)
+--   ③ 정리 — 그 일괄 스탬프만 NULL 로. 수강생이 실제로 확정한 시각(행마다 다름)은 그대로
+--   ④ 확인
+--  ※ 옛 트리거가 남아 있으면 ③ 의 NULL 이 다시 now() 로 덮이므로 반드시 ① 이 먼저 — 그래서 한 파일. 멱등.
 -- ============================================================
 
--- ① 진단 — 지각으로 표시되는 제출을 원인별로 센다 (이것만 먼저 실행)
-with x as (
-  select s.id, s.user_id, s.created_at, s.submitted_at, s.reviewed_at, c.title, c.cohort, c.due_at,
-         case
-           when s.submitted_at is null or c.due_at is null or s.submitted_at <= c.due_at then '지각 아님'
-           when s.submitted_at < timestamptz '2026-09-21 16:58:00+09' then '배포 전 제출(백필값) → 오탐'
-           when s.submitted_at > s.created_at + interval '1 minute' then '배포 후 재제출 → 실제 지각(제출 일시 기준)'
-           else '배포 후 첫 제출 → 실제 지각'
-         end as 사유
-  from public.challenge_submissions s
-  join public.challenges c on c.id = s.challenge_id
-  where s.status is distinct from 'draft'
-)
-select 사유, count(*) as 건수 from x group by 사유 order by 건수 desc;
+-- ① 트리거 교체 (late-submissions.sql 의 정의와 동일)
+create or replace function public.set_chsub_submitted_at()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  if auth.uid() is null or public.is_admin() then
+    return new;
+  end if;
+  if tg_op = 'INSERT' then
+    new.submitted_at := case when new.status is distinct from 'draft' then now() else null end;
+    new.late_waived  := false;
+  else
+    if new.status is distinct from 'draft' then new.submitted_at := now();
+    else new.submitted_at := old.submitted_at; end if;
+    new.late_waived := old.late_waived;
+  end if;
+  return new;
+end $$;
+drop trigger if exists trg_chsub_submitted_at on public.challenge_submissions;
+create trigger trg_chsub_submitted_at
+  before insert or update on public.challenge_submissions
+  for each row execute function public.set_chsub_submitted_at();
 
--- (선택) 오탐 상세 — 어떤 수강생·숙제가 잘못 잡혔는지. 마감일이 제출보다 앞인데 제출은 배포 전인 것들.
-select p.name as 수강생, c.cohort as 기수, c.title as 숙제,
-       c.due_at as 마감, s.submitted_at as 백필된_제출시각, s.created_at as 행_생성
-from public.challenge_submissions s
-join public.challenges c on c.id = s.challenge_id
-left join public.profiles p on p.id = s.user_id
-where s.status is distinct from 'draft'
-  and s.submitted_at is not null and c.due_at is not null
-  and s.submitted_at > c.due_at
-  and s.submitted_at < timestamptz '2026-09-21 16:58:00+09'
-order by c.cohort, c.title, p.name;
+-- ② 진단 — 일괄 스탬프 찾기: 같은 submitted_at 을 공유하는 행 수 (실제 제출은 행마다 시각이 다르다)
+select submitted_at as 공유된_시각, count(*) as 행수
+from public.challenge_submissions
+where submitted_at is not null
+group by submitted_at
+having count(*) >= 3
+order by count(*) desc;
 
--- ② 정리 — 배포 전(백필) 값만 비운다. 배포 후 실제 제출 시각은 그대로. 멱등.
+-- ③ 정리 — 3행 이상이 공유하는 시각(=일괄 스탬프)만 NULL 로. 트리거가 ① 로 바뀌어 NULL 이 그대로 남는다.
 update public.challenge_submissions
 set submitted_at = null
-where submitted_at is not null
-  and submitted_at < timestamptz '2026-09-21 16:58:00+09';
+where submitted_at in (
+  select submitted_at from public.challenge_submissions
+  where submitted_at is not null
+  group by submitted_at having count(*) >= 3
+);
 
--- 확인 — 남은 지각 = 배포 후 실제 지각만이어야 한다
-select count(*) as 남은_지각_건수
-from public.challenge_submissions s
-join public.challenges c on c.id = s.challenge_id
-where s.status is distinct from 'draft'
-  and s.submitted_at is not null and c.due_at is not null
-  and s.submitted_at > c.due_at;
+-- ④ 확인 — 남은 지각(=배포 후 수강생이 실제로 늦게 확정한 것)과 남은 일괄 스탬프(0 이어야 함)
+select
+  (select count(*) from public.challenge_submissions s join public.challenges c on c.id = s.challenge_id
+     where s.status is distinct from 'draft' and s.submitted_at is not null and c.due_at is not null and s.submitted_at > c.due_at) as 남은_지각,
+  (select count(*) from (select submitted_at from public.challenge_submissions where submitted_at is not null
+     group by submitted_at having count(*) >= 3) t) as 남은_일괄스탬프_그룹;

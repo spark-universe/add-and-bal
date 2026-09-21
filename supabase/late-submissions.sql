@@ -22,20 +22,20 @@ returns trigger
 language plpgsql
 security definer set search_path = public
 as $$
-declare adm boolean := public.is_admin();
 begin
+  -- '인증된 수강생(비어드민)'의 저장만 제출로 본다.
+  -- auth.uid() 가 없는 맥락(SQL 편집기·서비스 롤·마이그레이션)과 어드민은 문장이 준 값을 그대로 둔다.
+  -- ※ "어드민이 아니면 수강생"으로 잡으면 SQL 편집기의 일괄 UPDATE 가 전부 '재제출'로 찍히는 사고가 난다(2026-09-21 실제 발생).
+  if auth.uid() is null or public.is_admin() then
+    return new;
+  end if;
   if tg_op = 'INSERT' then
     new.submitted_at := case when new.status is distinct from 'draft' then now() else null end;
-    if not adm then new.late_waived := false; end if;
+    new.late_waived  := false;
   else
-    if adm then
-      new.submitted_at := old.submitted_at;
-    elsif new.status is distinct from 'draft' then
-      new.submitted_at := now();
-    else
-      new.submitted_at := old.submitted_at;
-    end if;
-    if not adm then new.late_waived := old.late_waived; end if;
+    if new.status is distinct from 'draft' then new.submitted_at := now();
+    else new.submitted_at := old.submitted_at; end if;
+    new.late_waived := old.late_waived;
   end if;
   return new;
 end $$;
