@@ -53,7 +53,7 @@
       var tds = challenges.map(function (c) {
         var ci = cellInfo(u, c);
         // 지각 제출: 확정된 제출이 마감 뒤라면 ⏰ 표시 + 툴팁 (지각 허용 수강생은 표시 안 함)
-        var lm = (ci.s && ci.s.status !== 'draft' && !u.late_ok) ? lateMs(ci.s.submitted_at, c.due_at) : 0;
+        var lm = (ci.s && ci.s.status !== 'draft' && !u.late_ok && !ci.s.late_waived) ? lateMs(ci.s.submitted_at, c.due_at) : 0;
         var tip = lm ? ' title="지각 ' + esc(fmtLate(lm)) + '"' : '';
         if (lm) ci.txt = '⏰' + ci.txt;
         var at = ci.grade ? (' data-cell="' + u.id + '|' + c.id + '" role="button" tabindex="0"') : '';
@@ -84,6 +84,15 @@
         '<div class="modal-card__body">' +
           '<div style="font-size:0.86rem;color:var(--muted);margin-bottom:12px;">' + esc(c.title || '') + '</div>' +
           (s.content ? '<div class="field"><label>제출 내용</label><div style="white-space:pre-wrap;font-size:0.88rem;background:#f6f7f9;border-radius:8px;padding:10px 12px;word-break:break-word;">' + esc(s.content) + '</div></div>' : '') +
+          // 지각 제출이면: 얼마나 늦었는지 + 면제 선택 (검수 탭 모달과 동일)
+          (lateMs(s.submitted_at, c.due_at)
+            ? '<div style="margin:0 0 12px;padding:10px 12px;background:#fff4e6;border:1px solid #ffd8a8;border-radius:8px;font-size:0.84rem;">' +
+                '<div style="font-weight:700;margin-bottom:6px;">⏰ 지각 제출 — 마감보다 <b>' + esc(fmtLate(lateMs(s.submitted_at, c.due_at))) + '</b> 늦음' +
+                  ((u.late_ok || s.late_waived) ? ' <span class="tag tag--ok">정상 처리 중</span>' : '') + '</div>' +
+                '<label style="display:block;cursor:pointer;"><input type="checkbox" id="bgWaive"' + (s.late_waived ? ' checked' : '') + '> 이 제출은 정상 제출로 처리</label>' +
+                '<label style="display:block;cursor:pointer;margin-top:4px;"><input type="checkbox" id="bgLateOk"' + (u.late_ok ? ' checked' : '') + '> 이 수강생의 지각은 앞으로도 정상 처리</label>' +
+              '</div>'
+            : '') +
           '<div class="field"><label>결과</label><select id="bgStatus" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;">' +
             '<option value="pending"' + (s.review_status === 'pending' ? ' selected' : '') + '>대기</option>' +
             '<option value="pass"' + (s.review_status === 'pass' ? ' selected' : '') + '>통과</option>' +
@@ -104,16 +113,28 @@
       var score = sv === '' ? null : parseInt(sv, 10);
       var reason = box.querySelector('#bgReason').value.trim() || null;
       var now = new Date().toISOString();
+      var waiveEl = box.querySelector('#bgWaive'), lateOkEl = box.querySelector('#bgLateOk');   // 지각 제출일 때만 존재
       this.disabled = true;
-      var res = await sb.from('challenge_submissions')
-        .update({ review_status: status, score: score, review_reason: reason, reviewed_at: now })
-        .eq('id', s.id).select();
+      var payload = { review_status: status, score: score, review_reason: reason, reviewed_at: now };
+      if (waiveEl) payload.late_waived = waiveEl.checked;
+      var res = await sb.from('challenge_submissions').update(payload).eq('id', s.id).select();
       if (res.error || !res.data || !res.data.length) {
         this.disabled = false;
         box.querySelector('#bgErr').textContent = '저장 실패' + (res.error ? ': ' + res.error.message : ' (권한/정책 확인)');
         return;
       }
       s.review_status = status; s.score = score; s.review_reason = reason; s.reviewed_at = now;
+      if (waiveEl) s.late_waived = waiveEl.checked;
+      // 수강생 단위 면제(late_ok)가 바뀌었으면 프로필에 저장
+      if (lateOkEl && lateOkEl.checked !== !!u.late_ok) {
+        var rp = await sb.from('profiles').update({ late_ok: lateOkEl.checked }).eq('id', u.id).select();
+        if (rp.error || !rp.data || !rp.data.length) {
+          this.disabled = false;
+          box.querySelector('#bgErr').textContent = '채점은 저장됐지만 수강생 지각 허용 저장 실패' + (rp.error ? ': ' + rp.error.message : '');
+          render(); return;
+        }
+        u.late_ok = lateOkEl.checked;
+      }
       box.remove(); render();
     });
   }
@@ -161,7 +182,7 @@
         var s = (subs[u.id] || {})[c.id];
         if (!s) { if (isPastDue(c)) { none++; return '미제출'; } return '–'; }
         if (s.status === 'draft') { none++; return '초안'; }
-        var late = (!u.late_ok && lateMs(s.submitted_at, c.due_at)) ? ' (지각)' : '';
+        var late = (!u.late_ok && !s.late_waived && lateMs(s.submitted_at, c.due_at)) ? ' (지각)' : '';
         if (s.review_status === 'pass') { pass++; return (s.score != null ? s.score : '통과') + late; }
         if (s.review_status === 'fail') { fail++; return '미통과' + late; }
         wait++; return '검수대기' + late;

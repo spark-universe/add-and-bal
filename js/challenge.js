@@ -642,7 +642,7 @@
         if (isNew(c)) review += ' <span class="ch-new">NEW</span>';
         // 지각 제출 표시 (면제 수강생은 정상 처리로 안내)
         var lm = lateMs(c.sub.submitted_at, c.due_at);
-        if (lm) review += myLateOk
+        if (lm) review += (myLateOk || c.sub.late_waived)
           ? '<div style="font-size:0.72rem;color:var(--muted);margin-top:3px;">지각 · 정상 처리</div>'
           : '<div style="font-size:0.72rem;color:var(--danger);margin-top:3px;">⏰ 지각 ' + esc(fmtLate(lm)) + '</div>';
         if (reviewed(c) && c.sub.reviewed_at) {
@@ -796,7 +796,7 @@
             (c.due_at ? '<span class="ord-chip">마감 ' + fmtDate(c.due_at) +
               (d != null && d >= 0 ? ' (D-' + d + ')' : '') + '</span>' : '') +
             (isConf && lateMs(c.sub.submitted_at, c.due_at)
-              ? (myLateOk ? '<span class="ord-chip">지각 · 정상 처리</span>'
+              ? ((myLateOk || c.sub.late_waived) ? '<span class="ord-chip">지각 · 정상 처리</span>'
                           : '<span class="ord-chip" style="color:var(--danger);">⏰ 지각 제출 ' + esc(fmtLate(lateMs(c.sub.submitted_at, c.due_at))) + '</span>')
               : '') +
           '</div>' +
