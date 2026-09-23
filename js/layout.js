@@ -63,6 +63,7 @@
       { key: 'events',      section: '공통',              ico: '📅', label: '일정 관리',    href: 'events.html' },
 
       { key: 'manualsched', section: '챌린지',            ico: '📘', label: '매뉴얼 공개',   href: 'manual-schedule.html' },
+      { key: 'manualvideo', section: '챌린지',            ico: '🎬', label: '매뉴얼 영상',   href: 'manual-videos.html' },
       { key: 'challenges',  section: '챌린지',            ico: '📋', label: '숙제 관리',    href: 'challenges.html' },
 
       { key: 'products',    section: '발주 &amp; 광고 관리', ico: '🛍️', label: '상품 관리',   href: 'products.html' },

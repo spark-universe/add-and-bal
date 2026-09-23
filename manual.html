@@ -54,6 +54,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase.js"></script>
 <script src="js/auth.js"></script>
+<script src="js/manual-video.js"></script>
 <script>Auth.require();</script>
 <script>
 // 매뉴얼: DB에서 목차/본문을 그려 챕터별 단일 보기. 공개는 서버시간(한국) 기준.
@@ -114,17 +115,27 @@ function mesc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){retu
 
 async function renderManual() {
   try {
-    var res = await sb.from('manual_chapters').select('slug,num,title,part,sort,soon,body').order('sort', { ascending: true });
+    var cols = 'slug,num,title,part,sort,soon,body';
+    var res = await sb.from('manual_chapters').select(cols + ',videos').order('sort', { ascending: true });
+    // videos 컬럼(supabase/manual-videos.sql)이 아직 없는 DB면 영상 없이라도 본문은 보이게
+    if (res && res.error) res = await sb.from('manual_chapters').select(cols).order('sort', { ascending: true });
     var chapters = (res && res.data) || [];
     var nav = '', body = '', lastPart = null, tmp = document.createElement('div');
     chapters.forEach(function (c) {
       if (c.part && c.part !== lastPart) { nav += '<div class="nav-part">' + mesc(c.part) + '</div>'; lastPart = c.part; }
-      // '준비중'은 soon 플래그가 켜져 있고 본문이 비어 있을 때만. 본문(SQL)을 올리면 자동으로 사라진다
-      var isSoon = !!c.soon && !(c.body && String(c.body).trim());
+      // 영상 링크(videos 컬럼)는 본문의 <div data-video-slot></div> 자리에, 슬롯이 없으면 본문 맨 위에 그린다 (js/manual-video.js)
+      var vHtml = (window.ManualVideo && c.videos) ? ManualVideo.render(c.videos) : '';
+      // '준비중'은 soon 플래그가 켜져 있고 본문·영상이 모두 비어 있을 때만. 본문(SQL)이나 영상을 올리면 자동으로 사라진다
+      var isSoon = !!c.soon && !(c.body && String(c.body).trim()) && !vHtml;
       nav += '<a class="nav-item' + (isSoon ? ' soon' : '') + '" href="#' + mesc(c.slug) + '">' +
         '<span class="nav-num">' + mesc(c.num || '') + '</span><span class="nav-txt">' + mesc(c.title || '') + '</span>' +
         (isSoon ? '<span class="nav-badge">준비중</span>' : '') + '</a>';
       tmp.innerHTML = c.body || '';
+      if (vHtml) {
+        var slot = tmp.querySelector('[data-video-slot]');
+        if (slot) slot.innerHTML = vHtml; else tmp.insertAdjacentHTML('afterbegin', vHtml);
+      }
+      var bodyHtml = tmp.innerHTML;
       // 본문에 data-subnav 로 표시된 소절이 있으면 목차에 소메뉴(앵커) 추가
       var subEls = tmp.querySelectorAll('[data-subnav]');
       if (subEls.length) {
@@ -137,7 +148,7 @@ async function renderManual() {
       }
       body += '<section class="doc-section" id="' + mesc(c.slug) + '">' +
         '<div class="sec-head"><span class="sec-num">' + mesc(c.num || '') + '</span><h2 class="sec-title">' + mesc(c.title || '') + '</h2></div>' +
-        (c.body || '') + '</section>';
+        bodyHtml + '</section>';
       CH.push({ slug: c.slug, title: (c.title || '').toLowerCase(), bodyText: (tmp.textContent || '').toLowerCase() });
     });
     // 맨 앞에 '챌린지 소개' 화면 (진입 시 제일 먼저 보임)
