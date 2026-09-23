@@ -59,6 +59,7 @@
   var myCohort = 1;                 // 내 기수 (캘린더의 매뉴얼 예약 공개 조회에 사용)
   var manualTitles = {};            // slug → 매뉴얼 제목
   var monthManual = [];             // 이번 달 매뉴얼 예약 공개 (내 기수)
+  var monthHolidays = [];           // 이번 달에 걸치는 휴일 (notices kind=holiday) — 칸 색칠 + 진행 없음 칩
   var scheduleList = [];            // 내 기수 숙제 일정(공개 전 포함, 제목·일정만)
   var subById = {};                 // challenge_id → 내 제출(색상용)
   var myLateOk = false;             // 어드민이 '지각 허용'한 수강생이면 true → 지각 표시 대신 정상 처리 안내
@@ -370,6 +371,7 @@
 
     // 달력 클릭: 일정 마커 → 수정, 빈 날짜 → 추가, 과제 마커 → 상세
     document.getElementById('cal').addEventListener('click', function (e) {
+      if (e.target.closest('.cal__ev.holiday')) return;   // 휴일 칩: 툴팁 안내만 (일정 추가로 넘어가지 않게)
       var mEl = e.target.closest('.cal__ev.manual');
       if (mEl) {   // 매뉴얼 예약 공개 마커 → 정보 + 바로가기 팝업
         var r = monthManual.find(function (x) { return x.slug === mEl.getAttribute('data-mslug'); });
@@ -410,6 +412,11 @@
       .eq('cohort', myCohort).eq('status', 'scheduled')
       .gte('publish_at', start).lt('publish_at', end);
     monthManual = (mm.data || []).filter(function (r) { return r.publish_at; });
+    // 휴일(공지 kind=holiday): 이 달에 하루라도 걸치는 것. 표가 없거나 오류면 없는 것으로
+    var last = new Date(calYear, calMonth + 1, 0).getDate();
+    var hd = await sb.from('notices').select('id,title,from_date,to_date').eq('kind', 'holiday')
+      .lte('from_date', iso(calYear, calMonth, last)).gte('to_date', iso(calYear, calMonth, 1));
+    monthHolidays = hd.error ? [] : (hd.data || []);
   }
   function fmtTime(iso) {
     var d = new Date(iso), h = d.getHours(), ap = h >= 12 ? '오후' : '오전', h12 = h % 12 || 12;
@@ -434,6 +441,14 @@
     // 날짜 칸 안 칩: 매뉴얼 예약 공개(내 기수) + 일정
     var items = {};
     function add(day, html) { (items[day] = items[day] || []).push(html); }
+    // 휴일: 칸 색칠(dayCls) + 맨 앞 칩
+    var dayCls = {};
+    monthHolidays.forEach(function (h) {
+      Cal.eachDay(h.from_date, h.to_date, calYear, calMonth, function (day) {
+        dayCls[day] = 'is-holiday';
+        add(day, '<span class="cal__ev holiday" title="챌린지 진행 없음">🏮 ' + esc(h.title) + '</span>');
+      });
+    });
     monthManual.forEach(function (r) {
       var d = new Date(r.publish_at);
       if (d.getFullYear() === calYear && d.getMonth() === calMonth)
@@ -447,7 +462,7 @@
         esc(fmtTime(e.start_at)) + ' ' + esc(e.title) + '</span>');
     });
 
-    Cal.render(document.getElementById('cal'), { year: calYear, month: calMonth, todayISO: todayISO(), spans: spans, items: items });
+    Cal.render(document.getElementById('cal'), { year: calYear, month: calMonth, todayISO: todayISO(), spans: spans, items: items, dayCls: dayCls });
   }
   function iso(y, m, d) {
     return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');

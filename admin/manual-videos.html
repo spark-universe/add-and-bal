@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>어드민 · 매뉴얼 영상</title>
+<link rel="stylesheet" href="../styles.css"><link rel="stylesheet" href="../css/style.css">
+<style>
+  .mv-list{display:flex;flex-direction:column;gap:6px;text-align:left}
+  .mv-item{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:0.84rem}
+  .mv-item .mv-url{color:var(--muted);font-size:0.76rem;max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mv-edit{display:grid;grid-template-columns:150px 1fr auto auto;gap:8px;align-items:center;margin-bottom:10px}
+  .mv-edit input{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;font-family:inherit}
+  .mv-edit input:focus{outline:none;border-color:var(--primary)}
+  .mv-edit .mv-kind{grid-column:2 / -1;font-size:0.76rem;margin-top:-4px;min-height:1.2em}
+  .mv-hint{background:#f6f8fb;border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:0.8rem;color:#4b5563;line-height:1.7;margin-bottom:14px}
+  .mv-hint b{color:#1f2430}
+  .mv-hint code{background:#fff;border:1px solid var(--border);border-radius:5px;padding:1px 5px;font-size:0.78rem}
+  .mv-warn{color:#b9791a;font-weight:700}
+  @media (max-width:640px){.mv-edit{grid-template-columns:1fr 1fr}.mv-edit .mv-kind{grid-column:1 / -1}}
+</style>
+</head>
+<body data-area="admin" data-active="manualvideo">
+<div class="layout">
+  <div id="sidebar"></div>
+  <main class="content">
+    <div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
+      <div>
+        <h2>매뉴얼 영상</h2>
+        <p>챕터별 영상 링크를 붙여넣어 저장하면 수강생 매뉴얼에 바로 반영됩니다. (모든 기수 공통)<br>
+          링크 형태에 따라 자동으로 <b>드라이브는 새 창 버튼</b>, <b>유튜브는 사이트 안 재생</b>, <b>사이트 파일(manual/videos/…)은 플레이어</b>로 보여줍니다.</p>
+      </div>
+      <a class="btn-sm" href="../manual.html" target="_blank" rel="noopener" style="flex-shrink:0;">매뉴얼 보기 ↗</a>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head">
+        <span>챕터 <span id="mvCount" style="color:var(--muted);font-weight:600;"></span></span>
+        <span class="form-saved" id="saved" hidden>저장되었습니다</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:64px;">번호</th>
+            <th style="width:260px;">챕터</th>
+            <th>영상</th>
+            <th style="width:110px;">편집</th>
+          </tr>
+        </thead>
+        <tbody id="mvBody">
+          <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:40px;">불러오는 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<!-- 챕터 영상 편집 팝업 -->
+<div class="modal-overlay" id="vModal">
+  <div class="modal-card" style="max-width:720px;">
+    <div class="modal-card__head">
+      <h3 id="vTitle">영상 링크</h3>
+      <button type="button" class="modal-close" id="vClose">&times;</button>
+    </div>
+    <div class="modal-card__body">
+      <div class="mv-hint">
+        <b>구글 드라이브</b> — 공유 링크를 그대로 붙여넣기. 파일이 <b>"링크가 있는 모든 사용자"</b>로 공유돼 있어야 수강생이 볼 수 있어요. (새 창에서 재생)<br>
+        <b>유튜브</b> — 미등록(일부 공개) 영상의 링크. 사이트 안에서 바로 재생돼요.<br>
+        <b>사이트 파일</b> — 리포에 올린 파일 경로 <code>manual/videos/파일명.mp4</code> (파일명만 적어도 됩니다).<br>
+        제목은 선택입니다 — 한 챕터에 영상이 여러 개면 제목으로 구분해 주세요. 위에서부터 순서대로 보입니다.
+      </div>
+      <div id="vList"></div>
+      <button class="btn-sm" id="vAdd" type="button">＋ 영상 추가</button>
+    </div>
+    <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn-sm" id="vCancel" type="button">취소</button>
+      <button class="btn-primary" id="vSave" type="button">저장</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase.js"></script>
+<script src="../js/util.js"></script><script src="../js/layout.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/manual-video.js"></script>
+<script src="../js/admin-manual-videos.js"></script>
+</body>
+</html>

@@ -9,6 +9,7 @@
          todayISO,               // 'YYYY-MM-DD' (오늘 칸 강조)
          spans: [{ start: Date, end: Date, cls: 'todo|soon|done|over|hidden', label: HTML, attrs: 'data-id="1" title="..."' }],
          items: { [day]: [chipHTML, ...] }   // 날짜 칸 안에 넣을 칩(HTML 완성본, .cal__ev)
+         dayCls: { [day]: 'is-holiday' }   // (선택) 날짜 칸에 붙일 클래스 — 휴일 색칠 등
        })
    - 클릭 구분은 호출 쪽이 attrs 로 넘긴 data-* 로 한다 (막대는 .cal__lanes 안에 있어 칸 밖이다)
    - label/attrs 는 호출 쪽에서 esc() 처리해 넘길 것
@@ -49,7 +50,7 @@
       for (var col = 0; col < 7; col++) {
         if (col < startCol || day > days) { cells += '<div class="cal__cell is-empty"></div>'; continue; }
         var isToday = opt.todayISO === isoOf(y, m, day);
-        cells += '<div class="cal__cell' + (isToday ? ' is-today' : '') + '" data-day="' + day + '">' +
+        cells += '<div class="cal__cell' + (isToday ? ' is-today' : '') + (opt.dayCls && opt.dayCls[day] ? ' ' + opt.dayCls[day] : '') + '" data-day="' + day + '">' +
           '<span class="cal__num">' + day + '</span>' + (items[day] || []).join('') + '</div>';
         day++;
       }
@@ -84,5 +85,13 @@
     el.innerHTML = html;
   }
 
-  window.Cal = { render: render, isoOf: isoOf };
+  // 'YYYY-MM-DD' 범위(양끝 포함) 중 (y, m) 달에 드는 날마다 fn(day) — 휴일 칸 색칠 등에 사용
+  function eachDay(fromISO, toISO, y, m, fn) {
+    if (!fromISO || !toISO) return;
+    var d = new Date(fromISO + 'T00:00:00'), end = new Date(toISO + 'T00:00:00');
+    if (isNaN(d.getTime()) || isNaN(end.getTime())) return;
+    for (; d <= end; d.setDate(d.getDate() + 1)) if (d.getFullYear() === y && d.getMonth() === m) fn(d.getDate());
+  }
+
+  window.Cal = { render: render, isoOf: isoOf, eachDay: eachDay };
 })();

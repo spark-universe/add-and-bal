@@ -1,7 +1,7 @@
 -- ============================================================
 -- 챕터 2 '미국 현지화 실습'(slug=localize) 본문 교체
 --  · 절 순서: 마켓 → 세금 → 배송 / 각 절 data-subnav 소메뉴
---  · 마켓: 자체호스팅 영상 + UI 안내 / 세금: 노션 실제자료 / 배송: 이미지 포함
+--  · 마켓: 영상(슬롯 — 링크는 manual_chapters.videos, 어드민 '매뉴얼 영상' 화면에서 교체; 컬럼은 manual-videos.sql 이 만듦) + UI 안내 / 세금: 노션 실제자료 / 배송: 이미지 포함
 --  · 확인 문제(퀴즈) 없음
 --  Supabase SQL Editor 에서 실행. (영상·이미지는 배포로 함께 올라감)
 -- ============================================================
@@ -10,7 +10,7 @@ update public.manual_chapters set body = $body$<h3 class="subsection" id="locali
 
 <div class="callout note"><div class="callout-label">⚠ 중요</div><p>※ 마켓은 현재 쇼피파이 UI 업데이트로 인하여 “설정 → 마켓”이 아닌 쇼피파이 초기 접속 화면에서 <b>“Markets” 또는 “시장”</b>을 참조해 주세요!</p></div>
 <p>마켓 설정은 아래 영상을 보고 그대로 따라 하시면 됩니다. (Markets 메뉴 → 마켓 생성 → 조건에 미국 추가 → 저장)</p>
-<div class="mn-video"><video src="manual/videos/localize-market.mp4" controls preload="metadata" playsinline></video></div>
+<div data-video-slot></div>
 
 <h3 class="subhead">마켓 설정 시 주의사항</h3>
 <p>마켓 설정은 판매 국가·통화·언어·도메인·결제·배송 설정과 연결되는 기본 설정입니다. 미국 판매라면 미국 마켓이 활성화되어 있어야 하고, 이후 배송·세금 설정에서도 미국이 정상적으로 연결되어 있는지 함께 확인하는 것이 좋습니다.</p>
@@ -118,3 +118,8 @@ update public.manual_chapters set body = $body$<h3 class="subsection" id="locali
 <h3 class="subhead">최종 확인 체크리스트</h3>
 <ul class="bullets"><li>일반 프로필에 접속했는지 확인</li><li>배송 지역(미국 또는 판매 국가)이 추가되어 있는지 확인</li><li>배송 옵션 이름·요금·운송 시간이 입력되어 있는지 확인</li><li>마지막에 저장 버튼을 눌렀는지 확인</li></ul>
 $body$ where slug = 'localize';
+
+-- 마켓 절 영상 링크 초기값 — 비어 있을 때만 (어드민 '매뉴얼 영상' 화면에서 바꾼 값은 유지; 컬럼은 manual-videos.sql 이 만듦)
+update public.manual_chapters
+set videos = '[{"title": "", "url": "manual/videos/localize-market.mp4"}]'::jsonb
+where slug = 'localize' and videos = '[]'::jsonb;
