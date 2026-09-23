@@ -15,6 +15,53 @@
       <p>학생 캘린더에 뜰 일정을 배포하고(전체·특정 기수·특정 인원), 학생별 캘린더를 확인합니다.</p>
     </div>
 
+    <!-- 휴일 · 공지: 수강생 화면 상단 배너 + 하루 1회 팝업. 휴일은 캘린더에 색칠되고 '일정 밀기'의 기준이 된다 (notices 표) -->
+    <div class="panel">
+      <div class="panel__head"><span>휴일 · 공지</span><span class="form-saved" id="nSaved" hidden>등록되었습니다</span></div>
+      <div style="padding:20px 24px;">
+        <div class="prod-form">
+          <div class="field">
+            <label>종류</label>
+            <select id="nKind" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;">
+              <option value="holiday">휴일 (챌린지 진행 없음)</option>
+              <option value="info">일반 공지</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>대상</label>
+            <select id="nCohort" style="width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:8px;font-size:0.88rem;"><option value="">전체 수강생</option></select>
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label>제목 <span style="color:var(--danger);">*</span></label>
+            <input type="text" id="nTitle" placeholder="예: 추석 연휴">
+          </div>
+          <div class="field n-holiday"><label>휴일 시작 <span style="color:var(--danger);">*</span></label><input type="date" id="nFrom"></div>
+          <div class="field n-holiday"><label>휴일 끝 (포함) <span style="color:var(--danger);">*</span></label><input type="date" id="nTo"></div>
+          <div class="field" style="grid-column:1/-1;">
+            <label>내용 (배너·팝업에 표시)</label>
+            <textarea id="nText" rows="3" style="width:100%;padding:11px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:0.88rem;resize:vertical;"></textarea>
+            <div class="field-hint">휴일은 제목·날짜를 넣으면 문구가 자동으로 채워집니다. 고쳐 쓰셔도 됩니다.</div>
+          </div>
+          <div class="field"><label>노출 시작</label><input type="datetime-local" id="nShowFrom"></div>
+          <div class="field">
+            <label>노출 끝</label><input type="datetime-local" id="nShowUntil">
+            <div class="field-hint">비우면 계속 보입니다. 휴일은 휴일 끝 날 23:59로 자동 설정됩니다.</div>
+          </div>
+          <div class="field" style="grid-column:1/-1;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;"><input type="checkbox" id="nPopup" checked> 처음 접속할 때 팝업으로도 보여주기 (하루 1회)</label>
+          </div>
+        </div>
+        <div style="margin-top:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <button class="btn-primary" id="nSave">등록하기</button>
+          <span style="font-size:0.8rem;color:var(--muted);">등록한 휴일은 아래 목록의 <b>📆 일정 밀기</b>로 챕터 공개일·숙제 마감을 휴일만큼 뒤로 옮길 수 있습니다.</span>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th style="width:80px;">종류</th><th>제목 · 내용</th><th style="width:170px;">휴일 기간</th><th style="width:220px;">노출</th><th style="width:110px;">대상</th><th style="width:80px;">상태</th><th style="width:170px;">관리</th></tr></thead>
+        <tbody id="nList"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px;">불러오는 중...</td></tr></tbody>
+      </table>
+    </div>
+
     <!-- 일정 배포 -->
     <div class="panel">
       <div class="panel__head"><span>일정 배포</span><span class="form-saved" id="saved" hidden>배포되었습니다</span></div>
@@ -87,12 +134,36 @@
           <span class="cal__bar hidden">🚩 숨김 (기수별)</span>
           <span class="cal-legend__k cal-legend__sep">일정</span>
           <span class="cal__ev manual">📘 매뉴얼 공개일</span>
+          <span class="cal__ev holiday">🏮 휴일 (진행 없음)</span>
           <span class="cal__ev adm">어드민 배포</span>
           <span class="cal__ev mine">개인 일정 (학생별)</span>
         </div>
       </div>
     </div>
   </main>
+</div>
+
+<!-- 일정 밀기 (휴일 기준) -->
+<div class="modal-overlay" id="sModal">
+  <div class="modal-card" style="max-width:780px;">
+    <div class="modal-card__head"><h3 id="sTitle">일정 밀기</h3><button type="button" class="modal-close" id="sClose">&times;</button></div>
+    <div class="modal-card__body">
+      <div id="sInfo" style="font-size:0.86rem;line-height:1.6;margin-bottom:12px;"></div>
+      <div style="font-size:0.8rem;font-weight:700;margin-bottom:6px;">적용할 기수</div>
+      <div id="sCohorts" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;"></div>
+      <div style="max-height:360px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
+        <table>
+          <thead><tr><th style="width:90px;">기수</th><th>항목</th><th style="width:170px;">현재</th><th style="width:170px;">변경 후</th></tr></thead>
+          <tbody id="sList"></tbody>
+        </table>
+      </div>
+    </div>
+    <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;align-items:center;">
+      <span id="sCount" style="margin-right:auto;font-size:0.84rem;color:var(--muted);font-weight:700;"></span>
+      <button class="btn-sm" id="sCancel" type="button">취소</button>
+      <button class="btn-primary" id="sApply" type="button">적용</button>
+    </div>
+  </div>
 </div>
 
 <!-- 특정 인원 선택 -->

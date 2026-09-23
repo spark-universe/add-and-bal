@@ -197,4 +197,49 @@
       } catch (e) {}
     })();
   }
+
+  // ---------- 휴일·공지 배너 + 하루 1회 팝업 (notices 표, supabase/notices.sql — 어드민 '일정 관리 → 휴일·공지'에서 등록) ----------
+  //   수강생 화면(main.content)에만. 표가 아직 없거나 오류면 조용히 건너뛴다.
+  if (area !== 'admin' && typeof sb !== 'undefined') {
+    (async function () {
+      try {
+        var escN = (typeof esc === 'function') ? esc : function (s) {
+          return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
+        };
+        var nowMs = Date.now();
+        var r = await sb.from('notices').select('id,kind,title,body,popup,show_until')
+          .lte('show_from', new Date(nowMs).toISOString()).order('created_at', { ascending: false }).limit(20);
+        if (r.error) return;
+        var list = (r.data || []).filter(function (n) { return !n.show_until || Date.parse(n.show_until) > nowMs; });
+        list.sort(function (a, b) { return (b.kind === 'holiday' ? 1 : 0) - (a.kind === 'holiday' ? 1 : 0); });   // 휴일 먼저
+        if (!list.length) return;
+        var main = document.querySelector('main.content');
+        if (!main) return;
+        main.insertAdjacentHTML('afterbegin', list.map(function (n) {
+          var hol = n.kind === 'holiday';
+          return '<div class="site-notice' + (hol ? ' holiday' : '') + '" data-notice="' + n.id + '">' +
+            '<span class="site-notice__ico">' + (hol ? '🏮' : '📢') + '</span>' +
+            '<div><b>' + escN(n.title) + '</b>' + (n.body ? '<div class="site-notice__body">' + escN(n.body) + '</div>' : '') + '</div></div>';
+        }).join(''));
+        // 팝업: 오늘 아직 안 본 것 중 하나만(휴일 우선). [확인]을 누르면 오늘은 다시 안 뜬다
+        var t = new Date(), dayKey = t.getFullYear() + '-' + (t.getMonth() + 1) + '-' + t.getDate();
+        var seen = function (id) { try { return localStorage.getItem('notice.seen.' + id) === dayKey; } catch (e) { return false; } };
+        var n = list.filter(function (x) { return x.popup && !seen(x.id); })[0];
+        if (!n) return;
+        var ov = document.createElement('div');
+        ov.className = 'modal-overlay is-open';
+        ov.innerHTML = '<div class="modal-card" style="max-width:460px;">' +
+          '<div class="modal-card__head"><h3>' + (n.kind === 'holiday' ? '🏮 ' : '📢 ') + escN(n.title) + '</h3>' +
+            '<button type="button" class="modal-close" data-x>&times;</button></div>' +
+          '<div class="modal-card__body" style="white-space:pre-line;font-size:0.93rem;line-height:1.7;">' + escN(n.body || '') + '</div>' +
+          '<div style="padding:14px 20px;border-top:1px solid var(--border);text-align:right;"><button class="btn-primary" type="button" data-x>확인</button></div></div>';
+        var close = function () {
+          try { localStorage.setItem('notice.seen.' + n.id, dayKey); } catch (e) {}
+          if (ov.parentNode) ov.parentNode.removeChild(ov);
+        };
+        ov.addEventListener('click', function (e) { if (e.target === ov || e.target.closest('[data-x]')) close(); });
+        document.body.appendChild(ov);
+      } catch (e) {}
+    })();
+  }
 })();
