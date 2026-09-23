@@ -4,7 +4,9 @@
 --  · 각 앱 data-subnav 앵커 → 사이드바 소메뉴
 --  Supabase SQL Editor 에서 실행. (이미지는 배포로 함께: manual/images/source-autods-*, source-zendrop-*)
 -- ============================================================
-update public.manual_chapters set body = $body$<h3 class="subhead">소싱 앱 소개</h3>
+update public.manual_chapters set body = $body$<div class="callout danger" data-notice="cost"><div class="callout-label">🚨 꼭 읽어주세요 — 비용 안내</div><p><b>이 단원(소싱 앱 소개)에서 소개하는 앱(AutoDS · Zendrop 등)을 실제로 설치·구독하시면 앱 이용 비용이 청구될 수 있습니다.</b></p><p>지금 바로 설치·연동하지 않아도 됩니다. <b>매뉴얼은 정독(눈으로 익히기)만 하셔도 충분</b>하며, 실제 진행은 준비가 되었을 때 하셔도 됩니다.</p></div>
+
+<h3 class="subhead">소싱 앱 소개</h3>
 <div class="callout overview"><div class="callout-label">이 챕터 개요</div><p><b>소싱 앱</b>은 판매할 상품을 찾아 Shopify 스토어로 업로드하고, 주문이 들어오면 발주까지 도와주는 도구입니다. 여기서는 <b>AutoDS</b>와 <b>Zendrop</b> 두 가지를 소개합니다. 흐름(상품 찾기 → 수정 → 업로드 → 주문 처리)은 비슷하니 <b>편한 것 하나</b>를 골라 쓰면 됩니다.</p></div>
 
 

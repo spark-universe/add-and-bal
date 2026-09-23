@@ -621,6 +621,7 @@
           '<button class="btn-sm" data-detail="' + u.id + '">상세</button> ' +
           '<button class="btn-sm" data-rename="' + u.id + '">이름 변경</button> ' +
           '<button class="btn-sm" data-reset="' + esc(u.email) + '">비번 재설정</button> ' +
+          '<button class="btn-sm" data-setpw="' + u.id + '" title="새 비밀번호를 직접 정해서 바로 적용 (메일 없이)">비번 변경</button> ' +
           (approvedU ? '<button class="btn-sm" data-unapprove="' + u.id + '">승인 취소</button> ' : '') +
           '<button class="btn-sm is-danger" data-delete="' + u.id + '">삭제</button>' +
         '</td>' +
@@ -730,6 +731,42 @@
     var unapproveId = btn.getAttribute('data-unapprove');
     var deleteId = btn.getAttribute('data-delete');
     var renameId = btn.getAttribute('data-rename');
+    var setpw = btn.getAttribute('data-setpw');
+
+    // 비밀번호 직접 설정 — 브라우저는 service_role 키를 가질 수 없으므로 서버 함수(/api/admin-set-password)에
+    // 어드민 세션 토큰과 함께 요청하고, 서버가 어드민 여부를 검증한 뒤 Supabase Admin API 로 바꾼다.
+    if (setpw) {
+      var uP = all.filter(function (x) { return x.id === setpw; })[0];
+      var who = uP ? (uP.name || uP.email || '수강생') : '수강생';
+      var pw = prompt('"' + who + '"님의 새 비밀번호를 입력하세요 (8자 이상).\n설정 후 새 비밀번호를 수강생에게 직접 전달해 주세요.', '');
+      if (pw == null) return;
+      pw = pw.trim();
+      if (pw.length < 8) { alert('비밀번호는 8자 이상이어야 합니다.'); return; }
+      if (!confirm('"' + who + '"님의 비밀번호를 지금 바꿀까요?\n기존 비밀번호로는 더 이상 로그인할 수 없습니다.')) return;
+      var sess = await sb.auth.getSession();
+      var token = (sess.data && sess.data.session) ? sess.data.session.access_token : '';
+      btn.disabled = true;
+      try {
+        var rp = await fetch('/api/admin-set-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ userId: setpw, password: pw }),
+        });
+        var out = null; try { out = await rp.json(); } catch (e) {}
+        if (!rp.ok) {
+          var m = (out && out.error) || ('HTTP ' + rp.status);
+          if (m === 'SERVICE_ROLE_KEY_MISSING') m = '서버에 Supabase service_role 키가 없습니다.\nVercel → Settings → Environment Variables 에 SUPABASE_SERVICE_ROLE_KEY 를 등록한 뒤 Redeploy 하세요.';
+          alert('비밀번호 변경 실패: ' + m);
+          return;
+        }
+        alert('"' + who + '"님의 비밀번호를 변경했습니다.\n새 비밀번호를 수강생에게 전달하세요. (수강생이 이미 로그인해 둔 기기는 그 세션이 끝날 때까지 유지됩니다)');
+      } catch (e) {
+        alert('비밀번호 변경 실패: 서버 함수에 연결할 수 없습니다. 배포 직후라면 잠시 후 다시 시도하세요.');
+      } finally {
+        btn.disabled = false;
+      }
+      return;
+    }
 
     // 가입 이름 변경 (오타·개명 등). name 은 보호 컬럼이 아니라 어드민이 바로 고칠 수 있다.
     if (renameId) {
