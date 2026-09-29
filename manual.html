@@ -87,6 +87,15 @@ function initLightbox() {
     box.addEventListener('click', function (e) { if (e.target.tagName !== 'IMG') close(); });
     document.addEventListener('keydown', onKey);
   }
+  // 이미지 로드 실패 시 캐시를 우회해 1회 재시도 — 배포가 끝나기 전에 챕터를 열면 404 가 30일 캐시되어(vercel.json 의
+  // Cache-Control 이 404 에도 붙음) 배포 뒤에도 그 이미지만 계속 안 보이던 문제의 복구
+  document.getElementById('manualBody').addEventListener('error', function (e) {
+    var im = e.target;
+    if (!im || im.tagName !== 'IMG' || im.dataset.retried) return;
+    im.dataset.retried = '1';
+    var src = im.getAttribute('src');
+    if (src) im.setAttribute('src', src + (src.indexOf('?') === -1 ? '?' : '&') + 'r=' + Date.now());
+  }, true);
   document.getElementById('manualBody').addEventListener('click', function (e) {
     // 프롬프트 블록 [복사] — .mn-prompt 안의 <pre> 텍스트를 클립보드로
     var cp = e.target.closest('.mn-copy');
