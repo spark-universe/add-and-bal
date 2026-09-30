@@ -18,14 +18,12 @@ alter table public.challenge_submissions add column if not exists late_waived  b
 --    · 초안 저장은 시각 유지 · 어드민의 갱신(검수·면제)은 시각 유지
 --    · late_waived 는 어드민만 바꿀 수 있다 (수강생이 보내면 무시)
 create or replace function public.set_chsub_submitted_at()
-returns trigger
-language plpgsql
-security definer set search_path = public
-as $$
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  rework_until timestamptz;
 begin
   -- '인증된 수강생(비어드민)'의 저장만 제출로 본다.
   -- auth.uid() 가 없는 맥락(SQL 편집기·서비스 롤·마이그레이션)과 어드민은 문장이 준 값을 그대로 둔다.
-  -- ※ "어드민이 아니면 수강생"으로 잡으면 SQL 편집기의 일괄 UPDATE 가 전부 '재제출'로 찍히는 사고가 난다(2026-09-21 실제 발생).
   if auth.uid() is null or public.is_admin() then
     return new;
   end if;
@@ -33,8 +31,16 @@ begin
     new.submitted_at := case when new.status is distinct from 'draft' then now() else null end;
     new.late_waived  := false;
   else
-    if new.status is distinct from 'draft' then new.submitted_at := now();
-    else new.submitted_at := old.submitted_at; end if;
+    -- 미통과 뒤 재작업 기한(검수일 + 3일, 그날 23:59 KST) 안의 재제출은 담당자가 허용한 수정 → 원래 제출 일시 유지
+    if old.review_status = 'fail' and old.reviewed_at is not null and old.submitted_at is not null then
+      rework_until := (((old.reviewed_at at time zone 'Asia/Seoul')::date + 4)::timestamp) at time zone 'Asia/Seoul';
+    end if;
+    if new.status is distinct from 'draft' then
+      if rework_until is not null and now() < rework_until then new.submitted_at := old.submitted_at;
+      else new.submitted_at := now(); end if;
+    else
+      new.submitted_at := old.submitted_at;
+    end if;
     new.late_waived := old.late_waived;
   end if;
   return new;

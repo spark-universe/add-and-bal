@@ -17,13 +17,13 @@
     {
       "source": "/manual/(images|videos|files)/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=2592000" }
+        { "key": "Cache-Control", "value": "public, max-age=3600, s-maxage=2592000" }
       ]
     },
     {
       "source": "/cbguide/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=2592000" }
+        { "key": "Cache-Control", "value": "public, max-age=3600, s-maxage=2592000" }
       ]
     }
   ]

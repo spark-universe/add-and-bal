@@ -83,7 +83,11 @@
     var c = cohorts.find(function (x) { return x.id === id; });
     return c ? (c.label + (c.enroll_date ? ' · ' + c.enroll_date : '')) : (id + '기');
   }
-  function ymd(iso) { return iso ? iso.slice(0, 10) : '-'; }
+  function ymd(iso) {   // 로컬(KST) 날짜 — ISO 를 그대로 자르면 UTC 라서 오전 9시 전 기록이 전날로 보인다
+    if (!iso) return '-';
+    var d = new Date(iso); if (isNaN(d.getTime())) return '-';
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
   function host(url) { try { return new URL(safeUrl(url)).host; } catch (e) { return url; } }
 
   async function load() {

@@ -269,6 +269,10 @@ $$;
 
 -- ---------- 3-1. 프로필 민감 컬럼 보호 (수강생 스스로 등급·권한 변경 금지) ----------
 --  수강생이 본인 프로필을 수정하더라도 level/role/status/cohort 는 어드민만 바꿀 수 있게 되돌린다.
+-- 보호 목록의 컬럼이 아직 없는 DB 에서도 이 함수가 오류 없이 돌도록 (다른 파일이 만드는 컬럼)
+alter table public.profiles add column if not exists is_demo boolean not null default false;
+alter table public.profiles add column if not exists access  text[]  not null default '{}';
+alter table public.profiles add column if not exists late_ok boolean not null default false;
 create or replace function public.protect_profile_fields()
 returns trigger
 language plpgsql
@@ -276,12 +280,14 @@ security definer set search_path = public
 as $$
 begin
   if auth.uid() is not null and not public.is_admin() then   -- 로그인 없는 맥락(SQL 편집기·서비스 롤)은 신뢰: 통과
-    new.level  := old.level;
-    new.role   := old.role;
-    new.status := old.status;
-    new.cohort := old.cohort;
+    new.level       := old.level;
+    new.role        := old.role;
+    new.status      := old.status;
+    new.cohort      := old.cohort;
     new.enroll_date := old.enroll_date;
-    new.is_demo := old.is_demo;      -- 데모 계정이 스스로 제한을 풀지 못하게
+    new.is_demo     := old.is_demo;
+    new.access      := old.access;
+    new.late_ok     := old.late_ok;
   end if;
   return new;
 end;

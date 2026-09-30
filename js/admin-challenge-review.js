@@ -24,6 +24,7 @@
   }
   var qs = new URLSearchParams(location.search);
   var filterId = qs.get('review') || qs.get('id') || '';   // ?review= (숙제 관리 "N건" 링크) 또는 옛 ?id=
+  var deepLinkDone = false;   // 딥링크 기수 맞추기는 첫 로드에서 한 번만
   var statusFilter = 'pending';   // 기본 = 미검수만 (통과/미통과는 탭으로)
   var serverNow = Date.now();
   var REWORK_MS = 3 * 86400000;
@@ -280,6 +281,19 @@
 
   async function load() {
     try { var r = await sb.rpc('server_now'); if (r && r.data) { var t = Date.parse(r.data); if (!isNaN(t)) serverNow = t; } } catch (e) {}
+    // 숙제 관리 "N건" 링크(?review=<id>)로 들어왔는데 그 숙제가 지금 선택된 기수가 아니면, 기수 선택기를 그 숙제의 기수로 맞춘다
+    // (기수 선택기가 바뀌면 change 이벤트로 이 load() 가 다시 불리고, 등록·현황판 탭도 같은 기수로 따라온다)
+    var coSel0 = document.getElementById('cohortSel');
+    if (filterId && !deepLinkDone && coSel0 && coSel0.options.length) {   // 기수 목록이 아직 안 채워졌으면 다음 로드에서
+      deepLinkDone = true;
+      var one = await sb.from('challenges').select('cohort').eq('id', filterId).maybeSingle();
+      var co0 = one && one.data ? one.data.cohort : null;
+      if (coSel0 && co0 != null && String(coSel0.value) !== String(co0) && coSel0.querySelector('option[value="' + co0 + '"]')) {
+        coSel0.value = String(co0);
+        coSel0.dispatchEvent(new Event('change'));
+        return;
+      }
+    }
     // 과제
     // 선택한 기수의 숙제만 (challenges.html 의 기수 선택기). 전 기수를 한 목록에 섞지 않도록.
     var coEl = document.getElementById('cohortSel');

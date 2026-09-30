@@ -19,7 +19,10 @@ function safeUrl(u) {
   if (/^[a-z][a-z0-9+.\-]*:/i.test(s)) return '#'; // 다른 스킴(javascript:, data: 등) → 차단
   return 'https://' + s;                           // 스킴 없음 → https 로 보정
 }
-function money(n, d) { return '$' + Number(n || 0).toFixed(d == null ? 2 : d); }
+function money(n, d) {   // 음수는 -$12.34 ($-12.34 가 아니라)
+  var v = Number(n || 0), s = Math.abs(v).toFixed(d == null ? 2 : d);
+  return (v < 0 && Number(s) !== 0 ? '-' : '') + '$' + s;
+}
 function round2(n) { return Math.round(n * 100) / 100; }
 
 /* ---------- 난수 ---------- */

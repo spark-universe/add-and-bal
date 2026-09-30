@@ -401,6 +401,7 @@
       } else return;
       sItems.push(row);
     });
+    if (n.cohort != null) sItems = sItems.filter(function (it) { return it.cohort === n.cohort; });   // 특정 기수 휴일이면 그 기수 일정만
     sSel = {}; sItems.forEach(function (it) { sSel[it.cohort] = true; });
     el('sTitle').textContent = '일정 밀기 — ' + n.title;
     el('sInfo').innerHTML = '<b>' + esc(fmtMD(n.from_date)) + (n.to_date !== n.from_date ? ' ~ ' + esc(fmtMD(n.to_date)) : '') + '</b> (평일 ' + sN + '일) 이후에 잡힌 ' +
