@@ -240,10 +240,24 @@
       if (r.status === 'scheduled' && r.publish_at) manualPublish[r.slug] = r.publish_at;
     });
   }
+  // 마감 기본값: 시작일시 + 6일, 그날 오후 11:59 (로컬)
+  function dueFromOpen(openVal) {
+    if (!openVal) return null;
+    var d = new Date(openVal);
+    if (isNaN(d.getTime())) return null;
+    d.setDate(d.getDate() + 6);
+    d.setHours(23, 59, 0, 0);
+    return d;
+  }
+  function syncDueToOpen() {
+    var d = dueFromOpen(els.open.value);
+    els.due.value = d ? isoToLocal(d.toISOString()) : els.due.value;
+  }
   // 관련 매뉴얼 선택에 맞춰 시작일시 자동 설정 (공개 예약이 있으면 그 일시, 없으면 즉시=비움)
   function syncOpenToManual() {
     var slug = els.manual.value;
     els.open.value = (slug && manualPublish[slug]) ? isoToLocal(manualPublish[slug]) : '';
+    syncDueToOpen();
   }
 
   async function load() {
@@ -361,6 +375,7 @@
 
   // 관련 매뉴얼을 고르면 시작일시를 그 매뉴얼 공개일과 동일하게 자동 설정
   els.manual.addEventListener('change', syncOpenToManual);
+  els.open.addEventListener('change', syncDueToOpen);   // 시작일시를 손으로 바꿔도 마감이 +6일 오후 11:59 로 따라감
 
   els.groups.addEventListener('click', async function (e) {
     // "이 단원에 숙제 추가" → 폼에 그 단원을 미리 선택하고 위로
@@ -540,7 +555,7 @@
         manual_slug: c.manual_slug,
         material_url: c.material_url, material_path: c.material_path, material_name: c.material_name,
         open_at: (c.manual_slug && manualPublish[c.manual_slug]) || null,   // 시작일시 = 현재 기수 매뉴얼 공개일
-        due_at: null,                                                       // 마감은 직접 설정
+        due_at: (function (o) { var d = dueFromOpen(o); return d ? d.toISOString() : null; })((c.manual_slug && manualPublish[c.manual_slug]) || null),   // 마감 = 시작 + 6일 오후 11:59
       };
     });
     impEls.apply.disabled = true;
