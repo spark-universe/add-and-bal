@@ -54,7 +54,6 @@
       '<td style="text-align:center;"><b>미분류</b> <span style="color:var(--muted);font-weight:400;font-size:0.82rem;">(미승인·기수 미배정)</span></td>' +
       '<td style="text-align:center;color:var(--muted);">–</td>' +
       '<td><button class="btn-link" data-act="students" data-id="0">' + unassigned.length + '명</button></td>' +
-      '<td style="color:var(--muted);">–</td>' +
       '<td style="color:var(--muted);font-size:0.85rem;">승인 시 기수가 배정됩니다</td>' +
       '</tr>';
     els.body.innerHTML = rows + extra;
